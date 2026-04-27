@@ -163,7 +163,6 @@
         <button class="cerrar-btn" onclick="toggleInventario()">CERRAR</button>
     </div>
 
-    <!-- Ventana de Skills -->
     <div id="skills-ui" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; padding: 10px; border: 1px solid #fff; z-index: 20000; display: none; width: 400px; max-width: 90vw; text-align: center; font-family: monospace;">
         <h3 style="margin:0 0 10px 0; color:#fff;">📚 INVENTARIO DE SKILLS</h3>
         <div id="skills-grid" class="skills-grid" style="max-height: 300px; overflow-y: auto;"></div>
@@ -515,7 +514,7 @@ var tabInventarioActivo = 'inv';
 const recetas = { 'antorcha': { patron: [{ id:'madera', cantidad:1 },{ id:'tela', cantidad:1 },{ id:'grasa', cantidad:1 }], resultado: { id:'antorcha_item', tipo:'herramienta', nombre:'Antorcha', icono:'🪔', cantidad:1, esAntorcha:true } } };
 
 function toggleChat() { const c = document.getElementById('chat-container'); c.classList.toggle('chat-minimizado'); }
-function toggleInventario() { let u = document.getElementById('inventario-ui'); if(u.style.display === 'none' || u.style.display === ''){ renderizarInventario(); renderizarMesa(); u.style.display = 'block'; } else { u.style.display = 'none'; } }
+function toggleInventario() { let u = document.getElementById('inventario-ui'); if(u.style.display === 'none' || u.style.display === ''){ window.actualizarInventario(); renderizarMesa(); u.style.display = 'block'; } else { u.style.display = 'none'; } }
 function toggleStatsPanel() { let p = document.getElementById('stats-panel'); p.classList.toggle('visible'); actualizarStatsUI(); }
 function cambiarTab(tab) { tabActivo = tab; document.querySelectorAll('#stats-panel .tab').forEach(t => t.classList.remove('active')); document.querySelector(`#stats-panel .tab[data-tab="${tab}"]`).classList.add('active'); document.querySelectorAll('#stats-panel .tab-content').forEach(c => c.classList.remove('active')); document.getElementById(`tab-${tab}`).classList.add('active'); if (tab === 'mesa') renderizarMesa(); }
 function cambiarTabInventario(tab) { tabInventarioActivo = tab; document.querySelectorAll('#inventario-ui .tab').forEach(t => t.classList.remove('active')); document.querySelector(`#inventario-ui .tab[data-tab="${tab}"]`).classList.add('active'); document.querySelectorAll('#inventario-ui .tab-content').forEach(c => c.classList.remove('active')); document.getElementById(`tab-${tab}`).classList.add('active'); if (tab === 'craft') renderizarMesa(); }
@@ -748,6 +747,7 @@ function moverItem(origen,oi,destino,di){
     }
     renderizarInventario(); renderizarMesa(); guardarPartida();
 }
+window.actualizarInventario = function() { renderizarInventario(); };
 function renderizarInventario(){ const g=document.getElementById('inventario-grid'); if(!g)return; g.innerHTML=''; for(let i=0;i<inventarioSlots.length;i++){ const s=inventarioSlots[i]; const d=crearSlotElement(s,i,'inventario'); g.appendChild(d); } }
 function renderizarMesa(){ const g=document.getElementById('mesa-grid'); if(!g)return; g.innerHTML=''; for(let i=0;i<mesaSlots.length;i++){ const s=mesaSlots[i]; const d=crearSlotElement(s,i,'mesa'); g.appendChild(d); } }
 function crearSlotElement(slot, index, origen) {
@@ -882,7 +882,6 @@ function addOtherPlayer(self,info){ if(!info.class)return; const o=self.physics.
 function actualizarHPBar(){ actualizarStatsUI(); }
 function actualizarDemonlordHPBar(){ let p=(demonlordHP/demonlordMaxHP)*100; document.getElementById('demonlord-hp-fill').style.width=p+'%'; document.getElementById('demonlord-hp-text').innerHTML=`👹 ${Math.floor(demonlordHP)}/${demonlordMaxHP}`; }
 
-// Sistema de chat con input
 let chatInput, chatSend;
 
 function create(){
@@ -890,7 +889,6 @@ function create(){
     socket = io();
     console.log('Socket conectado:', socket.id);
     
-    // Configurar chat después de crear socket
     chatInput = document.getElementById('chat-input');
     chatSend = document.getElementById('chat-send');
     
@@ -917,7 +915,6 @@ function create(){
     window.rocasGrupo=this.add.group();
     window.esqueletosGrupo = this.add.group();
     
-    // Música de fondo
     const musica = this.sound.add('musicaFondo', { loop: true, volume: 0.5 });
     musica.play();
     
@@ -1241,7 +1238,7 @@ function create(){
     socket.on('antorchaEncendida',(data)=>{ antorchaActiva=true; tieneAntorchaCraftada=false; actualizarEstadoAntorcha(true); mostrarMensaje(`🪔 Antorcha encendida`,'exito'); guardarPartida(); });
     socket.on('antorchaApagada',(data)=>{ antorchaActiva=false; actualizarEstadoAntorcha(false); mostrarMensaje(`🪔 Antorcha apagada`,'info'); guardarPartida(); });
     socket.on('materialObtenido',(data)=>{ const nom=data.tipo==='tela'?'Tela':'Grasa'; const ico=data.tipo==='tela'?'🧵':'🕯️'; agregarItemAlInventario(data.tipo,'material',nom,ico,data.cantidad,true); });
-    socket.on('chatMessage',(data)==>{ 
+    socket.on('chatMessage',(data)=>{ 
         if(data.name !== 'Sistema') mostrarMensaje(`[${data.name}] ${data.msg}`,'info');
         else mostrarMensaje(`${data.msg}`,'info');
     });
