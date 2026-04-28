@@ -20,8 +20,8 @@
         .loading-text { font-size: 12px; }
         #info { position: fixed; bottom: 5px; right: 5px; color: #666; font-size: 8px; background: #000; padding: 2px 5px; border: 1px solid #333; z-index: 1000; font-family: monospace; }
         
-        /* Chat - Mover a la derecha para no tapar vida */
-        #chat-container { position: fixed; bottom: 5px; right: 5px; width: 260px; z-index: 1000; transition: all 0.3s; background: rgba(0,0,0,0.8); border-radius: 5px; }
+        /* Chat - abajo centro */
+        #chat-container { position: fixed; bottom: 5px; left: 50%; transform: translateX(-50%); width: 260px; z-index: 1000; background: rgba(0,0,0,0.8); border-radius: 5px; }
         #chat-logs { background: #000; color: #aaa; overflow-y: auto; font-size: 8px; padding: 4px; border: 1px solid #444; height: 90px; font-family: monospace; }
         #chat-header { background: #111; border: 1px solid #444; border-bottom: none; padding: 4px 8px; cursor: pointer; display: flex; justify-content: space-between; color: #fff; font-size: 9px; font-weight: bold; border-radius: 5px 5px 0 0; }
         .chat-minimizado #chat-logs { display: none; }
@@ -31,32 +31,28 @@
         #chat-send { background: #000; border: 1px solid #444; color: #fff; padding: 4px 8px; cursor: pointer; font-size: 8px; border-radius: 3px; }
         #chat-send:hover { background: #333; }
         
-        /* Botones flotantes - Mover a la izquierda */
-        .floating-tabs { position: fixed; top: 5px; left: 5px; display: flex; gap: 5px; z-index: 10000; }
+        /* Botones flotantes - debajo de HP/Mana */
+        .floating-tabs { position: fixed; top: 55px; left: 5px; display: flex; gap: 5px; z-index: 10000; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 15px; }
         .floating-tab { background: rgba(0,0,0,0.7); border: 1px solid #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; font-family: monospace; color: #fff; }
         
-        /* Stats panel - mover a la derecha */
+        /* Stats panel - derecha centro */
         #stats-panel { position: fixed; top: 50%; right: 5px; left: auto; transform: translateY(-50%); background: rgba(0,0,0,0.9); border: 1px solid #fff; border-radius: 5px; padding: 8px; min-width: 150px; z-index: 1000; font-family: monospace; font-size: 8px; display: none; }
         #stats-panel.visible { display: block; }
         
-        /* HP y mana a la izquierda arriba */
-        #hp-bar, #demonlord-hp-bar, #mana-bar { position: fixed; left: 5px; height: 10px; border-radius: 5px; overflow: hidden; z-index: 1000; }
-        #hp-bar { top: 5px; width: 140px; background: rgba(80,0,0,0.7); border: 1px solid rgba(255,50,50,0.8); }
+        /* HP y Mana - arriba izquierda */
+        #hp-bar { position: fixed; top: 5px; left: 5px; width: 140px; height: 10px; background: rgba(80,0,0,0.7); border: 1px solid rgba(255,50,50,0.8); border-radius: 5px; overflow: hidden; z-index: 1000; }
         #hp-fill { width: 100%; height: 100%; background: rgba(255,50,50,0.8); transition: width 0.3s; }
-        #mana-bar { top: 20px; width: 140px; background: rgba(0,0,80,0.7); border: 1px solid rgba(50,50,255,0.8); }
+        #mana-bar { position: fixed; top: 20px; left: 5px; width: 140px; height: 10px; background: rgba(0,0,80,0.7); border: 1px solid rgba(50,50,255,0.8); border-radius: 5px; overflow: hidden; z-index: 1000; }
         #mana-fill { width: 100%; height: 100%; background: rgba(50,50,255,0.8); transition: width 0.3s; }
-        #demonlord-hp-bar { top: 35px; left: 5px; width: 160px; background: rgba(80,0,0,0.7); border: 1px solid rgba(255,100,0,0.8); display: none; }
+        
+        /* Demonlord HP - arriba derecha (solo visible en batalla) */
+        #demonlord-hp-bar { position: fixed; top: 5px; right: 5px; left: auto; width: 160px; height: 10px; background: rgba(80,0,0,0.7); border: 1px solid rgba(255,100,0,0.8); border-radius: 5px; overflow: hidden; z-index: 1000; display: none; }
         #demonlord-hp-fill { width: 100%; height: 100%; background: rgba(255,100,0,0.8); transition: width 0.3s; }
         
         #hp-text, #mana-text, #demonlord-hp-text { position: fixed; left: 5px; width: 140px; text-align: center; color: #fff; font-size: 7px; font-weight: bold; z-index: 1001; font-family: monospace; text-shadow: 1px 1px 0 #000; }
         #hp-text { top: 5px; }
         #mana-text { top: 20px; }
-        #demonlord-hp-text { top: 35px; left: 5px; width: 160px; display: none; }
-        
-        /* Menú contextual para invitar */
-        .context-menu { position: fixed; background: #111; border: 1px solid #fff; border-radius: 5px; z-index: 20000; display: none; }
-        .context-menu-item { padding: 8px 15px; cursor: pointer; color: #fff; font-size: 12px; font-family: monospace; }
-        .context-menu-item:hover { background: #333; }
+        #demonlord-hp-text { position: fixed; top: 5px; right: 5px; left: auto; width: 160px; text-align: center; color: #fff; font-size: 7px; font-weight: bold; z-index: 1001; font-family: monospace; text-shadow: 1px 1px 0 #000; display: none; }
         
         .stat-section { margin-bottom: 8px; }
         .section-title { color: #fff; font-size: 9px; border-bottom: 1px solid #444; margin-bottom: 4px; padding-bottom: 2px; }
@@ -82,8 +78,7 @@
         .skill-name { font-size: 12px; font-weight: bold; color: #fff; margin-top: 5px; }
         .skill-desc { font-size: 8px; color: #aaa; margin-top: 5px; }
         .skill-cost { font-size: 8px; color: #ffaa66; margin-top: 3px; }
-        /* SOLO 2 SLOTS DE SKILLS */
-        #skills-bar { position: fixed; bottom: 15px; right: 80px; display: flex; gap: 8px; z-index: 10000; }
+        #skills-bar { position: fixed; bottom: 15px; right: auto; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 10000; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 20px; }
         .skill-slot-small { background: #1a1a1a; border: 1px solid #444; width: 60px; height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; border-radius: 5px; transition: all 0.2s; }
         .skill-slot-small.drag-over { border: 2px solid #fff; background: #333; transform: scale(1.05); }
         .skill-slot-small.equipped { border-color: #88ff88; background: #1a3a1a; }
@@ -102,6 +97,10 @@
         #btn-attack { position: fixed; bottom: 15px; right: 15px; width: 50px; height: 50px; border-radius: 25px; background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff; font-size: 24px; cursor: pointer; z-index: 10000; display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
         #joystick-area { position: fixed; bottom: 15px; left: 15px; width: 100px; height: 100px; border-radius: 50px; background: transparent; z-index: 9999; touch-action: none; }
         .stat-preview { position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%); background: #000; border: 1px solid #fff; padding: 6px 12px; border-radius: 6px; font-size: 9px; z-index: 10000; font-family: monospace; pointer-events: none; max-width: 85vw; text-align: center; line-height: 1.4; }
+        .context-menu { position: fixed; background: #111; border: 1px solid #fff; border-radius: 5px; z-index: 20000; display: none; }
+        .context-menu-item { padding: 8px 15px; cursor: pointer; color: #fff; font-size: 12px; font-family: monospace; }
+        .context-menu-item:hover { background: #333; }
+        
         @media (min-width: 768px) {
             .inventario-grid { grid-template-columns: repeat(6, 60px); grid-auto-rows: 60px; gap: 4px; padding: 8px; }
             .mesa-grid { grid-template-columns: repeat(3, 60px); grid-auto-rows: 60px; gap: 4px; padding: 8px; }
@@ -110,16 +109,19 @@
             .slot-cantidad { font-size: 11px; bottom: 3px; right: 3px; min-width: 18px; padding: 1px 3px; }
             .slot-nombre { font-size: 8px; display: block; }
             .skills-grid { grid-template-columns: repeat(2, 1fr); }
-            .skill-slot-small { width: 70px; height: 80px; font-size: 28px; }
+            .skill-slot-small { width: 70px; height: 80px; }
             .skill-slot-small .skill-name-small { font-size: 9px; }
             #stats-panel { min-width: 180px; padding: 12px; font-size: 11px; }
             .section-title { font-size: 12px; }
             .floating-tab { padding: 5px 12px; font-size: 14px; }
+            .floating-tabs { top: 65px; padding: 6px 12px; }
             #btn-attack { width: 65px; height: 65px; font-size: 32px; }
-            #skills-bar { bottom: 15px; right: 95px; gap: 10px; }
+            #skills-bar { bottom: 20px; }
             #joystick-area { width: 140px; height: 140px; }
             #hp-bar, #mana-bar { width: 200px; height: 14px; }
+            #demonlord-hp-bar { width: 200px; height: 14px; }
             #hp-text, #mana-text { width: 200px; font-size: 9px; }
+            #demonlord-hp-text { width: 200px; font-size: 9px; }
             #chat-container { width: 320px; }
             #chat-logs { font-size: 10px; height: 120px; }
             #chat-input { font-size: 10px; }
@@ -193,7 +195,6 @@
 
     <div id="stat-preview" class="stat-preview" style="display:none;"></div>
     
-    <!-- Menú contextual para invitar -->
     <div id="context-menu" class="context-menu" style="display:none;">
         <div class="context-menu-item" onclick="invitarJugadorSeleccionado()">🎮 Invitar al equipo</div>
     </div>
@@ -225,7 +226,7 @@ var joystickActivo = false;
 // ========== SISTEMA DE SKILLS ==========
 var skillsDisponibles = [];
 var skillsEquipadas = [];
-var MAX_SKILLS = 2; // SOLO 2 SLOTS
+var MAX_SKILLS = 2;
 
 const SKILLS_DATA = {
     'levantar_muerto': {
@@ -240,7 +241,7 @@ const SKILLS_DATA = {
     'furia_necrotica': {
         id: 'furia_necrotica',
         nombre: 'Furia Necrótica',
-        descripcion: 'Potencia esqueletos aliados: +5% daño por cada esqueleto, 10 segundos',
+        descripcion: 'Potencia esqueletos aliados: +10% daño por cada esqueleto, 10 segundos, 10 maná por esqueleto',
         costo: '10 maná por esqueleto',
         icono: 'skills/furia_necrotica.png',
         soloNecromancer: true,
@@ -260,7 +261,6 @@ function cargarSkillsPorClase() {
     const savedSkills = localStorage.getItem(SAVE_KEY + '_skills');
     if (savedSkills) {
         skillsEquipadas = JSON.parse(savedSkills);
-        // Limitar a MAX_SKILLS
         if (skillsEquipadas.length > MAX_SKILLS) skillsEquipadas = skillsEquipadas.slice(0, MAX_SKILLS);
     } else {
         skillsEquipadas = pClassName === 'NECROMANCER' ? ['levantar_muerto', 'furia_necrotica'] : [];
@@ -525,7 +525,6 @@ function toggleSkills() {
     }
 }
 
-// Velocidades reducidas
 var classStats = {
     'BÁRBARO': { hp: 800, mana: 50, ataqueFisico: 80, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 120, attackSpeed: 0.7, inteligencia: 0, sabiduria: 0 },
     'WARRIOR': { hp: 500, mana: 60, ataqueFisico: 50, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 150, attackSpeed: 1.0, inteligencia: 0, sabiduria: 0 },
@@ -917,7 +916,6 @@ function preload(){
 }
 function crearTextoDmg(esc,x,y,txt,col,sz){ if(!esc)return; let t=esc.add.text(x,y,txt,{fontSize:sz||'18px',fill:col||'#fff',fontStyle:'bold',fontFamily:'monospace',stroke:'#000',strokeThickness:2}).setOrigin(0.5).setDepth(9999); esc.tweens.add({targets:t,y:y-50,alpha:0,duration:600,onComplete:()=>t.destroy()}); }
 function addOtherPlayer(self,info){ if(!info.class)return; const o=self.physics.add.sprite(info.x,info.y,info.class).setScale(2); o.id=info.id; o.pClass=info.class; o.targetX=info.x; o.targetY=info.y; o.setDepth(info.y); 
-    // Agregar evento de click derecho para invitar
     o.setInteractive();
     o.on('pointerdown', (pointer) => {
         if (pointer.rightButtonDown()) {
@@ -940,7 +938,6 @@ function actualizarHPBar(){ actualizarStatsUI(); }
 function actualizarDemonlordHPBar(){ let p=(demonlordHP/demonlordMaxHP)*100; document.getElementById('demonlord-hp-fill').style.width=p+'%'; document.getElementById('demonlord-hp-text').innerHTML=`👹 ${Math.floor(demonlordHP)}/${demonlordMaxHP}`; }
 
 let chatInput, chatSend;
-let demonlordVisible = false;
 let demonlordCheckInterval;
 
 function create(){
@@ -964,7 +961,6 @@ function create(){
         if (e.key === 'Enter') enviarMensaje();
     });
     
-    // Solicitar vida del Demonlord periódicamente si está cerca
     demonlordCheckInterval = setInterval(() => {
         if (player && player.active) {
             socket.emit('solicitarDemonlordHP');
@@ -1260,15 +1256,45 @@ function create(){
         
         mostrarMensaje(`💀 ¡Esqueleto aliado revivido!`, 'exito');
     });
+    
+    // FURIA NECRÓTICA - efecto visual en esqueletos
     socket.on('furiaNecroticaEffect', (data) => {
         if (data.playerId === socket.id) {
-            mostrarMensaje(`🔥 ¡Furia Necrótica! Tus esqueletos están potenciados por 10 segundos`, 'exito');
-            player.setTint(0xff6600);
+            mostrarMensaje(`🔥 ¡Furia Necrótica! Tus esqueletos están potenciados por 10 segundos (+${Math.floor(data.bonusPorcentaje * 100)}% daño)`, 'exito');
+            
+            if (window.esqueletosGrupo) {
+                window.esqueletosGrupo.getChildren().forEach(esq => {
+                    if (data.esqueletosIds.includes(esq.esqueletoId)) {
+                        esq.setTint(0xff3333);
+                    }
+                });
+            }
+            
             setTimeout(() => {
-                if (player) player.clearTint();
+                if (window.esqueletosGrupo) {
+                    window.esqueletosGrupo.getChildren().forEach(esq => {
+                        if (data.esqueletosIds.includes(esq.esqueletoId)) {
+                            esq.clearTint();
+                            if (esq.isAlly) esq.setTint(0x88ff88);
+                        }
+                    });
+                }
             }, 10000);
         }
     });
+    
+    socket.on('furiaNecroticaEnd', (data) => {
+        if (data.playerId === socket.id) {
+            if (window.esqueletosGrupo) {
+                window.esqueletosGrupo.getChildren().forEach(esq => {
+                    if (esq.isAlly) {
+                        esq.setTint(0x88ff88);
+                    }
+                });
+            }
+        }
+    });
+    
     socket.on('enemyDamaged', (data) => {
         if (data.id === 'demonlord') { demonlordHP = data.hp; actualizarDemonlordHPBar(); crearTextoDmg(this, data.x, data.y, data.dmg, '#fff', '20px'); }
         else {
