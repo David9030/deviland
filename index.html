@@ -19,7 +19,9 @@
         .loading-bar { width: 0%; height: 100%; background: #fff; transition: width 0.3s; }
         .loading-text { font-size: 12px; }
         #info { position: fixed; bottom: 5px; right: 5px; color: #666; font-size: 8px; background: #000; padding: 2px 5px; border: 1px solid #333; z-index: 1000; font-family: monospace; }
-        #chat-container { position: fixed; bottom: 5px; left: 5px; width: 260px; z-index: 1000; transition: all 0.3s; background: rgba(0,0,0,0.8); border-radius: 5px; }
+        
+        /* Chat - Mover a la derecha para no tapar vida */
+        #chat-container { position: fixed; bottom: 5px; right: 5px; width: 260px; z-index: 1000; transition: all 0.3s; background: rgba(0,0,0,0.8); border-radius: 5px; }
         #chat-logs { background: #000; color: #aaa; overflow-y: auto; font-size: 8px; padding: 4px; border: 1px solid #444; height: 90px; font-family: monospace; }
         #chat-header { background: #111; border: 1px solid #444; border-bottom: none; padding: 4px 8px; cursor: pointer; display: flex; justify-content: space-between; color: #fff; font-size: 9px; font-weight: bold; border-radius: 5px 5px 0 0; }
         .chat-minimizado #chat-logs { display: none; }
@@ -28,19 +30,34 @@
         #chat-input { flex: 1; background: #000; border: 1px solid #444; color: #fff; padding: 4px; font-family: monospace; font-size: 8px; border-radius: 3px; }
         #chat-send { background: #000; border: 1px solid #444; color: #fff; padding: 4px 8px; cursor: pointer; font-size: 8px; border-radius: 3px; }
         #chat-send:hover { background: #333; }
+        
+        /* Botones flotantes - Mover a la izquierda */
+        .floating-tabs { position: fixed; top: 5px; left: 5px; display: flex; gap: 5px; z-index: 10000; }
+        .floating-tab { background: rgba(0,0,0,0.7); border: 1px solid #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; font-family: monospace; color: #fff; }
+        
+        /* Stats panel - mover a la derecha */
+        #stats-panel { position: fixed; top: 50%; right: 5px; left: auto; transform: translateY(-50%); background: rgba(0,0,0,0.9); border: 1px solid #fff; border-radius: 5px; padding: 8px; min-width: 150px; z-index: 1000; font-family: monospace; font-size: 8px; display: none; }
+        #stats-panel.visible { display: block; }
+        
+        /* HP y mana a la izquierda arriba */
         #hp-bar, #demonlord-hp-bar, #mana-bar { position: fixed; left: 5px; height: 10px; border-radius: 5px; overflow: hidden; z-index: 1000; }
         #hp-bar { top: 5px; width: 140px; background: rgba(80,0,0,0.7); border: 1px solid rgba(255,50,50,0.8); }
         #hp-fill { width: 100%; height: 100%; background: rgba(255,50,50,0.8); transition: width 0.3s; }
         #mana-bar { top: 20px; width: 140px; background: rgba(0,0,80,0.7); border: 1px solid rgba(50,50,255,0.8); }
         #mana-fill { width: 100%; height: 100%; background: rgba(50,50,255,0.8); transition: width 0.3s; }
-        #demonlord-hp-bar { top: 5px; right: 5px; left: auto; width: 160px; background: rgba(80,0,0,0.7); border: 1px solid rgba(255,100,0,0.8); }
+        #demonlord-hp-bar { top: 35px; left: 5px; width: 160px; background: rgba(80,0,0,0.7); border: 1px solid rgba(255,100,0,0.8); display: none; }
         #demonlord-hp-fill { width: 100%; height: 100%; background: rgba(255,100,0,0.8); transition: width 0.3s; }
+        
         #hp-text, #mana-text, #demonlord-hp-text { position: fixed; left: 5px; width: 140px; text-align: center; color: #fff; font-size: 7px; font-weight: bold; z-index: 1001; font-family: monospace; text-shadow: 1px 1px 0 #000; }
         #hp-text { top: 5px; }
         #mana-text { top: 20px; }
-        #demonlord-hp-text { top: 5px; right: 5px; left: auto; width: 160px; }
-        #stats-panel { position: fixed; top: 50%; left: 5px; transform: translateY(-50%); background: rgba(0,0,0,0.9); border: 1px solid #fff; border-radius: 5px; padding: 8px; min-width: 150px; z-index: 1000; font-family: monospace; font-size: 8px; display: none; }
-        #stats-panel.visible { display: block; }
+        #demonlord-hp-text { top: 35px; left: 5px; width: 160px; display: none; }
+        
+        /* Menú contextual para invitar */
+        .context-menu { position: fixed; background: #111; border: 1px solid #fff; border-radius: 5px; z-index: 20000; display: none; }
+        .context-menu-item { padding: 8px 15px; cursor: pointer; color: #fff; font-size: 12px; font-family: monospace; }
+        .context-menu-item:hover { background: #333; }
+        
         .stat-section { margin-bottom: 8px; }
         .section-title { color: #fff; font-size: 9px; border-bottom: 1px solid #444; margin-bottom: 4px; padding-bottom: 2px; }
         .stat-row { display: flex; justify-content: space-between; margin: 2px 0; color: #ccc; }
@@ -65,6 +82,8 @@
         .skill-name { font-size: 12px; font-weight: bold; color: #fff; margin-top: 5px; }
         .skill-desc { font-size: 8px; color: #aaa; margin-top: 5px; }
         .skill-cost { font-size: 8px; color: #ffaa66; margin-top: 3px; }
+        /* SOLO 2 SLOTS DE SKILLS */
+        #skills-bar { position: fixed; bottom: 15px; right: 80px; display: flex; gap: 8px; z-index: 10000; }
         .skill-slot-small { background: #1a1a1a; border: 1px solid #444; width: 60px; height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; border-radius: 5px; transition: all 0.2s; }
         .skill-slot-small.drag-over { border: 2px solid #fff; background: #333; transform: scale(1.05); }
         .skill-slot-small.equipped { border-color: #88ff88; background: #1a3a1a; }
@@ -80,10 +99,7 @@
         .slot-nombre { font-size: 6px; color: #888; margin-top: 1px; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 1px; display: none; }
         .boton-craftear, .cerrar-btn { margin-top: 6px; padding: 3px 8px; background: #000; color: #fff; border: 1px solid #fff; cursor: pointer; font-family: monospace; font-size: 8px; width: 100%; }
         hr { border-color: #333; margin: 5px 0; }
-        .floating-tabs { position: fixed; top: 5px; right: 5px; display: flex; gap: 5px; z-index: 10000; }
-        .floating-tab { background: rgba(0,0,0,0.7); border: 1px solid #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; font-family: monospace; color: #fff; }
         #btn-attack { position: fixed; bottom: 15px; right: 15px; width: 50px; height: 50px; border-radius: 25px; background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff; font-size: 24px; cursor: pointer; z-index: 10000; display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
-        #skills-bar { position: fixed; bottom: 15px; right: 80px; display: flex; gap: 8px; z-index: 10000; }
         #joystick-area { position: fixed; bottom: 15px; left: 15px; width: 100px; height: 100px; border-radius: 50px; background: transparent; z-index: 9999; touch-action: none; }
         .stat-preview { position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%); background: #000; border: 1px solid #fff; padding: 6px 12px; border-radius: 6px; font-size: 9px; z-index: 10000; font-family: monospace; pointer-events: none; max-width: 85vw; text-align: center; line-height: 1.4; }
         @media (min-width: 768px) {
@@ -119,7 +135,7 @@
         <div class="class-box">
             <h2>CREAR PERSONAJE</h2>
             <input type="text" id="nombre-input" placeholder="NOMBRE"><br>
-            <button class="class-btn" onclick="seleccionarClase('barbaro', 'BÁRBARO')">⚔️ BÁRBARO</button>
+            <button class="class-btn" onclick="seleccionarClase('barbaro', 'BÁRBARO')">⚔️ BÁRBARO (Golpe lento + Daño)</button>
             <button class="class-btn" onclick="seleccionarClase('caballero', 'CABALLERO')">🛡️ CABALLERO</button>
             <button class="class-btn" onclick="seleccionarClase('warrior', 'WARRIOR')">🏹 WARRIOR</button>
             <button class="class-btn" onclick="seleccionarClase('barbaro', 'MAGO')">🔮 MAGO</button>
@@ -128,8 +144,9 @@
     </div>
     <div id="hp-bar"><div id="hp-fill"></div></div><div id="hp-text">❤️ 500/500</div>
     <div id="mana-bar"><div id="mana-fill"></div></div><div id="mana-text">💙 100/100</div>
-    <div id="demonlord-hp-bar"><div id="demonlord-hp-fill"></div></div><div id="demonlord-hp-text">👹 DEMONLORD 5000/5000</div>
+    <div id="demonlord-hp-bar"><div id="demonlord-hp-fill"></div></div><div id="demonlord-hp-text">👹 DEMONLORD</div>
     <div id="info"></div>
+    
     <div id="chat-container">
         <div id="chat-header" onclick="toggleChat()"><span>💬 CHAT</span><span>▼</span></div>
         <div id="chat-logs"></div>
@@ -138,23 +155,27 @@
             <button id="chat-send">Enviar</button>
         </div>
     </div>
+    
     <div class="floating-tabs">
         <div class="floating-tab" onclick="toggleInventario()">🎒</div>
         <div class="floating-tab" onclick="toggleStatsPanel()">📊</div>
         <div class="floating-tab" onclick="toggleSkills()">⭐</div>
     </div>
+    
     <div id="btn-attack">⚔️</div>
     <div id="skills-bar"></div>
     <div id="joystick-area"></div>
+    
     <div id="stats-panel">
         <div class="tab-container"><div class="tab" data-tab="mesa" onclick="cambiarTab('mesa')">🔧</div><div class="tab" data-tab="stats" onclick="cambiarTab('stats')">📊</div></div>
         <div id="tab-mesa" class="tab-content"><div id="mesa-grid" class="mesa-grid" style="margin:0 auto;"></div><button class="boton-craftear" onclick="craftearEnMesa()">C</button></div>
         <div id="tab-stats" class="tab-content">
             <div class="stat-section"><div class="section-title">📈 NIVEL</div><div class="stat-row">LV:<span id="stat-level" class="stat-value">1</span></div><div class="exp-bar"><div id="exp-fill" class="exp-fill"></div></div><div class="stat-row">EXP:<span id="stat-exp" class="stat-value">0</span>/<span id="stat-exp-next">100</span></div><div class="stat-row">PTS:<span id="stat-puntos" class="stat-value">0</span></div></div>
-            <div class="stat-section"><div class="section-title">⚔️ COMBATE</div><div class="stat-row">❤️ HP:<span id="stat-hp" class="stat-value">500/500</span></div><div class="stat-row">💙 MANA:<span id="stat-mana" class="stat-value">100/100</span></div><div class="stat-row">⚔️ ATQ FÍSICO:<span id="stat-ataque-fisico" class="stat-value">0</span></div><div class="stat-row">🔮 ATQ MÁGICO:<span id="stat-ataque-magico" class="stat-value">0</span></div><div class="stat-row">🛡️ DEF FÍSICA:<span id="stat-defensa-fisica" class="stat-value">0</span></div><div class="stat-row">✨ DEF MÁGICA:<span id="stat-defensa-magica" class="stat-value">0</span></div><div class="stat-row">🏃 VELOCIDAD:<span id="stat-velocidad" class="stat-value">200</span></div><div class="stat-row">💥 CRÍTICO:<span id="stat-critico" class="stat-value">20%</span></div></div>
+            <div class="stat-section"><div class="section-title">⚔️ COMBATE</div><div class="stat-row">❤️ HP:<span id="stat-hp" class="stat-value">500/500</span></div><div class="stat-row">💙 MANA:<span id="stat-mana" class="stat-value">100/100</span></div><div class="stat-row">⚔️ ATQ FÍSICO:<span id="stat-ataque-fisico" class="stat-value">0</span></div><div class="stat-row">🔮 ATQ MÁGICO:<span id="stat-ataque-magico" class="stat-value">0</span></div><div class="stat-row">🛡️ DEF FÍSICA:<span id="stat-defensa-fisica" class="stat-value">0</span></div><div class="stat-row">✨ DEF MÁGICA:<span id="stat-defensa-magica" class="stat-value">0</span></div><div class="stat-row">🏃 VELOCIDAD:<span id="stat-velocidad" class="stat-value">150</span></div><div class="stat-row">💥 CRÍTICO:<span id="stat-critico" class="stat-value">20%</span></div></div>
             <div class="stat-section"><div class="section-title">📈 ATRIBUTOS</div><div class="stat-row">💪 FUERZA:<span id="stat-fuerza" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('fuerza')">+</button></div><div class="stat-row">🔮 INTELIGENCIA:<span id="stat-inteligencia" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('inteligencia')">+</button></div><div class="stat-row">🏃 AGILIDAD:<span id="stat-agilidad" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('agilidad')">+</button></div><div class="stat-row">❤️ VITALIDAD:<span id="stat-vitalidad" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('vitalidad')">+</button></div><div class="stat-row">🔮 SABIDURÍA:<span id="stat-sabiduria" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('sabiduria')">+</button></div></div>
         </div>
     </div>
+    
     <div id="inventario-ui">
         <div class="tab-container"><div class="tab" data-tab="inv" onclick="cambiarTabInventario('inv')">📦</div><div class="tab" data-tab="craft" onclick="cambiarTabInventario('craft')">🔧</div></div>
         <div id="tab-inv" class="tab-content active"><div id="inventario-grid" class="inventario-grid"></div></div>
@@ -171,6 +192,11 @@
     </div>
 
     <div id="stat-preview" class="stat-preview" style="display:none;"></div>
+    
+    <!-- Menú contextual para invitar -->
+    <div id="context-menu" class="context-menu" style="display:none;">
+        <div class="context-menu-item" onclick="invitarJugadorSeleccionado()">🎮 Invitar al equipo</div>
+    </div>
 
 <script>
 // ========== VARIABLES GLOBALES ==========
@@ -191,6 +217,7 @@ const SAVE_KEY = 'deviland_save';
 var attackSpeedModifier = 1;
 var summonCooldown = 0;
 var ultimoEsqueletoClickeado = null;
+var jugadorSeleccionadoId = null;
 
 var joystickVector = { x: 0, y: 0 };
 var joystickActivo = false;
@@ -198,7 +225,7 @@ var joystickActivo = false;
 // ========== SISTEMA DE SKILLS ==========
 var skillsDisponibles = [];
 var skillsEquipadas = [];
-var MAX_SKILLS = 4;
+var MAX_SKILLS = 2; // SOLO 2 SLOTS
 
 const SKILLS_DATA = {
     'levantar_muerto': {
@@ -233,6 +260,8 @@ function cargarSkillsPorClase() {
     const savedSkills = localStorage.getItem(SAVE_KEY + '_skills');
     if (savedSkills) {
         skillsEquipadas = JSON.parse(savedSkills);
+        // Limitar a MAX_SKILLS
+        if (skillsEquipadas.length > MAX_SKILLS) skillsEquipadas = skillsEquipadas.slice(0, MAX_SKILLS);
     } else {
         skillsEquipadas = pClassName === 'NECROMANCER' ? ['levantar_muerto', 'furia_necrotica'] : [];
     }
@@ -496,12 +525,13 @@ function toggleSkills() {
     }
 }
 
+// Velocidades reducidas
 var classStats = {
-    'BÁRBARO': { hp: 800, mana: 50, ataqueFisico: 80, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 200, attackSpeed: 1.2, inteligencia: 0, sabiduria: 0 },
-    'WARRIOR': { hp: 500, mana: 60, ataqueFisico: 50, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 250, attackSpeed: 1.0, inteligencia: 0, sabiduria: 0 },
-    'CABALLERO': { hp: 500, mana: 60, ataqueFisico: 50, ataqueMagico: 0, defensaFisica: 100, defensaMagica: 0, velocidad: 200, attackSpeed: 1.0, inteligencia: 0, sabiduria: 0 },
-    'MAGO': { hp: 300, mana: 150, ataqueFisico: 15, ataqueMagico: 50, defensaFisica: 0, defensaMagica: 40, velocidad: 300, attackSpeed: 1.0, inteligencia: 10, sabiduria: 5 },
-    'NECROMANCER': { hp: 300, mana: 150, ataqueFisico: 15, ataqueMagico: 50, defensaFisica: 0, defensaMagica: 40, velocidad: 300, attackSpeed: 1.0, inteligencia: 10, sabiduria: 5 }
+    'BÁRBARO': { hp: 800, mana: 50, ataqueFisico: 80, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 120, attackSpeed: 0.7, inteligencia: 0, sabiduria: 0 },
+    'WARRIOR': { hp: 500, mana: 60, ataqueFisico: 50, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 150, attackSpeed: 1.0, inteligencia: 0, sabiduria: 0 },
+    'CABALLERO': { hp: 500, mana: 60, ataqueFisico: 50, ataqueMagico: 0, defensaFisica: 100, defensaMagica: 0, velocidad: 130, attackSpeed: 0.9, inteligencia: 0, sabiduria: 0 },
+    'MAGO': { hp: 300, mana: 150, ataqueFisico: 15, ataqueMagico: 50, defensaFisica: 0, defensaMagica: 40, velocidad: 180, attackSpeed: 1.0, inteligencia: 10, sabiduria: 5 },
+    'NECROMANCER': { hp: 300, mana: 150, ataqueFisico: 15, ataqueMagico: 50, defensaFisica: 0, defensaMagica: 40, velocidad: 180, attackSpeed: 1.0, inteligencia: 10, sabiduria: 5 }
 };
 
 var playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 };
@@ -519,6 +549,14 @@ function toggleStatsPanel() { let p = document.getElementById('stats-panel'); p.
 function cambiarTab(tab) { tabActivo = tab; document.querySelectorAll('#stats-panel .tab').forEach(t => t.classList.remove('active')); document.querySelector(`#stats-panel .tab[data-tab="${tab}"]`).classList.add('active'); document.querySelectorAll('#stats-panel .tab-content').forEach(c => c.classList.remove('active')); document.getElementById(`tab-${tab}`).classList.add('active'); if (tab === 'mesa') renderizarMesa(); }
 function cambiarTabInventario(tab) { tabInventarioActivo = tab; document.querySelectorAll('#inventario-ui .tab').forEach(t => t.classList.remove('active')); document.querySelector(`#inventario-ui .tab[data-tab="${tab}"]`).classList.add('active'); document.querySelectorAll('#inventario-ui .tab-content').forEach(c => c.classList.remove('active')); document.getElementById(`tab-${tab}`).classList.add('active'); if (tab === 'craft') renderizarMesa(); }
 
+function invitarJugadorSeleccionado() {
+    if (jugadorSeleccionadoId) {
+        socket.emit('invitarJugador', { playerId: jugadorSeleccionadoId });
+        document.getElementById('context-menu').style.display = 'none';
+        jugadorSeleccionadoId = null;
+    }
+}
+
 function levantarEsqueleto(id) {
     if (pClassName !== 'NECROMANCER') { mostrarMensaje(`❌ Solo Necromancer`, 'error'); return; }
     if (summonCooldown > 0) { mostrarMensaje(`⏳ Espera ${Math.ceil(summonCooldown/1000)}s`, 'error'); return; }
@@ -529,14 +567,14 @@ function levantarEsqueleto(id) {
 
 function getVelocidadActual() {
     let statsBase = classStats[pClassName] || classStats['WARRIOR'];
-    let velocidadBase = statsBase.velocidad + (playerStats.agilidad * 2);
+    let velocidadBase = statsBase.velocidad + (playerStats.agilidad * 1.5);
     const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null;
     const escudoItem = equipamiento.escudo ? encontrarItemPorId(equipamiento.escudo) : null;
     const armaduraItem = equipamiento.armadura ? encontrarItemPorId(equipamiento.armadura) : null;
     if (armaItem && armaItem.velocidad) velocidadBase += armaItem.velocidad;
     if (escudoItem && escudoItem.velocidad) velocidadBase += escudoItem.velocidad;
     if (armaduraItem && armaduraItem.velocidad) velocidadBase += armaduraItem.velocidad;
-    return Math.max(50, velocidadBase);
+    return Math.max(40, velocidadBase);
 }
 
 function regenerarMana() { if (!juegoIniciado) return; let regen = 1 + Math.floor(playerStats.sabiduria / 5); playerMana = Math.min(playerMaxMana, playerMana + regen); actualizarStatsUI(); }
@@ -555,11 +593,11 @@ function encontrarItemPorId(id) { for (let i = 0; i < inventarioSlots.length; i+
 
 function actualizarStatsUI() {
     let statsBase = classStats[pClassName] || classStats['WARRIOR'];
-    let ataqueFisico = statsBase.ataqueFisico + Math.floor((playerStats.fuerza + statsBase.inteligencia) * 1.5);
+    let ataqueFisico = statsBase.ataqueFisico + Math.floor((playerStats.fuerza + statsBase.inteligencia) * 1.8);
     let ataqueMagico = statsBase.ataqueMagico + Math.floor((playerStats.inteligencia + statsBase.inteligencia) * 1.5);
     let defensaFisica = statsBase.defensaFisica;
     let defensaMagica = statsBase.defensaMagica;
-    let velocidad = statsBase.velocidad + (playerStats.agilidad * 2);
+    let velocidad = statsBase.velocidad + (playerStats.agilidad * 1.5);
     let hpTotal = statsBase.hp + (playerStats.vitalidad * 10);
     let manaTotal = statsBase.mana + (playerStats.sabiduria * 10);
     const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null;
@@ -627,7 +665,7 @@ function guardarPartida() { if(!inventarioSlots||!juegoIniciado)return; const p=
 function cargarPartidaGuardada() { const g=localStorage.getItem(SAVE_KEY); try{return JSON.parse(g);}catch(e){return null;} }
 function borrarPartida() { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(SAVE_KEY + '_skills'); }
 function nuevoJuego() { borrarPartida(); equipamiento = { arma: null, escudo: null, armadura: null }; playerStats = { level:1, exp:0, expNeeded:100, puntos:0, fuerza:0, inteligencia:0, agilidad:0, vitalidad:0, sabiduria:0 }; skillsEquipadas = []; for(let i=0;i<9;i++) mesaSlots[i]=null; document.getElementById('menu-ui').style.display='none'; document.getElementById('class-ui').style.display='flex'; }
-function continuarPartida() { const g=cargarPartidaGuardada(); if(!g){alert("No hay partida guardada.");return;} pName=g.nombre; pClass=g.clase; pClassName=g.className || g.clase; equipamiento = g.equipamiento || { arma: null, escudo: null, armadura: null }; playerStats = g.playerStats || { level:1, exp:0, expNeeded:100, puntos:0, fuerza:0, inteligencia:0, agilidad:0, vitalidad:0, sabiduria:0 }; playerHP = g.playerHP || classStats[pClassName].hp; playerMana = g.playerMana || classStats[pClassName].mana; mesaSlots = g.mesaSlots || [null,null,null,null,null,null,null,null,null]; skillsEquipadas = g.skillsEquipadas || (pClassName === 'NECROMANCER' ? ['levantar_muerto', 'furia_necrotica'] : []); document.getElementById('menu-ui').style.display='none'; mostrarPantallaCarga(); setTimeout(()=>{ iniciarJuegoConCarga(g); },500); }
+function continuarPartida() { const g=cargarPartidaGuardada(); if(!g){alert("No hay partida guardada.");return;} pName=g.nombre; pClass=g.clase; pClassName=g.className || g.clase; equipamiento = g.equipamiento || { arma: null, escudo: null, armadura: null }; playerStats = g.playerStats || { level:1, exp:0, expNeeded:100, puntos:0, fuerza:0, inteligencia:0, agilidad:0, vitalidad:0, sabiduria:0 }; playerHP = g.playerHP || classStats[pClassName].hp; playerMana = g.playerMana || classStats[pClassName].mana; mesaSlots = g.mesaSlots || [null,null,null,null,null,null,null,null,null]; skillsEquipadas = g.skillsEquipadas || (pClassName === 'NECROMANCER' ? ['levantar_muerto', 'furia_necrotica'] : []); if (skillsEquipadas.length > 2) skillsEquipadas = skillsEquipadas.slice(0,2); document.getElementById('menu-ui').style.display='none'; mostrarPantallaCarga(); setTimeout(()=>{ iniciarJuegoConCarga(g); },500); }
 function mostrarPantallaCarga() { const ld=document.getElementById('loading-ui'); ld.style.display='flex'; const bar=document.getElementById('loading-bar'); bar.style.width='0%'; let p=0; const it=setInterval(()=>{ p+=10; bar.style.width=p+'%'; if(p>=100)clearInterval(it); },50); }
 function ocultarPantallaCarga() { document.getElementById('loading-ui').style.display='none'; }
 function seleccionarClase(sprite, nombreClase) { const n = document.getElementById('nombre-input').value.trim(); if(n === ""){ alert("Ingresa un nombre"); return; } pName = n; pClass = sprite; pClassName = nombreClase; attackSpeedModifier = classStats[nombreClase].attackSpeed || 1.0; let statsBase = classStats[nombreClase]; playerHP = statsBase.hp; playerMana = statsBase.mana; skillsEquipadas = nombreClase === 'NECROMANCER' ? ['levantar_muerto', 'furia_necrotica'] : []; document.getElementById('class-ui').style.display = 'none'; mostrarPantallaCarga(); setTimeout(()=>{ iniciarJuego(); },500); }
@@ -820,11 +858,11 @@ function iniciarJoystick() {
 function mostrarPreviewStats(item, tipo) {
     const statsOriginales = { ataqueFisico: parseInt(document.getElementById('stat-ataque-fisico').textContent), defensaFisica: parseInt(document.getElementById('stat-defensa-fisica').textContent), velocidad: parseInt(document.getElementById('stat-velocidad').textContent), hp: document.getElementById('stat-hp').textContent };
     let statsBase = classStats[pClassName] || classStats['WARRIOR'];
-    let ataqueFisicoBase = statsBase.ataqueFisico + Math.floor((playerStats.fuerza + statsBase.inteligencia) * 1.5);
+    let ataqueFisicoBase = statsBase.ataqueFisico + Math.floor((playerStats.fuerza + statsBase.inteligencia) * 1.8);
     let ataqueMagicoBase = statsBase.ataqueMagico + Math.floor((playerStats.inteligencia + statsBase.inteligencia) * 1.5);
     let defensaFisicaBase = statsBase.defensaFisica;
     let defensaMagicaBase = statsBase.defensaMagica;
-    let velocidadBase = statsBase.velocidad + (playerStats.agilidad * 2);
+    let velocidadBase = statsBase.velocidad + (playerStats.agilidad * 1.5);
     let hpBase = statsBase.hp + (playerStats.vitalidad * 10);
     let armaActual = null, escudoActual = null, armaduraActual = null;
     if (tipo === 'arma') { armaActual = item; escudoActual = equipamiento.escudo ? encontrarItemPorId(equipamiento.escudo) : null; armaduraActual = equipamiento.armadura ? encontrarItemPorId(equipamiento.armadura) : null; }
@@ -878,11 +916,32 @@ function preload(){
     this.load.audio('esqueletoLevanta', 'esqueleto_levanta.mp3');
 }
 function crearTextoDmg(esc,x,y,txt,col,sz){ if(!esc)return; let t=esc.add.text(x,y,txt,{fontSize:sz||'18px',fill:col||'#fff',fontStyle:'bold',fontFamily:'monospace',stroke:'#000',strokeThickness:2}).setOrigin(0.5).setDepth(9999); esc.tweens.add({targets:t,y:y-50,alpha:0,duration:600,onComplete:()=>t.destroy()}); }
-function addOtherPlayer(self,info){ if(!info.class)return; const o=self.physics.add.sprite(info.x,info.y,info.class).setScale(2); o.id=info.id; o.pClass=info.class; o.targetX=info.x; o.targetY=info.y; o.setDepth(info.y); otherPlayers.add(o); }
+function addOtherPlayer(self,info){ if(!info.class)return; const o=self.physics.add.sprite(info.x,info.y,info.class).setScale(2); o.id=info.id; o.pClass=info.class; o.targetX=info.x; o.targetY=info.y; o.setDepth(info.y); 
+    // Agregar evento de click derecho para invitar
+    o.setInteractive();
+    o.on('pointerdown', (pointer) => {
+        if (pointer.rightButtonDown()) {
+            jugadorSeleccionadoId = info.id;
+            const menu = document.getElementById('context-menu');
+            menu.style.display = 'block';
+            menu.style.left = pointer.worldX + 'px';
+            menu.style.top = pointer.worldY + 'px';
+            setTimeout(() => {
+                document.addEventListener('click', function ocultar() {
+                    menu.style.display = 'none';
+                    document.removeEventListener('click', ocultar);
+                });
+            }, 100);
+        }
+    });
+    otherPlayers.add(o); 
+}
 function actualizarHPBar(){ actualizarStatsUI(); }
 function actualizarDemonlordHPBar(){ let p=(demonlordHP/demonlordMaxHP)*100; document.getElementById('demonlord-hp-fill').style.width=p+'%'; document.getElementById('demonlord-hp-text').innerHTML=`👹 ${Math.floor(demonlordHP)}/${demonlordMaxHP}`; }
 
 let chatInput, chatSend;
+let demonlordVisible = false;
+let demonlordCheckInterval;
 
 function create(){
     currentScene = this;
@@ -905,6 +964,32 @@ function create(){
         if (e.key === 'Enter') enviarMensaje();
     });
     
+    // Solicitar vida del Demonlord periódicamente si está cerca
+    demonlordCheckInterval = setInterval(() => {
+        if (player && player.active) {
+            socket.emit('solicitarDemonlordHP');
+        }
+    }, 1000);
+    
+    socket.on('demonlordHPResponse', (data) => {
+        const hpBar = document.getElementById('demonlord-hp-bar');
+        const hpText = document.getElementById('demonlord-hp-text');
+        if (data.visible) {
+            demonlordHP = data.hp;
+            demonlordMaxHP = data.maxHp;
+            actualizarDemonlordHPBar();
+            hpBar.style.display = 'block';
+            hpText.style.display = 'block';
+        } else {
+            hpBar.style.display = 'none';
+            hpText.style.display = 'none';
+        }
+    });
+    
+    socket.on('invitacionRecibida', (data) => {
+        mostrarMensaje(`🎮 ${data.from} te invitó al equipo "${data.teamName}". Escribe /aceptar para unirte`, 'exito');
+    });
+    
     this.physics.world.setBounds(0,0,3000,3000);
     this.cameras.main.setBounds(0,0,3000,3000);
     this.add.tileSprite(1500,1500,3000,3000,'suelo').setAlpha(0.6);
@@ -919,7 +1004,7 @@ function create(){
     musica.play();
     
     const dirs = ['Derecha','Arriba','Abajo','Izquierda'];
-    ['barbaro','caballero','warrior'].forEach(k=>{ dirs.forEach((d,i)=>{ this.anims.create({key:k+'_walk_'+d, frames:this.anims.generateFrameNumbers(k,{start:32+i*8,end:32+i*8+7}), frameRate:12, repeat:-1}); this.anims.create({key:k+'_idle_'+d, frames:[{key:k, frame:32+i*8}], frameRate:1}); this.anims.create({key:k+'_atk_'+d, frames:this.anims.generateFrameNumbers(k,{start:i*8,end:i*8+7}), frameRate:18}); }); });
+    ['barbaro','caballero','warrior'].forEach(k=>{ dirs.forEach((d,i)=>{ this.anims.create({key:k+'_walk_'+d, frames:this.anims.generateFrameNumbers(k,{start:32+i*8,end:32+i*8+7}), frameRate:12, repeat:-1}); this.anims.create({key:k+'_idle_'+d, frames:[{key:k, frame:32+i*8}], frameRate:1}); this.anims.create({key:k+'_atk_'+d, frames:this.anims.generateFrameNumbers(k,{start:i*8,end:i*8+7}), frameRate: k === 'barbaro' ? 10 : 18}); }); });
     
     const skeletonAnims = [
         { dir: 'Izquierda', walkStart: 0, walkCount: 4, atk1: 5, atk2: 4, dieStart: 6, dieCount: 2 },
@@ -962,6 +1047,7 @@ function create(){
         if(guardado.ultimaPosicion) player.setPosition(guardado.ultimaPosicion.x,guardado.ultimaPosicion.y);
         attackSpeedModifier = classStats[pClassName].attackSpeed || 1.0;
         if (guardado.skillsEquipadas) skillsEquipadas = guardado.skillsEquipadas;
+        if (skillsEquipadas.length > 2) skillsEquipadas = skillsEquipadas.slice(0,2);
     } else {
         inicializarInventario();
         for(let i=0;i<9;i++) mesaSlots[i]=null;
