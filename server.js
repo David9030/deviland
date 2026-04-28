@@ -9,7 +9,7 @@ const CONFIG = {
     SKELETON: { MAX_HP: 200, RESPAWN_TIME: 60000, SPEED: 10, ATTACK_COOLDOWN: 1000, ATTACK_DAMAGE: 25, VISION_RANGE: 400, EXP: 50, DEFENSE: 20 },
     PLAYER: { MAX_HP: 500, RESPAWN_TIME: 10000,
         BASE_STATS: {
-            barbaro: { fuerza: 18, defensa: 8, agilidad: 8, vitalidad: 12, attackSpeed: 0.7 },  // Más fuerza, más lento
+            barbaro: { fuerza: 18, defensa: 8, agilidad: 8, vitalidad: 12, attackSpeed: 0.7 },
             caballero: { fuerza: 12, defensa: 15, agilidad: 8, vitalidad: 14, attackSpeed: 0.9 },
             warrior: { fuerza: 10, defensa: 10, agilidad: 15, vitalidad: 10, attackSpeed: 1.0 }
         }
@@ -26,17 +26,14 @@ let nextItemId = 1;
 let nextSkeletonId = 16;
 const MAX_ENEMIGOS = 10;
 
-// Cooldowns de skills por jugador
 let skillCooldowns = {};
 
-// ========== SISTEMA DE TEAMS ==========
 let teams = {};
 let playerTeam = {};
 let invitacionesPendientes = {};
 
 function getDistance(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
 
-// Función para dar EXP al jugador y su equipo (completa)
 function darExpAJugadorYEquipo(socketId, exp) {
     const jugador = players[socketId];
     if (!jugador) return;
@@ -153,7 +150,6 @@ io.on('connection', (socket) => {
         io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${d.name} (${d.className || d.class}) se ha unido` });
     });
     
-    // ========== INVITAR POR CLICK ==========
     socket.on('invitarJugador', (data) => {
         const invitador = players[socket.id];
         const invitado = players[data.playerId];
@@ -178,35 +174,6 @@ io.on('connection', (socket) => {
         socket.emit('mensaje', `📨 Invitación enviada a ${invitado.name}`);
     });
     
-    socket.on('aceptarInvitacion', () => {
-        const invitacion = invitacionesPendientes[socket.id];
-        if (!invitacion) {
-            socket.emit('mensaje', '❌ No tienes invitaciones pendientes');
-            return;
-        }
-        const team = teams[invitacion.teamId];
-        if (!team) {
-            socket.emit('mensaje', '❌ El equipo ya no existe');
-            delete invitacionesPendientes[socket.id];
-            return;
-        }
-        if (playerTeam[socket.id]) {
-            socket.emit('mensaje', '❌ Ya estás en un equipo');
-            return;
-        }
-        team.miembros.push(socket.id);
-        playerTeam[socket.id] = team.id;
-        players[socket.id].team = team.nombre;
-        delete invitacionesPendientes[socket.id];
-        io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🎉 ${players[socket.id].name} se unió al equipo "${team.nombre}"` });
-        socket.emit('mensaje', `✅ Te uniste al equipo "${team.nombre}"`);
-    });
-    
-    socket.on('rechazarInvitacion', () => {
-        delete invitacionesPendientes[socket.id];
-        socket.emit('mensaje', '❌ Invitación rechazada');
-    });
-    
     socket.on('playerMovement', (data) => {
         let p = players[socket.id];
         if (p && p.isAlive) {
@@ -218,12 +185,11 @@ io.on('connection', (socket) => {
     socket.on('playerAttack', (data) => {
         let p = players[socket.id];
         if (p && p.isAlive) {
-            const damageBonus = p.class === 'barbaro' ? 30 : 0; // Bárbaro +30 daño extra
+            const damageBonus = p.class === 'barbaro' ? 30 : 0;
             socket.broadcast.emit('playerAttacked', { id: socket.id, dir: p.dir, class: p.class, damageBonus: damageBonus });
         }
     });
     
-    // ========== COMANDOS DE CHAT ==========
     socket.on('chatMessage', (msg) => {
         if (!msg.startsWith('/')) {
             const jugador = players[socket.id];
@@ -263,6 +229,30 @@ io.on('connection', (socket) => {
                 jugador.team = nombreTeam;
                 io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `✨ ${jugador.name} creó el equipo "${nombreTeam}"` });
                 socket.emit('mensaje', `✅ Equipo "${nombreTeam}" creado. Eres el líder!`);
+                break;
+                
+            case 'aceptar':
+                const invitacion = invitacionesPendientes[socket.id];
+                if (!invitacion) {
+                    socket.emit('mensaje', '❌ No tienes invitaciones pendientes');
+                    return;
+                }
+                const teamAceptar = teams[invitacion.teamId];
+                if (!teamAceptar) {
+                    socket.emit('mensaje', '❌ El equipo ya no existe');
+                    delete invitacionesPendientes[socket.id];
+                    return;
+                }
+                if (playerTeam[socket.id]) {
+                    socket.emit('mensaje', '❌ Ya estás en un equipo');
+                    return;
+                }
+                teamAceptar.miembros.push(socket.id);
+                playerTeam[socket.id] = teamAceptar.id;
+                players[socket.id].team = teamAceptar.nombre;
+                delete invitacionesPendientes[socket.id];
+                io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🎉 ${jugador.name} se unió al equipo "${teamAceptar.nombre}"` });
+                socket.emit('mensaje', `✅ Te uniste al equipo "${teamAceptar.nombre}"`);
                 break;
                 
             case 'equipo':
@@ -307,7 +297,7 @@ io.on('connection', (socket) => {
                 break;
                 
             case 'ayuda':
-                socket.emit('mensaje', '📖 COMANDOS:\n/crear [nombre] - Crear equipo\n/equipo - Ver mi equipo\n/salir - Salir del equipo\nClick en un jugador para invitar\n/ayuda - Este mensaje');
+                socket.emit('mensaje', '📖 COMANDOS:\n/crear [nombre] - Crear equipo\n/aceptar - Aceptar invitación\n/equipo - Ver mi equipo\n/salir - Salir del equipo\nClick derecho en un jugador para invitar\n/ayuda - Este mensaje');
                 break;
                 
             default:
@@ -430,6 +420,7 @@ io.on('connection', (socket) => {
         }
     });
     
+    // ========== FURIA NECRÓTICA CORREGIDA ==========
     socket.on('furiaNecrotica', () => {
         const jugador = players[socket.id];
         if (!jugador || jugador.className !== 'NECROMANCER') {
@@ -451,27 +442,39 @@ io.on('connection', (socket) => {
         const cantidad = esqueletosAliados.length;
         
         if (cantidad === 0) {
-            socket.emit('mensaje', '❌ No tienes esqueletos aliados');
+            socket.emit('mensaje', '❌ No tienes esqueletos aliados para potenciar');
             return;
         }
         
         const manaCost = cantidad * 10;
+        
         if (jugador.mana < manaCost) {
-            socket.emit('mensaje', `❌ Necesitas ${manaCost} de maná`);
+            socket.emit('mensaje', `❌ Necesitas ${manaCost} de maná (${cantidad} esqueleto(s) x 10)`);
             return;
         }
         
         jugador.mana -= manaCost;
-        const bonusPorcentaje = cantidad * 0.05;
-        const nuevoDamage = Math.floor(CONFIG.SKELETON.ATTACK_DAMAGE * (1 + bonusPorcentaje));
         
+        const bonusPorcentaje = cantidad * 0.10;
+        const nuevoDamage = Math.floor(CONFIG.SKELETON.ATTACK_DAMAGE * (1 + bonusPorcentaje));
+        const bonusDamage = nuevoDamage - CONFIG.SKELETON.ATTACK_DAMAGE;
+        
+        const esqueletosIds = [];
         esqueletosAliados.forEach(esqueleto => {
-            esqueleto.damageBonus = nuevoDamage - CONFIG.SKELETON.ATTACK_DAMAGE;
+            esqueleto.damageBonus = bonusDamage;
+            esqueletosIds.push(esqueleto.id);
         });
         
         skillCooldowns[socket.id].furiaNecrotica = now;
-        io.emit('furiaNecroticaEffect', { playerId: socket.id, duracion: 10 });
-        socket.emit('mensaje', `🔥 Furia Necrótica! +${Math.floor(bonusPorcentaje * 100)}% daño por 10s`);
+        
+        io.emit('furiaNecroticaEffect', { 
+            playerId: socket.id, 
+            duracion: 10,
+            esqueletosIds: esqueletosIds,
+            bonusPorcentaje: bonusPorcentaje
+        });
+        
+        socket.emit('mensaje', `🔥 Furia Necrótica! ${cantidad} esqueleto(s) potenciados por 10 segundos (+${Math.floor(bonusPorcentaje * 100)}% daño). Maná gastado: ${manaCost}`);
         io.emit('playerStatsUpdate', { id: socket.id, mana: jugador.mana });
         
         setTimeout(() => {
@@ -479,7 +482,8 @@ io.on('connection', (socket) => {
             esqueletosAunActivos.forEach(esqueleto => {
                 esqueleto.damageBonus = 0;
             });
-            socket.emit('mensaje', `⏰ Furia Necrótica terminó`);
+            socket.emit('mensaje', `⏰ Furia Necrótica terminó. El daño de tus esqueletos volvió a la normalidad`);
+            io.emit('furiaNecroticaEnd', { playerId: socket.id });
         }, 10000);
     });
     
@@ -604,7 +608,6 @@ io.on('connection', (socket) => {
         }, 300000);
     });
     
-    // ========== SOLICITAR VIDA DEL DEMONLORD (solo si está cerca) ==========
     socket.on('solicitarDemonlordHP', () => {
         const jugador = players[socket.id];
         if (!jugador) return;
@@ -740,9 +743,7 @@ setInterval(() => {
         let nearestDistance = Infinity;
         let nearestTarget = null;
         
-        // Esqueletos aliados NO atacan a jugadores (solo a enemigos)
         if (esqueleto.isAlly === true) {
-            // Solo atacar a Demonlord y esqueletos enemigos
             if (demonlord.isAlive) {
                 const dist = getDistance(esqueleto.x, esqueleto.y, demonlord.x, demonlord.y);
                 if (dist < nearestDistance) {
@@ -762,7 +763,6 @@ setInterval(() => {
                 }
             });
         } else {
-            // Esqueletos enemigos: atacan a jugadores
             Object.values(players).forEach(player => {
                 if (!player.isAlive) return;
                 const dist = getDistance(esqueleto.x, esqueleto.y, player.x, player.y);
@@ -929,5 +929,5 @@ setInterval(() => {
 
 http.listen(CONFIG.PORT, '0.0.0.0', () => {
     console.log(`🔥 DEVILAND - Servidor en http://localhost:${CONFIG.PORT}`);
-    console.log(`✅ SISTEMAS: Árboles | Minas | Rocas | Demonlord | Esqueletos | Antorchas | Skills | Música | TEAMS | Ajustes de velocidad`);
+    console.log(`✅ SISTEMAS: Árboles | Minas | Rocas | Demonlord | Esqueletos | Antorchas | Skills | Música | TEAMS | Furia Necrótica corregida`);
 });
