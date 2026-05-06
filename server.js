@@ -6,10 +6,10 @@ const io = require('socket.io')(http);
 const CONFIG = {
     PORT: 3000,
     DEMONLORD: { MAX_HP: 5000, RESPAWN_TIME: 10000, SPEED: 15, ATTACK_COOLDOWN: 2000, ATTACK_DAMAGE: 45, VISION_RANGE: 350, EXP: 500 },
-    SKELETON: { MAX_HP: 200, RESPAWN_TIME: 60000, SPEED: 10, ATTACK_COOLDOWN: 1000, ATTACK_DAMAGE: 25, VISION_RANGE: 400, EXP: 50, DEFENSE: 20 },
+    SKELETON: { MAX_HP: 200, RESPAWN_TIME: 60000, SPEED: 12, ATTACK_COOLDOWN: 1000, ATTACK_DAMAGE: 25, VISION_RANGE: 500, EXP: 50, DEFENSE: 20 },
     PLAYER: { MAX_HP: 500, RESPAWN_TIME: 10000,
         BASE_STATS: {
-            barbaro: { fuerza: 18, defensa: 8, agilidad: 8, vitalidad: 12, attackSpeed: 0.7 },  // Más fuerza, más lento
+            barbaro: { fuerza: 18, defensa: 8, agilidad: 8, vitalidad: 12, attackSpeed: 0.7 },
             caballero: { fuerza: 12, defensa: 15, agilidad: 8, vitalidad: 14, attackSpeed: 0.9 },
             warrior: { fuerza: 10, defensa: 10, agilidad: 15, vitalidad: 10, attackSpeed: 1.0 }
         }
@@ -24,19 +24,16 @@ let arboles = [], minas = [], rocas = [], recursosJugadores = {}, inventariosJug
 let items = [];
 let nextItemId = 1;
 let nextSkeletonId = 16;
-const MAX_ENEMIGOS = 10;
+const MAX_ENEMIGOS = 15;
 
-// Cooldowns de skills por jugador
 let skillCooldowns = {};
 
-// ========== SISTEMA DE TEAMS ==========
 let teams = {};
 let playerTeam = {};
 let invitacionesPendientes = {};
 
 function getDistance(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
 
-// Función para dar EXP al jugador y su equipo (completa)
 function darExpAJugadorYEquipo(socketId, exp) {
     const jugador = players[socketId];
     if (!jugador) return;
@@ -104,6 +101,35 @@ function generarEsqueletos() {
     io.emit('esqueletosIniciales', esqueletos);
 }
 
+// Función para respawn de esqueletos después de 2 minutos
+function respawnEsqueleto(esqueletoId) {
+    setTimeout(() => {
+        const idx = esqueletos.findIndex(e => e.id === esqueletoId);
+        if (idx !== -1 && !esqueletos[idx].isAlive && !esqueletos[idx].isAlly) {
+            esqueletos.splice(idx, 1);
+            const newEnemy = {
+                id: 'esqueleto_' + nextSkeletonId++,
+                x: Math.random() * 2800 + 100,
+                y: Math.random() * 2800 + 100,
+                hp: CONFIG.SKELETON.MAX_HP,
+                maxHp: CONFIG.SKELETON.MAX_HP,
+                isAlive: true,
+                isAlly: false,
+                ownerId: null,
+                targetId: null,
+                targetType: null,
+                dir: 'Abajo',
+                attackCooldown: 0,
+                damageBonus: 0,
+                baseDamage: CONFIG.SKELETON.ATTACK_DAMAGE
+            };
+            esqueletos.push(newEnemy);
+            io.emit('esqueletoNew', { id: newEnemy.id, x: newEnemy.x, y: newEnemy.y });
+            console.log("🔄 Esqueleto respawneado después de 2 minutos:", newEnemy.id);
+        }
+    }, 120000);
+}
+
 setTimeout(() => { 
     generarArboles(); 
     generarMinas(); 
@@ -153,7 +179,6 @@ io.on('connection', (socket) => {
         io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${d.name} (${d.className || d.class}) se ha unido` });
     });
     
-    // ========== INVITAR POR CLICK ==========
     socket.on('invitarJugador', (data) => {
         const invitador = players[socket.id];
         const invitado = players[data.playerId];
@@ -218,12 +243,11 @@ io.on('connection', (socket) => {
     socket.on('playerAttack', (data) => {
         let p = players[socket.id];
         if (p && p.isAlive) {
-            const damageBonus = p.class === 'barbaro' ? 30 : 0; // Bárbaro +30 daño extra
+            const damageBonus = p.class === 'barbaro' ? 30 : 0;
             socket.broadcast.emit('playerAttacked', { id: socket.id, dir: p.dir, class: p.class, damageBonus: damageBonus });
         }
     });
     
-    // ========== COMANDOS DE CHAT ==========
     socket.on('chatMessage', (msg) => {
         if (!msg.startsWith('/')) {
             const jugador = players[socket.id];
@@ -307,7 +331,7 @@ io.on('connection', (socket) => {
                 break;
                 
             case 'ayuda':
-                socket.emit('mensaje', '📖 COMANDOS:\n/crear [nombre] - Crear equipo\n/equipo - Ver mi equipo\n/salir - Salir del equipo\nClick en un jugador para invitar\n/ayuda - Este mensaje');
+                socket.emit('mensaje', '📖 COMANDOS:\n/crear [nombre] - Crear equipo\n/equipo - Ver mi equipo\n/salir - Salir del equipo\nClick derecho en un jugador para invitar\n/ayuda - Este mensaje');
                 break;
                 
             default:
@@ -379,6 +403,7 @@ io.on('connection', (socket) => {
         }
     });
     
+    // ========== LEVANTAR ESQUELETO (CORREGIDO CON VIDA LOCAL) ==========
     socket.on('levantarEsqueleto', (data) => {
         const jugador = players[socket.id];
         if (!jugador || jugador.className !== 'NECROMANCER') {
@@ -392,44 +417,38 @@ io.on('connection', (socket) => {
             return;
         }
         
-        const vidaRequerida = Math.floor(cadaver.maxHp * 0.5);
-        const manaRequerido = Math.floor(cadaver.maxHp * 0.1);
+        // NOTA: La vida ya se resta en el cliente (index.html)
+        // Aquí solo procesamos el levantamiento del esqueleto
         
-        if (jugador.hp > vidaRequerida && jugador.mana >= manaRequerido) {
-            jugador.hp -= vidaRequerida;
-            jugador.mana -= manaRequerido;
-            
-            const index = esqueletos.findIndex(e => e.id === data.id);
-            if (index !== -1) esqueletos.splice(index, 1);
-            io.emit('esqueletoDestroy', { id: data.id });
-            
-            const newSkeleton = {
-                id: 'esqueleto_' + nextSkeletonId++,
-                x: jugador.x + (Math.random() * 100 - 50),
-                y: jugador.y + (Math.random() * 100 - 50),
-                hp: cadaver.maxHp,
-                maxHp: cadaver.maxHp,
-                isAlive: true,
-                isAlly: true,
-                ownerId: socket.id,
-                targetId: null,
-                targetType: null,
-                dir: 'Abajo',
-                attackCooldown: 0,
-                damageBonus: 0,
-                baseDamage: CONFIG.SKELETON.ATTACK_DAMAGE
-            };
-            esqueletos.push(newSkeleton);
-            jugador.esqueletosSummon = (jugador.esqueletosSummon || 0) + 1;
-            
-            io.emit('esqueletoRevive', { id: newSkeleton.id, x: newSkeleton.x, y: newSkeleton.y, ownerId: socket.id });
-            socket.emit('mensaje', `💀 ¡Has levantado un esqueleto aliado! (${jugador.esqueletosSummon} activos)`);
-            io.emit('playerStatsUpdate', { id: socket.id, hp: jugador.hp, mana: jugador.mana });
-        } else {
-            socket.emit('mensaje', `❌ Necesitas ${vidaRequerida} de vida y ${manaRequerido} de maná`);
-        }
+        const index = esqueletos.findIndex(e => e.id === data.id);
+        if (index !== -1) esqueletos.splice(index, 1);
+        io.emit('esqueletoDestroy', { id: data.id });
+        
+        const newSkeleton = {
+            id: 'esqueleto_' + nextSkeletonId++,
+            x: jugador.x + (Math.random() * 100 - 50),
+            y: jugador.y + (Math.random() * 100 - 50),
+            hp: cadaver.maxHp,
+            maxHp: cadaver.maxHp,
+            isAlive: true,
+            isAlly: true,
+            ownerId: socket.id,
+            targetId: null,
+            targetType: null,
+            dir: 'Abajo',
+            attackCooldown: 0,
+            damageBonus: 0,
+            baseDamage: CONFIG.SKELETON.ATTACK_DAMAGE
+        };
+        esqueletos.push(newSkeleton);
+        jugador.esqueletosSummon = (jugador.esqueletosSummon || 0) + 1;
+        
+        io.emit('esqueletoRevive', { id: newSkeleton.id, x: newSkeleton.x, y: newSkeleton.y, ownerId: socket.id });
+        socket.emit('mensaje', `💀 ¡Has levantado un esqueleto aliado! (${jugador.esqueletosSummon} activos)`);
+        io.emit('playerStatsUpdate', { id: socket.id, hp: jugador.hp, mana: jugador.mana });
     });
     
+    // ========== FURIA NECRÓTICA CORREGIDA (7% por esqueleto) ==========
     socket.on('furiaNecrotica', () => {
         const jugador = players[socket.id];
         if (!jugador || jugador.className !== 'NECROMANCER') {
@@ -457,21 +476,33 @@ io.on('connection', (socket) => {
         
         const manaCost = cantidad * 10;
         if (jugador.mana < manaCost) {
-            socket.emit('mensaje', `❌ Necesitas ${manaCost} de maná`);
+            socket.emit('mensaje', `❌ Necesitas ${manaCost} de maná (${cantidad} esqueleto(s) x 10)`);
             return;
         }
         
         jugador.mana -= manaCost;
-        const bonusPorcentaje = cantidad * 0.05;
-        const nuevoDamage = Math.floor(CONFIG.SKELETON.ATTACK_DAMAGE * (1 + bonusPorcentaje));
         
+        // 7% de daño extra por cada esqueleto
+        const bonusPorcentaje = cantidad * 0.07;
+        const nuevoDamage = Math.floor(CONFIG.SKELETON.ATTACK_DAMAGE * (1 + bonusPorcentaje));
+        const bonusDamage = nuevoDamage - CONFIG.SKELETON.ATTACK_DAMAGE;
+        
+        const esqueletosIds = [];
         esqueletosAliados.forEach(esqueleto => {
-            esqueleto.damageBonus = nuevoDamage - CONFIG.SKELETON.ATTACK_DAMAGE;
+            esqueleto.damageBonus = bonusDamage;
+            esqueletosIds.push(esqueleto.id);
         });
         
         skillCooldowns[socket.id].furiaNecrotica = now;
-        io.emit('furiaNecroticaEffect', { playerId: socket.id, duracion: 10 });
-        socket.emit('mensaje', `🔥 Furia Necrótica! +${Math.floor(bonusPorcentaje * 100)}% daño por 10s`);
+        
+        io.emit('furiaNecroticaEffect', { 
+            playerId: socket.id, 
+            duracion: 10,
+            esqueletosIds: esqueletosIds,
+            bonusPorcentaje: bonusPorcentaje
+        });
+        
+        socket.emit('mensaje', `🔥 Furia Necrótica! ${cantidad} esqueleto(s) potenciados por 10 segundos (+${Math.floor(bonusPorcentaje * 100)}% daño). Maná gastado: ${manaCost}`);
         io.emit('playerStatsUpdate', { id: socket.id, mana: jugador.mana });
         
         setTimeout(() => {
@@ -479,7 +510,8 @@ io.on('connection', (socket) => {
             esqueletosAunActivos.forEach(esqueleto => {
                 esqueleto.damageBonus = 0;
             });
-            socket.emit('mensaje', `⏰ Furia Necrótica terminó`);
+            socket.emit('mensaje', `⏰ Furia Necrótica terminó. El daño de tus esqueletos volvió a la normalidad`);
+            io.emit('furiaNecroticaEnd', { playerId: socket.id });
         }, 10000);
     });
     
@@ -604,7 +636,6 @@ io.on('connection', (socket) => {
         }, 300000);
     });
     
-    // ========== SOLICITAR VIDA DEL DEMONLORD (solo si está cerca) ==========
     socket.on('solicitarDemonlordHP', () => {
         const jugador = players[socket.id];
         if (!jugador) return;
@@ -740,9 +771,7 @@ setInterval(() => {
         let nearestDistance = Infinity;
         let nearestTarget = null;
         
-        // Esqueletos aliados NO atacan a jugadores (solo a enemigos)
         if (esqueleto.isAlly === true) {
-            // Solo atacar a Demonlord y esqueletos enemigos
             if (demonlord.isAlive) {
                 const dist = getDistance(esqueleto.x, esqueleto.y, demonlord.x, demonlord.y);
                 if (dist < nearestDistance) {
@@ -762,7 +791,6 @@ setInterval(() => {
                 }
             });
         } else {
-            // Esqueletos enemigos: atacan a jugadores
             Object.values(players).forEach(player => {
                 if (!player.isAlive) return;
                 const dist = getDistance(esqueleto.x, esqueleto.y, player.x, player.y);
@@ -876,39 +904,12 @@ setInterval(() => {
                             }
                         }, 60000);
                     } else {
+                        // ESQUELETO ENEMIGO MUERE - RESPAWN
                         closestTarget.isAlive = false;
                         io.emit('esqueletoDeath', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, exp: CONFIG.SKELETON.EXP });
                         
-                        const esqueletoIdMuerto = closestTarget.id;
-                        
-                        setTimeout(() => {
-                            const idx = esqueletos.findIndex(e => e.id === esqueletoIdMuerto);
-                            if (idx !== -1 && !esqueletos[idx].isAlive && !esqueletos[idx].isAlly) {
-                                esqueletos.splice(idx, 1);
-                                io.emit('esqueletoDestroy', { id: esqueletoIdMuerto });
-                                
-                                setTimeout(() => {
-                                    const newEnemy = {
-                                        id: 'esqueleto_' + nextSkeletonId++,
-                                        x: Math.random() * 2800 + 100,
-                                        y: Math.random() * 2800 + 100,
-                                        hp: CONFIG.SKELETON.MAX_HP,
-                                        maxHp: CONFIG.SKELETON.MAX_HP,
-                                        isAlive: true,
-                                        isAlly: false,
-                                        ownerId: null,
-                                        targetId: null,
-                                        targetType: null,
-                                        dir: 'Abajo',
-                                        attackCooldown: 0,
-                                        damageBonus: 0,
-                                        baseDamage: CONFIG.SKELETON.ATTACK_DAMAGE
-                                    };
-                                    esqueletos.push(newEnemy);
-                                    io.emit('esqueletoNew', { id: newEnemy.id, x: newEnemy.x, y: newEnemy.y });
-                                }, 180000);
-                            }
-                        }, 60000);
+                        // Llamar al respawn después de 2 minutos
+                        respawnEsqueleto(closestTarget.id);
                     }
                 }
                 io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: damage, hp: esqueleto.hp });
@@ -929,5 +930,5 @@ setInterval(() => {
 
 http.listen(CONFIG.PORT, '0.0.0.0', () => {
     console.log(`🔥 DEVILAND - Servidor en http://localhost:${CONFIG.PORT}`);
-    console.log(`✅ SISTEMAS: Árboles | Minas | Rocas | Demonlord | Esqueletos | Antorchas | Skills | Música | TEAMS | Ajustes de velocidad`);
+    console.log(`✅ SISTEMAS: Árboles | Minas | Rocas | Demonlord | Esqueletos | Antorchas | Skills | Música | TEAMS | Furia Necrótica 7% | Respawn 2min`);
 });
