@@ -9,7 +9,6 @@
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; -webkit-tap-highlight-color: transparent; }
         .loading-overlay, .menu-overlay, .class-overlay { 
-    display: none; 
     position: fixed; 
     top: 0; 
     left: 0; 
@@ -19,17 +18,14 @@
     background-image: url('fondo1.png');
     background-size: cover;
     background-position: center;
-    display: flex; 
     align-items: center; 
     justify-content: center; 
     z-index: 5000; 
 }
-        .menu-box, .class-box { background: #111; padding: 30px; border: 1px solid #fff; text-align: center; color: #fff; }
-        .menu-box h1 { font-size: 36px; margin-bottom: 30px; letter-spacing: 3px; }
-        .menu-btn, .class-btn { display: block; width: 200px; padding: 10px; margin: 8px auto; background: #000; color: #fff; border: 1px solid #fff; cursor: pointer; font-family: monospace; font-size: 14px; text-align: center; }
-        .class-overlay { display: none; }
-        #nombre-input { padding: 10px; width: 200px; margin-bottom: 15px; background: #000; border: 1px solid #fff; color: #fff; text-align: center; font-size: 14px; font-family: monospace; }
-        .loading-overlay { display: none; flex-direction: column; z-index: 10000; }
+
+.menu-overlay { display: flex; }
+.class-overlay { display: none; }
+.loading-overlay { display: none; flex-direction: column; z-index: 10000; }
         .loading-bar-container { width: 250px; height: 15px; background: #111; border: 1px solid #fff; margin-top: 15px; }
         .loading-bar { width: 0%; height: 100%; background: #fff; transition: width 0.3s; }
         .loading-text { font-size: 12px; }
