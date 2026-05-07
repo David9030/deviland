@@ -320,11 +320,13 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage) {
     if (!currentScene) return;
     
     const angle = Math.atan2(targetY - origenY, targetX - origenX);
-    const velocityX = Math.cos(angle) * 500;
-    const velocityY = Math.sin(angle) * 500;
+    const velocityX = Math.cos(angle) * 250;  // Velocidad reducida de 500 a 250
+    const velocityY = Math.sin(angle) * 250;
+    const rotation = angle + Math.PI / 2;
     
     const proyectil = currentScene.add.sprite(origenX, origenY, 'fireball_0001');
     proyectil.setScale(0.8);
+    proyectil.setRotation(rotation);
     proyectil.setDepth(9000);
     currentScene.physics.add.existing(proyectil);
     proyectil.body.setVelocity(velocityX, velocityY);
@@ -347,12 +349,17 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage) {
         if (frameIndex > 216) frameIndex = 1;
         const frameNum = frameIndex.toString().padStart(4, '0');
         proyectil.setTexture(`fireball_${frameNum}`);
+        proyectil.setRotation(angle + Math.PI / 2);
     }, 30);
     
-    // Colisión con esqueletos (se destruye SOLO al impactar)
+    // Colisión con esqueletos (se destruye AL IMPACTAR)
     currentScene.physics.add.overlap(proyectil, window.esqueletosGrupo, (p, esqueleto) => {
         if (esqueleto.isAlly === false && esqueleto.active && p.active) {
-            socket.emit('esqueletoHit', { id: esqueleto.esqueletoId, damageBonus: damage });
+            // Calcular daño mágico del Necromancer
+            const danioMagico = 15 + Math.floor(playerStats.inteligencia * 1.5);
+            const danioTotal = Math.floor(danioMagico + damage);
+            
+            socket.emit('esqueletoHit', { id: esqueleto.esqueletoId, damageBonus: danioTotal });
             if (currentScene) currentScene.sound.play('sonidoAtaque', { volume: 0.4 });
             p.destroy();
             clearInterval(animInterval);
@@ -361,14 +368,14 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage) {
         }
     });
     
-    // Destruir después de 800 píxeles (para que no vuele para siempre si no choca)
+    // Destruir después de 600 píxeles (si no chocó antes)
     const checkDistance = setInterval(() => {
         if (!proyectil || !proyectil.active) {
             clearInterval(checkDistance);
             return;
         }
         const distRecorrida = Math.hypot(proyectil.x - proyectil.startX, proyectil.y - proyectil.startY);
-        if (distRecorrida > 800) {
+        if (distRecorrida > 600) {
             if (proyectil.active) proyectil.destroy();
             clearInterval(checkDistance);
             clearInterval(animInterval);
