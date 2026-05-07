@@ -320,15 +320,20 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage) {
     if (!currentScene) return;
     
     const angle = Math.atan2(targetY - origenY, targetX - origenX);
-    const velocityX = Math.cos(angle) * 250;  // Velocidad reducida de 500 a 250
+    const velocityX = Math.cos(angle) * 250;
     const velocityY = Math.sin(angle) * 250;
-    const rotation = angle + Math.PI / 2;
+    const rotation = angle - Math.PI / 2;
     
     const proyectil = currentScene.add.sprite(origenX, origenY, 'fireball_0001');
-    proyectil.setScale(0.8);
+    proyectil.setScale(0.6);
     proyectil.setRotation(rotation);
     proyectil.setDepth(9000);
     currentScene.physics.add.existing(proyectil);
+    
+    // Hitbox más chico que el sprite
+    proyectil.body.setSize(15, 15);
+    proyectil.body.setOffset(8, 8);
+    
     proyectil.body.setVelocity(velocityX, velocityY);
     proyectil.body.setCollideWorldBounds(true);
     proyectil.damage = damage;
@@ -338,7 +343,7 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage) {
     
     proyectiles.push(proyectil);
     
-    // Animar fireball
+    // Animar fireball (216 frames)
     let frameIndex = 1;
     const animInterval = setInterval(() => {
         if (!proyectil || !proyectil.active) {
@@ -349,13 +354,13 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage) {
         if (frameIndex > 216) frameIndex = 1;
         const frameNum = frameIndex.toString().padStart(4, '0');
         proyectil.setTexture(`fireball_${frameNum}`);
-        proyectil.setRotation(angle + Math.PI / 2);
+        proyectil.setRotation(angle - Math.PI / 2);
     }, 30);
     
-    // Colisión con esqueletos (se destruye AL IMPACTAR)
+    // Colisión con esqueletos enemigos
     currentScene.physics.add.overlap(proyectil, window.esqueletosGrupo, (p, esqueleto) => {
         if (esqueleto.isAlly === false && esqueleto.active && p.active) {
-            // Calcular daño mágico del Necromancer
+            // Daño mágico del Necromancer
             const danioMagico = 15 + Math.floor(playerStats.inteligencia * 1.5);
             const danioTotal = Math.floor(danioMagico + damage);
             
@@ -368,7 +373,7 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage) {
         }
     });
     
-    // Destruir después de 600 píxeles (si no chocó antes)
+    // Destruir después de 600 píxeles (si no impactó)
     const checkDistance = setInterval(() => {
         if (!proyectil || !proyectil.active) {
             clearInterval(checkDistance);
@@ -384,7 +389,6 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage) {
         }
     }, 50);
 }
-
 function usarSkill(skillId) { 
     if (skillId === 'levantar_muerto') { 
         if (ultimoEsqueletoClickeado) { 
