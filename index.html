@@ -27,13 +27,15 @@
 .loading-overlay { display: none; flex-direction: column; z-index: 10000; }
 
 .menu-box, .class-box { 
-    background: #111; 
+    background: rgba(0, 0, 0, 0.7);  /* Cambiado de #111 a semitransparente */
     padding: 30px; 
     border: 1px solid #fff; 
     text-align: center; 
     color: #fff; 
     position: relative; 
     z-index: 5001; 
+    border-radius: 10px;
+    min-width: 280px;
 }
         .loading-bar-container { width: 250px; height: 15px; background: #111; border: 1px solid #fff; margin-top: 15px; }
         .loading-bar { width: 0%; height: 100%; background: #fff; transition: width 0.3s; }
