@@ -330,9 +330,8 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage) {
     proyectil.setDepth(9000);
     currentScene.physics.add.existing(proyectil);
     
-    // Hitbox más chico que el sprite
-    proyectil.body.setSize(15, 15);
-    proyectil.body.setOffset(8, 8);
+    proyectil.body.setSize(10, 10);  // Más chico
+    proyectil.body.setOffset(10, 10); // Centrar
     
     proyectil.body.setVelocity(velocityX, velocityY);
     proyectil.body.setCollideWorldBounds(true);
