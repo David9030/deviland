@@ -144,6 +144,7 @@
         </div>
     </div>
     <div class="floating-tabs">
+
         <div class="floating-tab" onclick="toggleInventario()">🎒</div>
         <div class="floating-tab" onclick="toggleStatsPanel()">📊</div>
         <div class="floating-tab" onclick="toggleSkills()">⭐</div>
@@ -320,7 +321,7 @@ function create(){ currentScene = this; socket = io(); console.log('Socket conec
     });
 }); const skeletonAnims = [ { dir: 'Izquierda', walkStart: 0, walkCount: 4, atk1: 5, atk2: 4, dieStart: 6, dieCount: 2 }, { dir: 'Arriba', walkStart: 16, walkCount: 4, atk1: 21, atk2: 20, dieStart: 22, dieCount: 2 }, { dir: 'Derecha', walkStart: 32, walkCount: 4, atk1: 37, atk2: 36, dieStart: 38, dieCount: 2 }, { dir: 'Abajo', walkStart: 48, walkCount: 4, atk1: 53, atk2: 52, dieStart: 54, dieCount: 2 } ]; skeletonAnims.forEach(anim => { const walkFrames = []; for (let i = 0; i < anim.walkCount; i++) { walkFrames.push({ key: 'esqueleto', frame: anim.walkStart + i }); } this.anims.create({ key: `esqueleto_walk_${anim.dir}`, frames: walkFrames, frameRate: 10, repeat: -1 }); this.anims.create({ key: `esqueleto_idle_${anim.dir}`, frames: [{ key: 'esqueleto', frame: anim.walkStart }], frameRate: 1 }); this.anims.create({ key: `esqueleto_atk_${anim.dir}`, frames: [{ key: 'esqueleto', frame: anim.atk1 }, { key: 'esqueleto', frame: anim.atk2 }], frameRate: 12 }); const dieFrames = []; for (let i = 0; i < anim.dieCount; i++) { dieFrames.push({ key: 'esqueleto', frame: anim.dieStart + i }); } this.anims.create({ key: `esqueleto_die_${anim.dir}`, frames: dieFrames, frameRate: 8 }); }); console.log('✅ Animaciones del esqueleto cargadas correctamente');
 
-// Animaciones manuales para Necromancer (8x8, filas 0,2,4,6)
+// Animaciones manuales para Necromancer (filas 0,2,4,6 - ignorando diagonales)
 const necroAnims = [
     { dir: 'Izquierda', walkStart: 0, atk1: 4, atk2: 5, idleFrame: 0 },
     { dir: 'Arriba', walkStart: 16, atk1: 20, atk2: 21, idleFrame: 16 },
