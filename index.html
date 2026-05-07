@@ -323,8 +323,9 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage) {
     const velocityX = Math.cos(angle) * 500;
     const velocityY = Math.sin(angle) * 500;
     
-    const proyectil = currentScene.add.circle(origenX, origenY, 12, 0x555555);
-    proyectil.setStrokeStyle(2, 0xaaaaaa);
+    // Usar un solo frame de fireball (el 1)
+    const proyectil = currentScene.add.sprite(origenX, origenY, 'fireball_0001');
+    proyectil.setScale(0.8);
     proyectil.setDepth(9000);
     currentScene.physics.add.existing(proyectil);
     proyectil.body.setVelocity(velocityX, velocityY);
@@ -336,15 +337,7 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage) {
     
     proyectiles.push(proyectil);
     
-    currentScene.tweens.add({
-        targets: proyectil,
-        scaleX: 1.3,
-        scaleY: 1.3,
-        yoyo: true,
-        repeat: -1,
-        duration: 150
-    });
-    
+    // Destruir después de 400 píxeles
     const checkDistance = setInterval(() => {
         if (!proyectil || !proyectil.active) {
             clearInterval(checkDistance);
@@ -352,15 +345,6 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage) {
         }
         const distRecorrida = Math.hypot(proyectil.x - proyectil.startX, proyectil.y - proyectil.startY);
         if (distRecorrida > 400) {
-            const explosion = currentScene.add.circle(proyectil.x, proyectil.y, 8, 0x888888);
-            currentScene.tweens.add({
-                targets: explosion,
-                scaleX: 2,
-                scaleY: 2,
-                alpha: 0,
-                duration: 200,
-                onComplete: () => explosion.destroy()
-            });
             if (proyectil.active) proyectil.destroy();
             clearInterval(checkDistance);
             const index = proyectiles.indexOf(proyectil);
@@ -368,29 +352,13 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage) {
         }
     }, 50);
     
-    proyectil.body.onWorldBounds = true;
-    currentScene.physics.world.on('worldbounds', (body) => {
-        if (body.gameObject === proyectil) {
-            if (proyectil.active) proyectil.destroy();
-            const index = proyectiles.indexOf(proyectil);
-            if (index !== -1) proyectiles.splice(index, 1);
-        }
-    });
-    
+    // Colisión con esqueletos
     currentScene.physics.add.overlap(proyectil, window.esqueletosGrupo, (p, esqueleto) => {
         if (esqueleto.isAlly === false && esqueleto.active && p.active) {
             socket.emit('esqueletoHit', { id: esqueleto.esqueletoId, damageBonus: damage });
             if (currentScene) currentScene.sound.play('sonidoAtaque', { volume: 0.4 });
-            const explosion = currentScene.add.circle(p.x, p.y, 10, 0xaaaaaa);
-            currentScene.tweens.add({
-                targets: explosion,
-                scaleX: 2,
-                scaleY: 2,
-                alpha: 0,
-                duration: 150,
-                onComplete: () => explosion.destroy()
-            });
             p.destroy();
+            clearInterval(checkDistance);
             const index = proyectiles.indexOf(p);
             if (index !== -1) proyectiles.splice(index, 1);
         }
