@@ -8,7 +8,22 @@
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; -webkit-tap-highlight-color: transparent; }
-        .loading-overlay, .menu-overlay, .class-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; align-items: center; justify-content: center; z-index: 5000; }
+        .loading-overlay, .menu-overlay, .class-overlay { 
+    display: none; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: #000; 
+    background-image: url('fondo1.png');
+    background-size: cover;
+    background-position: center;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    z-index: 5000; 
+}
         .menu-box, .class-box { background: #111; padding: 30px; border: 1px solid #fff; text-align: center; color: #fff; }
         .menu-box h1 { font-size: 36px; margin-bottom: 30px; letter-spacing: 3px; }
         .menu-btn, .class-btn { display: block; width: 200px; padding: 10px; margin: 8px auto; background: #000; color: #fff; border: 1px solid #fff; cursor: pointer; font-family: monospace; font-size: 14px; text-align: center; }
