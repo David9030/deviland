@@ -260,7 +260,7 @@ io.on('connection', (socket) => {
         if (p && p.isAlive) {
             p.x = data.x; p.y = data.y; p.dir = data.dir; p.isMoving = data.isMoving;
             socket.broadcast.emit('playerMoved', { id: socket.id, x: data.x, y: data.y, dir: data.dir, isMoving: data.isMoving, hp: p.hp, maxHp: p.maxHp, timestamp: data.timestamp });
-        
+        }
     });
     
     socket.on('playerAttack', (data) => {
@@ -283,20 +283,21 @@ io.on('connection', (socket) => {
     });
     
     if (esqueletoCercano) {
-    let damage = jugador.ataqueFisico;  // Solo el ataqueFisico de classStats
-    
-    const finalDamage = Math.max(1, damage - CONFIG.SKELETON.DEFENSE);
-    esqueletoCercano.hp = Math.max(0, esqueletoCercano.hp - finalDamage);
-    
-    io.emit('enemyDamaged', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, dmg: finalDamage });
-    
-    if (esqueletoCercano.hp <= 0) {
-        esqueletoCercano.isAlive = false;
-        io.emit('esqueletoDeath', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, exp: CONFIG.SKELETON.EXP });
-        darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP);
-        respawnEsqueleto(esqueletoCercano.id);
+        // SOLO DAÑO BASE, sin multiplicadores ni fuerza
+        let damage = jugador.baseDamage;
+        
+        const finalDamage = Math.max(5, damage - CONFIG.SKELETON.DEFENSE);
+        esqueletoCercano.hp = Math.max(0, esqueletoCercano.hp - finalDamage);
+        
+        io.emit('enemyDamaged', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, dmg: finalDamage });
+        
+        if (esqueletoCercano.hp <= 0) {
+            esqueletoCercano.isAlive = false;
+            io.emit('esqueletoDeath', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, exp: CONFIG.SKELETON.EXP });
+            darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP);
+            respawnEsqueleto(esqueletoCercano.id);
+        }
     }
-}
 });
     
     socket.on('chatMessage', (msg) => {
