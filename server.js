@@ -180,7 +180,31 @@ io.on('connection', (socket) => {
         socket.broadcast.emit('newPlayer', players[socket.id]);
         io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${d.name} (${d.className || d.class}) se ha unido` });
     });
+    socket.on('esqueletoHit', (data) => {
+    const jugador = players[socket.id];
+    if (!jugador || !jugador.isAlive) return;
     
+    let esqueleto = esqueletos.find(e => e.id === data.id && e.isAlive);
+    if (!esqueleto) return;
+    
+    // Daño base del jugador + bonus del proyectil
+    let damage = jugador.baseDamage + Math.floor(jugador.stats.fuerza * 1.2);
+    if (jugador.class === 'barbaro') damage += 20;
+    if (data.damageBonus) damage += data.damageBonus;  // <--- ESTA ES LA LÍNEA CLAVE
+    if (data.esCritico) damage *= 2;
+    
+    const finalDamage = Math.max(5, damage - CONFIG.SKELETON.DEFENSE);
+    esqueleto.hp = Math.max(0, esqueleto.hp - finalDamage);
+    
+    io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: finalDamage });
+    
+    if (esqueleto.hp <= 0) {
+        esqueleto.isAlive = false;
+        io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP });
+        darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP);
+        respawnEsqueleto(esqueleto.id);
+    }
+});
     socket.on('invitarJugador', (data) => {
         const invitador = players[socket.id];
         const invitado = players[data.playerId];
