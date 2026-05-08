@@ -341,6 +341,7 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
     const velocityX = Math.cos(angle) * 250;
     const velocityY = Math.sin(angle) * 250;
     const rotation = angle - Math.PI / 2;
+    
     const proyectil = currentScene.add.sprite(origenX, origenY, 'fireball_0001');
     proyectil.setScale(0.6);
     proyectil.setRotation(rotation);
@@ -355,6 +356,7 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
     proyectil.startX = origenX;
     proyectil.startY = origenY;
     proyectiles.push(proyectil);
+    
     let frameIndex = 1;
     const animInterval = setInterval(() => {
         if (!proyectil || !proyectil.active) { clearInterval(animInterval); return; }
@@ -364,6 +366,7 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
         proyectil.setTexture(`fireball_${frameNum}`);
         proyectil.setRotation(angle - Math.PI / 2);
     }, 30);
+    
     currentScene.physics.add.overlap(proyectil, window.esqueletosGrupo, (p, esqueleto) => {
         if (esqueleto.isAlly === false && esqueleto.active && p.active) {
             const danioTotal = 15 + Math.floor(playerStats.inteligencia * 1.5);
@@ -375,6 +378,7 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
             if (index !== -1) proyectiles.splice(index, 1);
         }
     });
+    
     const checkDistance = setInterval(() => {
         if (!proyectil || !proyectil.active) { clearInterval(checkDistance); return; }
         const distRecorrida = Math.hypot(proyectil.x - proyectil.startX, proyectil.y - proyectil.startY);
@@ -386,6 +390,7 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
             if (index !== -1) proyectiles.splice(index, 1);
         }
     }, 50);
+    
     if (esLocal) {
         socket.emit('crearProyectil', { origenX, origenY, targetX, targetY, damage });
     }
