@@ -473,6 +473,10 @@ io.on('connection', (socket) => {
         socket.emit('mensaje', `💀 ¡Has levantado un esqueleto aliado! (${jugador.esqueletosSummon} activos)`);
         io.emit('playerStatsUpdate', { id: socket.id, hp: jugador.hp, mana: jugador.mana });
     });
+socket.on('crearProyectil', (data) => {
+        // Reenviar a todos los jugadores excepto al que lo disparó
+        socket.broadcast.emit('proyectilCreado', data);
+    });
     
     socket.on('furiaNecrotica', () => {
         const jugador = players[socket.id];
