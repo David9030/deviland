@@ -419,54 +419,56 @@ function usarSkill(skillId) {
         socket.emit('furiaNecrotica'); 
     }
     else if (skillId === 'ataque_distancia' && (pClassName === 'NECROMANCER' || pClassName === 'MAGO')) {
-        const ahora = Date.now();
-        if (ahora - ultimoAtaqueDistancia < 1000) {
-            mostrarMensaje(`⏳ Espera ${Math.ceil((1000 - (ahora - ultimoAtaqueDistancia)) / 1000)}s`, 'error');
-            return;
-        }
-        
-        if (playerMana < 10) {
-            mostrarMensaje(`❌ Maná insuficiente (10)`, 'error');
-            return;
-        }
-        
-        playerMana -= 10;
-        actualizarStatsUI();
-        ultimoAtaqueDistancia = ahora;
-        mostrarMensaje(`💀 Bola de sombra! -10 maná`, 'exito');
-        
-        let targetX = player.x;
-        let targetY = player.y;
-        let dir = player.lastDir;
-        
-        switch(dir) {
-            case 'Derecha':
-                targetX += 200;
-                break;
-            case 'Izquierda':
-                targetX -= 200;
-                break;
-            case 'Arriba':
-                targetY -= 200;
-                break;
-            case 'Abajo':
-                targetY += 200;
-                break;
-            default:
-                targetY += 200;
-        }
-        
-        player.play(pClass + '_atk_' + player.lastDir, true);
-        player.once('animationcomplete', () => {
-            if (player.active) {
-                player.play(pClass + '_idle_' + player.lastDir, true);
-            }
-        });
-        
-        currentScene.time.delayedCall(200, () => {
-            crearProyectil(player.x, player.y, targetX, targetY, 35);
-        });
+    const ahora = Date.now();
+    if (ahora - ultimoAtaqueDistancia < 1000) {
+        mostrarMensaje(`⏳ Espera ${Math.ceil((1000 - (ahora - ultimoAtaqueDistancia)) / 1000)}s`, 'error');
+        return;
     }
+    
+    if (playerMana < 10) {
+        mostrarMensaje(`❌ Maná insuficiente (10)`, 'error');
+        return;
+    }
+    
+    playerMana -= 10;
+    actualizarStatsUI();
+    ultimoAtaqueDistancia = ahora;
+    mostrarMensaje(`💀 Bola de sombra! -10 maná`, 'exito');
+    
+    // Guardar dirección actual para el proyectil
+    let dir = player.lastDir;
+    let targetX = player.x;
+    let targetY = player.y;
+    
+    switch(dir) {
+        case 'Derecha':
+            targetX += 200;
+            break;
+        case 'Izquierda':
+            targetX -= 200;
+            break;
+        case 'Arriba':
+            targetY -= 200;
+            break;
+        case 'Abajo':
+            targetY += 200;
+            break;
+        default:
+            targetY += 200;
+    }
+    
+    // Reproducir animación de ataque
+    player.play(pClass + '_atk_' + dir, true);
+    
+    // Lanzar el proyectil CUANDO TERMINE la animación
+    player.once('animationcomplete', () => {
+        if (player && player.active) {
+            // Volver a idle
+            player.play(pClass + '_idle_' + dir, true);
+            // Disparar fireball
+            crearProyectil(player.x, player.y, targetX, targetY, 35);
+        }
+    });
 }
 function actualizarStatsUI() { let statsBase = classStats[pClassName] || classStats['WARRIOR']; let ataqueFisico = statsBase.ataqueFisico + Math.floor((playerStats.fuerza + statsBase.inteligencia) * 1.8); let ataqueMagico = statsBase.ataqueMagico + Math.floor((playerStats.inteligencia + statsBase.inteligencia) * 1.5); let defensaFisica = statsBase.defensaFisica; let defensaMagica = statsBase.defensaMagica; let velocidad = statsBase.velocidad + (playerStats.agilidad * 1.5); let hpTotal = statsBase.hp + (playerStats.vitalidad * 10); let manaTotal = statsBase.mana + (playerStats.sabiduria * 10); const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null; const escudoItem = equipamiento.escudo ? encontrarItemPorId(equipamiento.escudo) : null; const armaduraItem = equipamiento.armadura ? encontrarItemPorId(equipamiento.armadura) : null; if (armaItem) { if (armaItem.ataqueFisico) ataqueFisico += armaItem.ataqueFisico; if (armaItem.ataqueMagico) ataqueMagico += armaItem.ataqueMagico; if (armaItem.velocidad) velocidad += armaItem.velocidad; } if (escudoItem) { if (escudoItem.defensaFisica) defensaFisica += escudoItem.defensaFisica; if (escudoItem.defensaMagica) defensaMagica += escudoItem.defensaMagica; if (escudoItem.velocidad) velocidad += escudoItem.velocidad; } if (armaduraItem) { if (armaduraItem.defensaFisica) defensaFisica += armaduraItem.defensaFisica; if (armaduraItem.defensaMagica) defensaMagica += armaduraItem.defensaMagica; if (armaduraItem.velocidad) velocidad += armaduraItem.velocidad; } playerMaxHP = hpTotal; playerMaxMana = manaTotal; if (playerHP > playerMaxHP) playerHP = playerMaxHP; if (playerMana > playerMaxMana) playerMana = playerMaxMana; document.getElementById('stat-hp').textContent = `${Math.floor(playerHP)}/${Math.floor(hpTotal)}`; document.getElementById('stat-mana').textContent = `${Math.floor(playerMana)}/${Math.floor(manaTotal)}`; document.getElementById('stat-ataque-fisico').textContent = Math.floor(ataqueFisico); document.getElementById('stat-ataque-magico').textContent = Math.floor(ataqueMagico); document.getElementById('stat-defensa-fisica').textContent = Math.floor(defensaFisica); document.getElementById('stat-defensa-magica').textContent = Math.floor(defensaMagica); document.getElementById('stat-velocidad').textContent = Math.floor(velocidad); const chanceCritico = 20 + Math.floor(playerStats.agilidad / 10); document.getElementById('stat-critico').textContent = chanceCritico + '%'; document.getElementById('stat-level').textContent = playerStats.level; document.getElementById('stat-exp').textContent = playerStats.exp; document.getElementById('stat-exp-next').textContent = playerStats.expNeeded; document.getElementById('stat-puntos').textContent = playerStats.puntos; document.getElementById('stat-fuerza').textContent = playerStats.fuerza; document.getElementById('stat-inteligencia').textContent = playerStats.inteligencia; document.getElementById('stat-agilidad').textContent = playerStats.agilidad; document.getElementById('stat-vitalidad').textContent = playerStats.vitalidad; document.getElementById('stat-sabiduria').textContent = playerStats.sabiduria; const expPercent = (playerStats.exp / playerStats.expNeeded) * 100; document.getElementById('exp-fill').style.width = expPercent + '%'; document.getElementById('hp-fill').style.width = (playerHP / playerMaxHP) * 100 + '%'; document.getElementById('mana-fill').style.width = (playerMana / playerMaxMana) * 100 + '%'; document.getElementById('hp-text').innerHTML = `❤️ ${Math.floor(playerHP)}/${Math.floor(playerMaxHP)}`; document.getElementById('mana-text').innerHTML = `💙 ${Math.floor(playerMana)}/${Math.floor(playerMaxMana)}`; const RESPAWN_TIME = 10000; if (playerHP <= 0 && player && player.isAlive === true && juegoIniciado) { playerHP = 0; player.isAlive = false; if (player.body) player.body.enable = false; if (player.setVisible) player.setVisible(false); mostrarMensaje(`💀 HAS MUERTO! Espera ${RESPAWN_TIME/1000} segundos`, 'error'); setTimeout(() => { if (player && !player.isAlive) { playerHP = playerMaxHP; playerMana = playerMaxMana; player.isAlive = true; if (player.body) player.body.enable = true; if (player.setVisible) player.setVisible(true); player.setPosition(512, 512); actualizarStatsUI(); mostrarMensaje(`✨ HAS REVIVIDO en el punto de inicio!`, 'exito'); } }, RESPAWN_TIME); } }
 function preload(){ this.load.image('suelo','ground_stone1.png'); this.load.spritesheet('necromancer_sprite', 'necromancer.png', {frameWidth: 255, frameHeight: 255}); this.load.image('pino_1','pino_1.png'); this.load.image('mina','mina.png'); this.load.image('roca','roca.png'); this.load.spritesheet('barbaro','Barbaro.png',{frameWidth:128,frameHeight:128}); this.load.spritesheet('caballero','caballero.png',{frameWidth:128,frameHeight:128}); this.load.spritesheet('warrior','warrior.png',{frameWidth:128,frameHeight:128}); this.load.spritesheet('demonlord','demonlord.png',{frameWidth:128,frameHeight:128}); this.load.spritesheet('esqueleto', 'esqueleto.png', { frameWidth: 255, frameHeight: 255 }); 
