@@ -405,40 +405,47 @@ function usarSkill(skillId) {
             mostrarMensaje(`❌ Selecciona un cadáver primero (click en esqueleto muerto)`, 'error'); 
         } 
     } 
-    else if (skillId === 'furia_necrotica') { 
-        socket.emit('furiaNecrotica'); 
-    }
     else if (skillId === 'ataque_distancia' && (pClassName === 'NECROMANCER' || pClassName === 'MAGO')) {
-        const ahora = Date.now();
-        if (ahora - ultimoAtaqueDistancia < 1000) {
-            mostrarMensaje(`⏳ Espera ${Math.ceil((1000 - (ahora - ultimoAtaqueDistancia)) / 1000)}s`, 'error');
-            return;
+    const ahora = Date.now();
+    if (ahora - ultimoAtaqueDistancia < 1000) {
+        mostrarMensaje(`⏳ Espera ${Math.ceil((1000 - (ahora - ultimoAtaqueDistancia)) / 1000)}s`, 'error');
+        return;
+    }
+    if (playerMana < 10) {
+        mostrarMensaje(`❌ Maná insuficiente (10)`, 'error');
+        return;
+    }
+    playerMana -= 10;
+    actualizarStatsUI();
+    ultimoAtaqueDistancia = ahora;
+    mostrarMensaje(`💀 Bola de sombra! -10 maná`, 'exito');
+    
+    let dir = player.lastDir;
+    let targetX = player.x;
+    let targetY = player.y;
+    switch(dir) {
+        case 'Derecha': targetX += 200; break;
+        case 'Izquierda': targetX -= 200; break;
+        case 'Arriba': targetY -= 200; break;
+        case 'Abajo': targetY += 200; break;
+        default: targetY += 200;
+    }
+    
+    // Guardar valores para la animación
+    const animDir = dir;
+    const animTargetX = targetX;
+    const animTargetY = targetY;
+    
+    // Animación de ataque
+    player.play(pClass + '_atk_' + animDir, true);
+    
+    // Al terminar la animación, disparar fireball
+    player.once('animationcomplete', () => {
+        if (player && player.active) {
+            player.play(pClass + '_idle_' + animDir, true);
+            crearProyectil(player.x, player.y, animTargetX, animTargetY, 35);
         }
-        if (playerMana < 10) {
-            mostrarMensaje(`❌ Maná insuficiente (10)`, 'error');
-            return;
-        }
-        playerMana -= 10;
-        actualizarStatsUI();
-        ultimoAtaqueDistancia = ahora;
-        mostrarMensaje(`💀 Bola de sombra! -10 maná`, 'exito');
-        let dir = player.lastDir;
-        let targetX = player.x;
-        let targetY = player.y;
-        switch(dir) {
-            case 'Derecha': targetX += 200; break;
-            case 'Izquierda': targetX -= 200; break;
-            case 'Arriba': targetY -= 200; break;
-            case 'Abajo': targetY += 200; break;
-            default: targetY += 200;
-        }
-        player.play(pClass + '_atk_' + dir, true);
-        player.once('animationcomplete', () => {
-            if (player && player.active) {
-                player.play(pClass + '_idle_' + dir, true);
-                crearProyectil(player.x, player.y, targetX, targetY, 35);
-            }
-        });
+    });
     }
 }
 
