@@ -171,8 +171,15 @@ io.on('connection', (socket) => {
             esqueletosSummon: 0,
             skillsEquipadas: d.className === 'NECROMANCER' ? ['levantar_muerto', 'furia_necrotica'] : [],
             attackSpeedModifier: baseStats.attackSpeed || 1.0,
-            baseDamage: baseStats.baseDamage || 50
+            baseDamage: baseStats.baseDamage || 50,
+            ataqueFisico: 15  // Valor base, se actualizará desde classStats después
         };
+        // Actualizar ataqueFisico según la clase
+        if (d.className === 'BÁRBARO') players[socket.id].ataqueFisico = 80;
+        else if (d.className === 'CABALLERO') players[socket.id].ataqueFisico = 50;
+        else if (d.className === 'WARRIOR') players[socket.id].ataqueFisico = 50;
+        else if (d.className === 'MAGO' || d.className === 'NECROMANCER') players[socket.id].ataqueFisico = 15;
+        
         inventariosJugadores[socket.id] = { items: [], equipamiento: {} };
         inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 });
         inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nombre: 'Espada Básica', icono: '⚔️', cantidad: 1, slot: 1 });
@@ -180,28 +187,28 @@ io.on('connection', (socket) => {
         socket.broadcast.emit('newPlayer', players[socket.id]);
         io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${d.name} (${d.className || d.class}) se ha unido` });
     });
-  socket.on('esqueletoHit', (data) => {
-    const jugador = players[socket.id];
-    if (!jugador || !jugador.isAlive) return;
     
-    let esqueleto = esqueletos.find(e => e.id === data.id && e.isAlive);
-    if (!esqueleto) return;
+    socket.on('esqueletoHit', (data) => {
+        const jugador = players[socket.id];
+        if (!jugador || !jugador.isAlive) return;
+        
+        let esqueleto = esqueletos.find(e => e.id === data.id && e.isAlive);
+        if (!esqueleto) return;
+        
+        let damage = data.damageBonus || 0;
+        const finalDamage = Math.max(1, damage - CONFIG.SKELETON.DEFENSE);
+        esqueleto.hp = Math.max(0, esqueleto.hp - finalDamage);
+        
+        io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: finalDamage });
+        
+        if (esqueleto.hp <= 0) {
+            esqueleto.isAlive = false;
+            io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP });
+            darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP);
+            respawnEsqueleto(esqueleto.id);
+        }
+    });
     
-    // Solo usar el damageBonus del proyectil (daño mágico)
-    let damage = data.damageBonus || 0;
-    
-    const finalDamage = Math.max(1, damage - CONFIG.SKELETON.DEFENSE);
-    esqueleto.hp = Math.max(0, esqueleto.hp - finalDamage);
-    
-    io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: finalDamage });
-    
-    if (esqueleto.hp <= 0) {
-        esqueleto.isAlive = false;
-        io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP });
-        darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP);
-        respawnEsqueleto(esqueleto.id);
-    }
-});
     socket.on('invitarJugador', (data) => {
         const invitador = players[socket.id];
         const invitado = players[data.playerId];
@@ -264,41 +271,40 @@ io.on('connection', (socket) => {
     });
     
     socket.on('playerAttack', (data) => {
-    const jugador = players[socket.id];
-    if (!jugador || !jugador.isAlive) return;
-    
-    socket.broadcast.emit('playerAttacked', { id: socket.id, dir: jugador.dir, class: jugador.class });
-    
-    let esqueletoCercano = null;
-    let distanciaMinima = 80;
-    
-    esqueletos.forEach(esqueleto => {
-        if (esqueleto.isAlive && !esqueleto.isAlly) {
-            const dist = getDistance(jugador.x, jugador.y, esqueleto.x, esqueleto.y);
-            if (dist < distanciaMinima) {
-                distanciaMinima = dist;
-                esqueletoCercano = esqueleto;
+        const jugador = players[socket.id];
+        if (!jugador || !jugador.isAlive) return;
+        
+        socket.broadcast.emit('playerAttacked', { id: socket.id, dir: jugador.dir, class: jugador.class });
+        
+        let esqueletoCercano = null;
+        let distanciaMinima = 80;
+        
+        esqueletos.forEach(esqueleto => {
+            if (esqueleto.isAlive && !esqueleto.isAlly) {
+                const dist = getDistance(jugador.x, jugador.y, esqueleto.x, esqueleto.y);
+                if (dist < distanciaMinima) {
+                    distanciaMinima = dist;
+                    esqueletoCercano = esqueleto;
+                }
+            }
+        });
+        
+        if (esqueletoCercano) {
+            let damage = jugador.ataqueFisico || 15;
+            
+            const finalDamage = Math.max(1, damage - CONFIG.SKELETON.DEFENSE);
+            esqueletoCercano.hp = Math.max(0, esqueletoCercano.hp - finalDamage);
+            
+            io.emit('enemyDamaged', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, dmg: finalDamage });
+            
+            if (esqueletoCercano.hp <= 0) {
+                esqueletoCercano.isAlive = false;
+                io.emit('esqueletoDeath', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, exp: CONFIG.SKELETON.EXP });
+                darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP);
+                respawnEsqueleto(esqueletoCercano.id);
             }
         }
     });
-    
-    if (esqueletoCercano) {
-        // SOLO DAÑO BASE, sin multiplicadores ni fuerza
-        let damage = jugador.baseDamage;
-        
-        const finalDamage = Math.max(5, damage - CONFIG.SKELETON.DEFENSE);
-        esqueletoCercano.hp = Math.max(0, esqueletoCercano.hp - finalDamage);
-        
-        io.emit('enemyDamaged', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, dmg: finalDamage });
-        
-        if (esqueletoCercano.hp <= 0) {
-            esqueletoCercano.isAlive = false;
-            io.emit('esqueletoDeath', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, exp: CONFIG.SKELETON.EXP });
-            darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP);
-            respawnEsqueleto(esqueletoCercano.id);
-        }
-    }
-});
     
     socket.on('chatMessage', (msg) => {
         if (!msg.startsWith('/')) {
@@ -492,8 +498,8 @@ io.on('connection', (socket) => {
         socket.emit('mensaje', `💀 ¡Has levantado un esqueleto aliado! (${jugador.esqueletosSummon} activos)`);
         io.emit('playerStatsUpdate', { id: socket.id, hp: jugador.hp, mana: jugador.mana });
     });
-socket.on('crearProyectil', (data) => {
-        // Reenviar a todos los jugadores excepto al que lo disparó
+    
+    socket.on('crearProyectil', (data) => {
         socket.broadcast.emit('proyectilCreado', data);
     });
     
@@ -725,7 +731,6 @@ setInterval(() => {
     let closestTarget = null;
     let closestDistance = Infinity;
     
-    // Buscar jugadores vivos
     Object.values(players).forEach(player => {
         if (player.isAlive) {
             const dist = getDistance(demonlord.x, demonlord.y, player.x, player.y);
@@ -736,7 +741,6 @@ setInterval(() => {
         }
     });
     
-    // Buscar ESQUELETOS ALIADOS
     esqueletos.forEach(esqueleto => {
         if (esqueleto.isAlive && esqueleto.isAlly === true) {
             const dist = getDistance(demonlord.x, demonlord.y, esqueleto.x, esqueleto.y);
@@ -747,7 +751,6 @@ setInterval(() => {
         }
     });
     
-    // Buscar ESQUELETOS ENEMIGOS
     esqueletos.forEach(esqueleto => {
         if (esqueleto.isAlive && esqueleto.isAlly === false) {
             const dist = getDistance(demonlord.x, demonlord.y, esqueleto.x, esqueleto.y);
@@ -758,7 +761,6 @@ setInterval(() => {
         }
     });
     
-    // Si no hay objetivo, no hacer nada
     if (!closestTarget) return;
     
     const dx = closestTarget.x - demonlord.x;
@@ -766,7 +768,6 @@ setInterval(() => {
     const distance = Math.hypot(dx, dy);
     
     if (distance < CONFIG.DEMONLORD.VISION_RANGE) {
-        
         if (distance > 70) {
             const moveX = (dx / distance) * CONFIG.DEMONLORD.SPEED;
             const moveY = (dy / distance) * CONFIG.DEMONLORD.SPEED;
@@ -824,7 +825,6 @@ setInterval(() => {
     }
     
     if (demonlord.attackCooldown > 0) demonlord.attackCooldown -= 100;
-    
 }, 100);
 
 setInterval(() => {
