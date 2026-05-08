@@ -374,18 +374,18 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
     }, 30);
     
     currentScene.physics.add.overlap(proyectil, window.esqueletosGrupo, (p, esqueleto) => {
-        if (esqueleto.isAlly === false && esqueleto.active && p.active) {
-            const danioMagico = 15 + Math.floor(playerStats.inteligencia * 1.5);
-            const danioTotal = Math.floor(danioMagico + damage);
-            
-            socket.emit('esqueletoHit', { id: esqueleto.esqueletoId, damageBonus: danioTotal });
-            if (currentScene) currentScene.sound.play('sonidoAtaque', { volume: 0.4 });
-            p.destroy();
-            clearInterval(animInterval);
-            const index = proyectiles.indexOf(p);
-            if (index !== -1) proyectiles.splice(index, 1);
-        }
-    });
+    if (esqueleto.isAlly === false && esqueleto.active && p.active) {
+        // Daño escalable con inteligencia (sin base extra)
+        const danioTotal = 15 + Math.floor(playerStats.inteligencia * 1.5);
+        
+        socket.emit('esqueletoHit', { id: esqueleto.esqueletoId, damageBonus: danioTotal });
+        if (currentScene) currentScene.sound.play('sonidoAtaque', { volume: 0.4 });
+        p.destroy();
+        clearInterval(animInterval);
+        const index = proyectiles.indexOf(p);
+        if (index !== -1) proyectiles.splice(index, 1);
+    }
+});
     
     const checkDistance = setInterval(() => {
         if (!proyectil || !proyectil.active) {
