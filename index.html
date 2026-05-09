@@ -741,20 +741,30 @@ function create(){
     let escalaJugador = (pClassName === 'NECROMANCER' || pClassName === 'MAGO') ? 0.3 : 2;
     player=this.physics.add.sprite(512,512,pClass).setScale(escalaJugador).setCollideWorldBounds(true); player.lastDir='Abajo'; player.attacking=false; player.isAlive=true; 
     demonlord_sprite=this.physics.add.sprite(1500,1500,'demonlord').setScale(2.5).setDepth(1500); demonlord_sprite.cDir='Abajo'; 
-    const guardado=window.guardadoPendiente||null; 
-    if(guardado){ 
-        if (guardado.inventarioSlots) inventarioSlots = guardado.inventarioSlots; 
-        else inicializarInventario(); 
-        mesaSlots = guardado.mesaSlots || [null,null,null,null,null,null,null,null,null]; 
-        playerHP = guardado.playerHP||500; playerMana = guardado.playerMana||100; 
-        tieneAntorchaCraftada = guardado.tieneAntorchaCraftada||false; antorchaActiva = guardado.antorchaActiva||false; 
-        equipamiento = guardado.equipamiento || { arma: null, escudo: null, armadura: null }; 
-        playerStats = guardado.playerStats || { level:1, exp:0, expNeeded:100, puntos:0, fuerza:0, inteligencia:0, agilidad:0, vitalidad:0, sabiduria:0 }; 
-        if(guardado.ultimaPosicion) player.setPosition(guardado.ultimaPosicion.x,guardado.ultimaPosicion.y); 
-        attackSpeedModifier = classStats[pClassName].attackSpeed || 1.0; 
-        if (guardado.skillsEquipadas) skillsEquipadas = guardado.skillsEquipadas; 
-        if (skillsEquipadas.length > 3) skillsEquipadas = skillsEquipadas.slice(0,3); 
-    } else { inicializarInventario(); for(let i=0;i<9;i++) mesaSlots[i]=null; let statsBase = classStats[pClassName] || classStats['WARRIOR']; playerHP = statsBase.hp; playerMana = statsBase.mana; attackSpeedModifier = statsBase.attackSpeed || 1.0; } 
+    const guardado=window.guardadoPendiente||null; if(guardado){ 
+    if (guardado.inventarioSlots) {
+        inventarioSlots = guardado.inventarioSlots;
+    } else {
+        inventarioSlots = [];
+        for(let i = 0; i < 36; i++) inventarioSlots.push(null);
+    }
+    mesaSlots = guardado.mesaSlots || [null,null,null,null,null,null,null,null,null]; 
+    playerHP = guardado.playerHP||500; playerMana = guardado.playerMana||100; 
+    tieneAntorchaCraftada = guardado.tieneAntorchaCraftada||false; antorchaActiva = guardado.antorchaActiva||false; 
+    equipamiento = guardado.equipamiento || { arma: null, escudo: null, armadura: null }; 
+    playerStats = guardado.playerStats || { level:1, exp:0, expNeeded:100, puntos:0, fuerza:0, inteligencia:0, agilidad:0, vitalidad:0, sabiduria:0 }; 
+    if(guardado.ultimaPosicion) player.setPosition(guardado.ultimaPosicion.x,guardado.ultimaPosicion.y); 
+    attackSpeedModifier = classStats[pClassName].attackSpeed || 1.0; 
+    if (guardado.skillsEquipadas) skillsEquipadas = guardado.skillsEquipadas; 
+    if (skillsEquipadas.length > 3) skillsEquipadas = skillsEquipadas.slice(0,3); 
+} else { 
+    inicializarInventario(); 
+    for(let i=0;i<9;i++) mesaSlots[i]=null; 
+    let statsBase = classStats[pClassName] || classStats['WARRIOR']; 
+    playerHP = statsBase.hp; 
+    playerMana = statsBase.mana; 
+    attackSpeedModifier = statsBase.attackSpeed || 1.0; 
+}
     
     actualizarStatsUI(); actualizarEstadoAntorcha(antorchaActiva); 
     socket.emit('newPlayer', { class: pClass, name: pName, className: pClassName }); 
