@@ -6,7 +6,7 @@ const io = require('socket.io')(http);
 const CONFIG = {
     PORT: 3000,
     DEMONLORD: { MAX_HP: 5000, RESPAWN_TIME: 10000, SPEED: 15, ATTACK_COOLDOWN: 2000, ATTACK_DAMAGE: 45, VISION_RANGE: 350, EXP: 500 },
-    SKELETON: { MAX_HP: 200, RESPAWN_TIME: 60000, SPEED: 12, ATTACK_COOLDOWN: 1000, ATTACK_DAMAGE: 25, VISION_RANGE: 500, EXP: 50, DEFENSE: 10 },
+    SKELETON: { MAX_HP: 200, RESPAWN_TIME: 60000, SPEED: 12, ATTACK_COOLDOWN: 1000, ATTACK_DAMAGE: 25, VISION_RANGE: 500, EXP: 50, DEFENSE: 0 },
     PLAYER: { MAX_HP: 500, RESPAWN_TIME: 10000,
         BASE_STATS: {
             barbaro: { fuerza: 18, defensa: 8, agilidad: 8, vitalidad: 12, attackSpeed: 0.7, baseDamage: 60, mana: 50 },
@@ -157,6 +157,12 @@ io.on('connection', (socket) => {
     
     socket.on('newPlayer', (d) => {
         const baseStats = CONFIG.PLAYER.BASE_STATS[d.class] || CONFIG.PLAYER.BASE_STATS.warrior;
+        let ataqueFisico = 15;
+        if (d.className === 'BÁRBARO') ataqueFisico = 80;
+        else if (d.className === 'CABALLERO') ataqueFisico = 50;
+        else if (d.className === 'WARRIOR') ataqueFisico = 50;
+        else if (d.className === 'MAGO' || d.className === 'NECROMANCER') ataqueFisico = 15;
+        
         players[socket.id] = { 
             id: socket.id, x: 512, y: 512, class: d.class, name: d.name, className: d.className,
             hp: CONFIG.PLAYER.MAX_HP, maxHp: CONFIG.PLAYER.MAX_HP, isAlive: true,
@@ -169,17 +175,11 @@ io.on('connection', (socket) => {
             tieneAntorcha: false, antorchaActiva: false, antorchaTiempo: 0, attackCooldown: 0,
             mana: baseStats.mana || 100, maxMana: baseStats.mana || 100,
             esqueletosSummon: 0,
-            skillsEquipadas: d.className === 'NECROMANCER' ? ['levantar_muerto', 'furia_necrotica'] : [],
+            skillsEquipadas: d.className === 'NECROMANCER' ? ['levantar_muerto', 'furia_necrotica', 'ataque_distancia'] : (d.className === 'MAGO' ? ['ataque_distancia'] : []),
             attackSpeedModifier: baseStats.attackSpeed || 1.0,
             baseDamage: baseStats.baseDamage || 50,
-            ataqueFisico: 15  // Valor base, se actualizará desde classStats después
+            ataqueFisico: ataqueFisico
         };
-        // Actualizar ataqueFisico según la clase
-        if (d.className === 'BÁRBARO') players[socket.id].ataqueFisico = 80;
-        else if (d.className === 'CABALLERO') players[socket.id].ataqueFisico = 50;
-        else if (d.className === 'WARRIOR') players[socket.id].ataqueFisico = 50;
-        else if (d.className === 'MAGO' || d.className === 'NECROMANCER') players[socket.id].ataqueFisico = 15;
-        
         inventariosJugadores[socket.id] = { items: [], equipamiento: {} };
         inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 });
         inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nombre: 'Espada Básica', icono: '⚔️', cantidad: 1, slot: 1 });
@@ -196,7 +196,7 @@ io.on('connection', (socket) => {
         if (!esqueleto) return;
         
         let damage = data.damageBonus || 0;
-        const finalDamage = Math.max(1, damage - CONFIG.SKELETON.DEFENSE);
+        const finalDamage = Math.max(1, damage);
         esqueleto.hp = Math.max(0, esqueleto.hp - finalDamage);
         
         io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: finalDamage });
@@ -290,9 +290,8 @@ io.on('connection', (socket) => {
         });
         
         if (esqueletoCercano) {
-            let damage = jugador.ataqueFisico || 15;
-            
-            const finalDamage = Math.max(1, damage - CONFIG.SKELETON.DEFENSE);
+            let damage = jugador.ataqueFisico;
+            const finalDamage = Math.max(1, damage);
             esqueletoCercano.hp = Math.max(0, esqueletoCercano.hp - finalDamage);
             
             io.emit('enemyDamaged', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, dmg: finalDamage });
@@ -410,8 +409,7 @@ io.on('connection', (socket) => {
         const jugador = players[socket.id];
         if (!jugador || !jugador.isAlive) return;
         
-        let damage = jugador.baseDamage + Math.floor(jugador.stats.fuerza * 1.5);
-        if (jugador.class === 'barbaro') damage += 30;
+        let damage = jugador.ataqueFisico;
         if (data.damageBonus) damage += data.damageBonus;
         if (data.esCritico) damage *= 2;
         
@@ -834,14 +832,15 @@ setInterval(() => {
         let closestTarget = null;
         let closestDistance = Infinity;
         
-        // Según el tipo de esqueleto, buscar objetivo
+        let nearestDistance = Infinity;
+        let nearestTarget = null;
+        
         if (esqueleto.isAlly === true) {
-            // Esqueletos aliados: atacan a esqueletos enemigos o al demonlord
             if (demonlord.isAlive) {
                 const dist = getDistance(esqueleto.x, esqueleto.y, demonlord.x, demonlord.y);
-                if (dist < closestDistance) {
-                    closestDistance = dist;
-                    closestTarget = demonlord;
+                if (dist < nearestDistance) {
+                    nearestDistance = dist;
+                    nearestTarget = demonlord;
                 }
             }
             esqueletos.forEach(otherSkeleton => {
@@ -849,28 +848,27 @@ setInterval(() => {
                 if (otherSkeleton.id === esqueleto.id) return;
                 if (otherSkeleton.isAlly === false) {
                     const dist = getDistance(esqueleto.x, esqueleto.y, otherSkeleton.x, otherSkeleton.y);
-                    if (dist < closestDistance) {
-                        closestDistance = dist;
-                        closestTarget = otherSkeleton;
+                    if (dist < nearestDistance) {
+                        nearestDistance = dist;
+                        nearestTarget = otherSkeleton;
                     }
                 }
             });
         } else {
-            // Esqueletos enemigos: atacan a jugadores, esqueletos aliados o demonlord
             Object.values(players).forEach(player => {
                 if (!player.isAlive) return;
                 const dist = getDistance(esqueleto.x, esqueleto.y, player.x, player.y);
-                if (dist < closestDistance) {
-                    closestDistance = dist;
-                    closestTarget = player;
+                if (dist < nearestDistance) {
+                    nearestDistance = dist;
+                    nearestTarget = player;
                 }
             });
             
             if (demonlord.isAlive) {
                 const dist = getDistance(esqueleto.x, esqueleto.y, demonlord.x, demonlord.y);
-                if (dist < closestDistance) {
-                    closestDistance = dist;
-                    closestTarget = demonlord;
+                if (dist < nearestDistance) {
+                    nearestDistance = dist;
+                    nearestTarget = demonlord;
                 }
             }
             
@@ -879,24 +877,35 @@ setInterval(() => {
                 if (otherSkeleton.id === esqueleto.id) return;
                 if (otherSkeleton.isAlly === true) {
                     const dist = getDistance(esqueleto.x, esqueleto.y, otherSkeleton.x, otherSkeleton.y);
-                    if (dist < closestDistance) {
-                        closestDistance = dist;
-                        closestTarget = otherSkeleton;
+                    if (dist < nearestDistance) {
+                        nearestDistance = dist;
+                        nearestTarget = otherSkeleton;
                     }
                 }
             });
         }
         
-        // Si no hay objetivo, no hacer nada
-        if (!closestTarget) return;
+        if (nearestTarget && nearestDistance < CONFIG.SKELETON.VISION_RANGE) {
+            closestTarget = nearestTarget;
+            closestDistance = nearestDistance;
+        }
         
-        // Calcular movimiento
-        const dx = closestTarget.x - esqueleto.x;
-        const dy = closestTarget.y - esqueleto.y;
-        const distance = Math.hypot(dx, dy);
+        if (!closestTarget && esqueleto.isAlly === true && esqueleto.ownerId) {
+            const owner = players[esqueleto.ownerId];
+            if (owner && owner.isAlive) {
+                const distToOwner = getDistance(esqueleto.x, esqueleto.y, owner.x, owner.y);
+                if (distToOwner > 70) {
+                    closestTarget = owner;
+                    closestDistance = distToOwner;
+                }
+            }
+        }
         
-        if (distance < CONFIG.SKELETON.VISION_RANGE) {
-            // Moverse hacia el objetivo
+        if (closestTarget) {
+            const dx = closestTarget.x - esqueleto.x;
+            const dy = closestTarget.y - esqueleto.y;
+            const distance = Math.hypot(dx, dy);
+            
             if (distance > 50) {
                 const moveX = (dx / distance) * CONFIG.SKELETON.SPEED;
                 const moveY = (dy / distance) * CONFIG.SKELETON.SPEED;
@@ -913,7 +922,6 @@ setInterval(() => {
                 io.emit('esqueletoMoved', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dir: esqueleto.dir, isMoving: false });
             }
             
-            // Atacar si está en rango
             const isOwner = (esqueleto.isAlly === true && closestTarget === players[esqueleto.ownerId]);
             if (esqueleto.attackCooldown <= 0 && closestDistance < 50 && !isOwner) {
                 esqueleto.attackCooldown = CONFIG.SKELETON.ATTACK_COOLDOWN;
@@ -928,9 +936,7 @@ setInterval(() => {
                     y: esqueleto.y, 
                     dir: esqueleto.dir 
                 });
-                io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: damage, hp: esqueleto.hp });
                 
-                // Si el objetivo murió
                 if (closestTarget.hp <= 0) {
                     if (closestTarget.id === 'demonlord') {
                         closestTarget.isAlive = false;
@@ -944,18 +950,19 @@ setInterval(() => {
                             io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `👹 El Demonlord ha renacido!` });
                         }, CONFIG.DEMONLORD.RESPAWN_TIME);
                     } else if (closestTarget.hasOwnProperty('ownerId')) {
-                        closestTarget.isAlive = false;
-                        io.emit('esqueletoDeath', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, exp: 0 });
-                        const owner = players[closestTarget.ownerId];
+                        const esqueletoAliadoMuerto = closestTarget;
+                        esqueletoAliadoMuerto.isAlive = false;
+                        io.emit('esqueletoDeath', { id: esqueletoAliadoMuerto.id, x: esqueletoAliadoMuerto.x, y: esqueletoAliadoMuerto.y, exp: 0 });
+                        const owner = players[esqueletoAliadoMuerto.ownerId];
                         if (owner) {
                             owner.esqueletosSummon = Math.max(0, (owner.esqueletosSummon || 0) - 1);
                             io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `💀 Tu esqueleto aliado ha muerto. Te quedan ${owner.esqueletosSummon}` });
                         }
                         setTimeout(() => {
-                            const idx = esqueletos.findIndex(e => e.id === closestTarget.id);
+                            const idx = esqueletos.findIndex(e => e.id === esqueletoAliadoMuerto.id);
                             if (idx !== -1 && !esqueletos[idx].isAlive && esqueletos[idx].isAlly === true) {
                                 esqueletos.splice(idx, 1);
-                                io.emit('esqueletoDestroy', { id: closestTarget.id });
+                                io.emit('esqueletoDestroy', { id: esqueletoAliadoMuerto.id });
                             }
                         }, 60000);
                     } else {
@@ -964,6 +971,7 @@ setInterval(() => {
                         respawnEsqueleto(closestTarget.id);
                     }
                 }
+                io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: damage, hp: esqueleto.hp });
             }
         } else {
             io.emit('esqueletoMoved', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dir: esqueleto.dir, isMoving: false });
