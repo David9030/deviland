@@ -651,6 +651,17 @@ function create(){
         if (data.grasa !== undefined) { let slotGrasa = inventarioSlots.find(s => s && s.id === 'grasa'); if (slotGrasa) slotGrasa.cantidad = data.grasa; } 
         renderizarInventario(); guardarPartida(); 
     });
+    // Re-sincronización automática de esqueletos
+    setTimeout(() => {
+        console.log("🔄 Forzando re-sincronización de esqueletos");
+        if (socket && socket.id) socket.emit('solicitarEsqueletos');
+    }, 1000);
+
+    setInterval(() => {
+        if (socket && socket.id) {
+            socket.emit('solicitarEsqueletos');
+        }
+    }, 10000);
     
     this.physics.world.setBounds(0,0,3000,3000); this.cameras.main.setBounds(0,0,3000,3000); this.add.tileSprite(1500,1500,3000,3000,'suelo').setAlpha(0.6); 
     keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,SHIFT,R,I,T'); otherPlayers=this.add.group(); 

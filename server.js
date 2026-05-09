@@ -742,6 +742,17 @@ io.on('connection', (socket) => {
         }
     });
     
+socket.on('solicitarEsqueletos', () => {
+    const jugador = players[socket.id];
+    if (!jugador) return;
+    
+    const esqueletosCercanos = esqueletos.filter(e => {
+        return getDistance(jugador.x, jugador.y, e.x, e.y) < 1500;
+    });
+    
+    socket.emit('esqueletosIniciales', esqueletosCercanos);
+    console.log(`📦 Re-enviando ${esqueletosCercanos.length} esqueletos a ${socket.id}`);
+});
     socket.on('disconnect', () => { 
         const teamId = playerTeam[socket.id];
         if (teamId && teams[teamId]) {
