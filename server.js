@@ -289,23 +289,24 @@ io.on('connection', (socket) => {
             }
         });
         
-       if (esqueletoCercano) {
-    let damage = jugador.ataqueFisico + Math.floor(jugador.stats.fuerza * 1);
-    if (data.damageBonus) damage += data.damageBonus;
-    if (data.esCritico) damage *= 2;
-    
-    const finalDamage = Math.max(1, damage);
-    esqueletoCercano.hp = Math.max(0, esqueletoCercano.hp - finalDamage);
-    
-    io.emit('enemyDamaged', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, dmg: finalDamage });
-    
-    if (esqueletoCercano.hp <= 0) {
-        esqueletoCercano.isAlive = false;
-        io.emit('esqueletoDeath', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, exp: CONFIG.SKELETON.EXP });
-        darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP);
-        respawnEsqueleto(esqueletoCercano.id);
-    }
-}
+        if (esqueletoCercano) {
+            let damage = jugador.ataqueFisico + Math.floor(jugador.stats.fuerza * 1);
+            if (data.damageBonus) damage += data.damageBonus;
+            if (data.esCritico) damage *= 2;
+            
+            const finalDamage = Math.max(1, damage);
+            esqueletoCercano.hp = Math.max(0, esqueletoCercano.hp - finalDamage);
+            
+            io.emit('enemyDamaged', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, dmg: finalDamage });
+            
+            if (esqueletoCercano.hp <= 0) {
+                esqueletoCercano.isAlive = false;
+                io.emit('esqueletoDeath', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, exp: CONFIG.SKELETON.EXP });
+                darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP);
+                respawnEsqueleto(esqueletoCercano.id);
+            }
+        }
+    });
     
     socket.on('chatMessage', (msg) => {
         if (!msg.startsWith('/')) {
@@ -411,7 +412,7 @@ io.on('connection', (socket) => {
         const jugador = players[socket.id];
         if (!jugador || !jugador.isAlive) return;
         
-        let damage = jugador.ataqueFisico;
+        let damage = jugador.ataqueFisico + Math.floor(jugador.stats.fuerza * 1);
         if (data.damageBonus) damage += data.damageBonus;
         if (data.esCritico) damage *= 2;
         
