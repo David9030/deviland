@@ -304,7 +304,7 @@ io.on('connection', (socket) => {
         });
         
         if (esqueletoCercano) {
-            let damage = jugador.ataqueFisico + Math.floor(jugador.stats.fuerza * 1);
+            let damage = jugador.ataqueFisico;  // Solo el ataqueFisico base
             if (data.damageBonus) damage += data.damageBonus;
             if (data.esCritico) damage *= 2;
             
@@ -426,7 +426,7 @@ io.on('connection', (socket) => {
         const jugador = players[socket.id];
         if (!jugador || !jugador.isAlive) return;
         
-        let damage = jugador.ataqueFisico + Math.floor(jugador.stats.fuerza * 1);
+        let damage = jugador.ataqueFisico;  // Solo ataqueFisico, sin fuerza
         if (data.damageBonus) damage += data.damageBonus;
         if (data.esCritico) damage *= 2;
         
