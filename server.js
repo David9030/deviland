@@ -180,15 +180,42 @@ io.on('connection', (socket) => {
             baseDamage: baseStats.baseDamage || 50,
             ataqueFisico: ataqueFisico
         };
+        
+        // Inicializar inventario del jugador en el servidor
         inventariosJugadores[socket.id] = { items: [], equipamiento: {} };
         inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 });
         inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nombre: 'Espada Básica', icono: '⚔️', cantidad: 1, slot: 1 });
+        inventariosJugadores[socket.id].items.push({ id: 'madera', tipo: 'material', nombre: 'Madera', icono: '🌲', cantidad: 10, slot: 2 });
+        inventariosJugadores[socket.id].items.push({ id: 'tela', tipo: 'material', nombre: 'Tela', icono: '🧵', cantidad: 10, slot: 3 });
+        inventariosJugadores[socket.id].items.push({ id: 'grasa', tipo: 'material', nombre: 'Grasa', icono: '🕯️', cantidad: 10, slot: 4 });
+        
+        socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
         socket.emit('inventarioActualizado', { madera: 10, tela: 10, grasa: 10 });
         socket.broadcast.emit('newPlayer', players[socket.id]);
         io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${d.name} (${d.className || d.class}) se ha unido` });
     });
     
-    // Actualizar estadísticas cuando el cliente sube de nivel
+    // ========== EVENTO NUEVO: SOLICITAR INVENTARIO COMPLETO ==========
+    socket.on('solicitarInventarioCompleto', () => {
+        console.log(`📦 Enviando inventario completo a ${socket.id}`);
+        if (inventariosJugadores[socket.id]) {
+            socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
+        } else {
+            // Si no existe, crear inventario por defecto
+            inventariosJugadores[socket.id] = { 
+                items: [
+                    { id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 },
+                    { id: 'espada_1', tipo: 'espada', nombre: 'Espada Básica', icono: '⚔️', cantidad: 1, slot: 1 },
+                    { id: 'madera', tipo: 'material', nombre: 'Madera', icono: '🌲', cantidad: 10, slot: 2 },
+                    { id: 'tela', tipo: 'material', nombre: 'Tela', icono: '🧵', cantidad: 10, slot: 3 },
+                    { id: 'grasa', tipo: 'material', nombre: 'Grasa', icono: '🕯️', cantidad: 10, slot: 4 }
+                ], 
+                equipamiento: {} 
+            };
+            socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
+        }
+    });
+    
     socket.on('actualizarStats', (data) => {
         const jugador = players[socket.id];
         if (!jugador) return;
@@ -199,7 +226,7 @@ io.on('connection', (socket) => {
         if (data.vitalidad !== undefined) jugador.stats.vitalidad = data.vitalidad;
         if (data.sabiduria !== undefined) jugador.stats.sabiduria = data.sabiduria;
         
-        console.log(`📊 Stats actualizados para ${jugador.name}: fuerza=${jugador.stats.fuerza}`);
+        console.log(`📊 Stats actualizados para ${jugador.name}`);
     });
     
     socket.on('esqueletoHit', (data) => {
@@ -304,7 +331,7 @@ io.on('connection', (socket) => {
         });
         
         if (esqueletoCercano) {
-            let damage = jugador.ataqueFisico;  // Solo el ataqueFisico base
+            let damage = jugador.ataqueFisico;
             if (data.damageBonus) damage += data.damageBonus;
             if (data.esCritico) damage *= 2;
             
@@ -426,7 +453,7 @@ io.on('connection', (socket) => {
         const jugador = players[socket.id];
         if (!jugador || !jugador.isAlive) return;
         
-        let damage = jugador.ataqueFisico;  // Solo ataqueFisico, sin fuerza
+        let damage = jugador.ataqueFisico;
         if (data.damageBonus) damage += data.damageBonus;
         if (data.esCritico) damage *= 2;
         
@@ -739,7 +766,7 @@ io.on('connection', (socket) => {
     });
 });
 
-// ========== MOVIMIENTO DE DEMONLORD ==========
+// MOVIMIENTO DE DEMONLORD
 setInterval(() => {
     if (!demonlord.isAlive) return;
     
@@ -842,6 +869,7 @@ setInterval(() => {
     if (demonlord.attackCooldown > 0) demonlord.attackCooldown -= 100;
 }, 100);
 
+// MOVIMIENTO DE ESQUELETOS
 setInterval(() => {
     esqueletos.forEach(esqueleto => {
         if (!esqueleto.isAlive) return;
