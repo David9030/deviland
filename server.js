@@ -188,6 +188,20 @@ io.on('connection', (socket) => {
         io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${d.name} (${d.className || d.class}) se ha unido` });
     });
     
+    // Actualizar estadísticas cuando el cliente sube de nivel
+    socket.on('actualizarStats', (data) => {
+        const jugador = players[socket.id];
+        if (!jugador) return;
+        
+        if (data.fuerza !== undefined) jugador.stats.fuerza = data.fuerza;
+        if (data.inteligencia !== undefined) jugador.stats.inteligencia = data.inteligencia;
+        if (data.agilidad !== undefined) jugador.stats.agilidad = data.agilidad;
+        if (data.vitalidad !== undefined) jugador.stats.vitalidad = data.vitalidad;
+        if (data.sabiduria !== undefined) jugador.stats.sabiduria = data.sabiduria;
+        
+        console.log(`📊 Stats actualizados para ${jugador.name}: fuerza=${jugador.stats.fuerza}`);
+    });
+    
     socket.on('esqueletoHit', (data) => {
         const jugador = players[socket.id];
         if (!jugador || !jugador.isAlive) return;
