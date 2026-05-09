@@ -56,7 +56,23 @@
         .tab.active { background: #333; color: #fff; border-bottom: 1px solid #fff; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        #inventario-ui { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; padding: 10px; border: 1px solid #fff; z-index: 20000; display: none; width: auto; max-width: 90vw; text-align: center; font-family: monospace; }
+        #inventario-ui { 
+    position: fixed; 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-50%, -50%); 
+    background: #000; 
+    padding: 10px; 
+    border: 2px solid #fff; 
+    z-index: 20000; 
+    display: none; 
+    width: auto; 
+    min-width: 300px;
+    max-width: 90vw; 
+    text-align: center; 
+    font-family: monospace; 
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+}
         .inventario-grid { display: grid; grid-template-columns: repeat(6, 45px); grid-auto-rows: 45px; gap: 3px; background: #111; padding: 6px; border: 1px solid #333; }
         .mesa-grid { display: grid; grid-template-columns: repeat(3, 45px); grid-auto-rows: 45px; gap: 3px; background: #111; padding: 6px; border: 1px solid #333; margin: 0 auto; }
         .skills-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
