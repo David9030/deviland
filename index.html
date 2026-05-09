@@ -181,12 +181,12 @@
         </div>
     </div>
     <div id="inventario-ui">
-        <div class="tab-container"><div class="tab" data-tab="inv" onclick="cambiarTabInventario('inv')">📦</div><div class="tab" data-tab="craft" onclick="cambiarTabInventario('craft')">🔧</div></div>
-        <div id="tab-inv" class="tab-content active"><div id="inventario-grid" class="inventario-grid"></div></div>
-        <div id="tab-craft" class="tab-content"><div id="mesa-grid" class="mesa-grid"></div><button class="boton-craftear" onclick="craftearEnMesa()">CRAFTEAR</button></div>
-        <hr><div style="margin: 8px 0; text-align: center; background: #111; padding: 5px; border-radius: 4px;"><div style="font-size: 9px; color: #fff;">🪔 ANTORCHA</div><div id="estado-antorcha" style="color: #ffaa66; font-size: 14px; font-weight: bold;">✖</div><div style="font-size: 7px; color: #666; margin-top: 3px;">(Craftea en la mesa: madera+tela+grasa)</div></div>
-        <button class="cerrar-btn" onclick="toggleInventario()">CERRAR</button>
-    </div>
+    <div class="tab-container"><div class="tab" data-tab="inv" onclick="cambiarTabInventario('inv')">📦</div><div class="tab" data-tab="craft" onclick="cambiarTabInventario('craft')">🔧</div></div>
+    <div id="tab-inv" class="tab-content active"><div id="inventario-grid" class="inventario-grid"></div></div>
+    <div id="tab-craft-inventario" class="tab-content"><div id="mesa-inventario-grid" class="mesa-grid"></div><button class="boton-craftear" onclick="craftearEnMesa()">CRAFTEAR</button></div>
+    <hr><div style="margin: 8px 0; text-align: center; background: #111; padding: 5px; border-radius: 4px;"><div style="font-size: 9px; color: #fff;">🪔 ANTORCHA</div><div id="estado-antorcha" style="color: #ffaa66; font-size: 14px; font-weight: bold;">✖</div><div style="font-size: 7px; color: #666; margin-top: 3px;">(Craftea en la mesa: madera+tela+grasa)</div></div>
+    <button class="cerrar-btn" onclick="toggleInventario()">CERRAR</button>
+</div>
     <div id="skills-ui" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; padding: 10px; border: 1px solid #fff; z-index: 20000; display: none; width: 400px; max-width: 90vw; text-align: center; font-family: monospace;">
         <h3 style="margin:0 0 10px 0; color:#fff;">📚 INVENTARIO DE SKILLS</h3>
         <div id="skills-grid" class="skills-grid" style="max-height: 300px; overflow-y: auto;"></div>
@@ -265,8 +265,11 @@ function toggleInventario() {
     if (!u) return;
     if (u.style.display === 'none' || u.style.display === '') {
         if (typeof renderizarInventario === 'function') renderizarInventario();
-        if (typeof renderizarMesa === 'function') renderizarMesa();
+        if (typeof renderizarMesaInventario === 'function') renderizarMesaInventario();
         u.style.display = 'block';
+        u.style.left = '50%';
+        u.style.top = '50%';
+        u.style.transform = 'translate(-50%, -50%)';
     } else { 
         u.style.display = 'none';
     }
@@ -274,9 +277,35 @@ function toggleInventario() {
 
 function toggleStatsPanel() { document.getElementById('stats-panel').classList.toggle('visible'); actualizarStatsUI(); }
 function toggleSkills() { let u = document.getElementById('skills-ui'); if(u.style.display === 'none' || u.style.display === ''){ cargarSkillsPorClase(); u.style.display = 'block'; } else { u.style.display = 'none'; } }
-function cambiarTab(tab) { document.querySelectorAll('#stats-panel .tab').forEach(t => t.classList.remove('active')); document.querySelector(`#stats-panel .tab[data-tab="${tab}"]`).classList.add('active'); document.querySelectorAll('#stats-panel .tab-content').forEach(c => c.classList.remove('active')); document.getElementById(`tab-${tab}`).classList.add('active'); if (tab === 'mesa') renderizarMesa(); }
-function cambiarTabInventario(tab) { tabInventarioActivo = tab; document.querySelectorAll('#inventario-ui .tab').forEach(t => t.classList.remove('active')); document.querySelector(`#inventario-ui .tab[data-tab="${tab}"]`).classList.add('active'); document.querySelectorAll('#inventario-ui .tab-content').forEach(c => c.classList.remove('active')); document.getElementById(`tab-${tab}`).classList.add('active'); if (tab === 'craft') renderizarMesa(); }
-function invitarJugadorSeleccionado() { if (jugadorSeleccionadoId) { socket.emit('invitarJugador', { playerId: jugadorSeleccionadoId }); document.getElementById('context-menu').style.display = 'none'; jugadorSeleccionadoId = null; } }
+function cambiarTab(tab) { 
+    document.querySelectorAll('#stats-panel .tab').forEach(t => t.classList.remove('active')); 
+    document.querySelector(`#stats-panel .tab[data-tab="${tab}"]`).classList.add('active'); 
+    document.querySelectorAll('#stats-panel .tab-content').forEach(c => c.classList.remove('active')); 
+    document.getElementById(`tab-${tab}`).classList.add('active'); 
+    if (tab === 'mesa') renderizarMesa(); 
+}
+
+function cambiarTabInventario(tab) { 
+    tabInventarioActivo = tab; 
+    document.querySelectorAll('#inventario-ui .tab').forEach(t => t.classList.remove('active')); 
+    document.querySelector(`#inventario-ui .tab[data-tab="${tab}"]`).classList.add('active'); 
+    document.querySelectorAll('#inventario-ui .tab-content').forEach(c => c.classList.remove('active')); 
+    
+    if (tab === 'inv') {
+        document.getElementById('tab-inv').classList.add('active');
+    } else if (tab === 'craft') {
+        document.getElementById('tab-craft-inventario').classList.add('active');
+        renderizarMesaInventario();
+    }
+}
+
+function invitarJugadorSeleccionado() { 
+    if (jugadorSeleccionadoId) { 
+        socket.emit('invitarJugador', { playerId: jugadorSeleccionadoId }); 
+        document.getElementById('context-menu').style.display = 'none'; 
+        jugadorSeleccionadoId = null; 
+    } 
+}
 
 function getVelocidadActual() { let statsBase = classStats[pClassName] || classStats['WARRIOR']; let velocidadBase = statsBase.velocidad + (playerStats.agilidad * 1.5); const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null; const escudoItem = equipamiento.escudo ? encontrarItemPorId(equipamiento.escudo) : null; const armaduraItem = equipamiento.armadura ? encontrarItemPorId(equipamiento.armadura) : null; if (armaItem && armaItem.velocidad) velocidadBase += armaItem.velocidad; if (escudoItem && escudoItem.velocidad) velocidadBase += escudoItem.velocidad; if (armaduraItem && armaduraItem.velocidad) velocidadBase += armaduraItem.velocidad; return Math.max(40, velocidadBase); }
 
@@ -480,8 +509,16 @@ function moverItem(origen,oi,destino,di){
     } renderizarInventario(); renderizarMesa(); guardarPartida(); 
 }
 
-function renderizarInventario(){ const g=document.getElementById('inventario-grid'); if(!g)return; g.innerHTML=''; for(let i=0;i<inventarioSlots.length;i++){ const s=inventarioSlots[i]; const d=crearSlotElement(s,i,'inventario'); g.appendChild(d); } }
-function renderizarMesa(){ const g=document.getElementById('mesa-grid'); if(!g)return; g.innerHTML=''; for(let i=0;i<mesaSlots.length;i++){ const s=mesaSlots[i]; const d=crearSlotElement(s,i,'mesa'); g.appendChild(d); } }
+function renderizarMesaInventario() {
+    const g = document.getElementById('mesa-inventario-grid');
+    if (!g) return;
+    g.innerHTML = '';
+    for (let i = 0; i < mesaSlots.length; i++) {
+        const s = mesaSlots[i];
+        const d = crearSlotElement(s, i, 'mesa');
+        g.appendChild(d);
+    }
+}
 
 function crearSlotElement(slot, index, origen) { 
     const d = document.createElement('div'); d.className = 'slot'; d.setAttribute('data-slot-index', index); d.setAttribute('data-origen', origen); 
