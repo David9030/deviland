@@ -168,7 +168,6 @@ io.on('connection', (socket) => {
             hp: CONFIG.PLAYER.MAX_HP, maxHp: CONFIG.PLAYER.MAX_HP, isAlive: true,
             deathCount: 0, deathPosition: null, team: 'Sin Team', level: 1, exp: 0, dir: 'Abajo',
             stats: { fuerza: baseStats.fuerza, defensa: baseStats.defensa, agilidad: baseStats.agilidad, vitalidad: baseStats.vitalidad, puntosDisponibles: 5 },
-            oro: 100, madera: 0, rocas: 0,
             minerales: { hierro: 0, bronce: 0, plata: 0, oro: 0 },
             equipamiento: { cabeza: null, pecho: null, piernas: null, pies: null, arma: null, escudo: null, ring1: null, ring2: null },
             mana: baseStats.mana || 100, maxMana: baseStats.mana || 100,
@@ -200,9 +199,7 @@ inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nom
                 items: [
                     { id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 },
                     { id: 'espada_1', tipo: 'espada', nombre: 'Espada Básica', icono: '⚔️', cantidad: 1, slot: 1 },
-                    { id: 'madera', tipo: 'material', nombre: 'Madera', icono: '🌲', cantidad: 10, slot: 2 },
-                    { id: 'tela', tipo: 'material', nombre: 'Tela', icono: '🧵', cantidad: 10, slot: 3 },
-                    { id: 'grasa', tipo: 'material', nombre: 'Grasa', icono: '🕯️', cantidad: 10, slot: 4 }
+                   
                 ], 
                 equipamiento: {} 
             };
@@ -602,7 +599,6 @@ inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nom
         let arbol = arboles.find(a => a.activo && getDistance(data.x,data.y,a.x,a.y)<80);
         if(!arbol || arbol.madera<=0) return;
         arbol.madera--;
-        socket.emit('maderaObtenida', { total: jugador.inventario.madera });
         io.emit('arbolTalado', { id: arbol.id, x: arbol.x, y: arbol.y, taladoPor: jugador.name });
         if(arbol.madera <= 0) { 
             arbol.activo = false;
