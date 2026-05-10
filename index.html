@@ -294,14 +294,17 @@ var classStats = {
 function toggleChat() { document.getElementById('chat-container').classList.toggle('chat-minimizado'); }
     function toggleInventario() { 
     let u = document.getElementById('inventario-ui'); 
-    if (!u) return;
+    if (!u) {
+        console.log("ERROR: No encontré inventario-ui");
+        return;
+    }
+    console.log("Display actual:", u.style.display);
     if (u.style.display === 'none' || u.style.display === '') {
+        console.log("ABRIENDO inventario");
         if (typeof renderizarInventario === 'function') renderizarInventario();
         u.style.display = 'block';
-        u.style.left = '50%';
-        u.style.top = '50%';
-        u.style.transform = 'translate(-50%, -50%)';
     } else { 
+        console.log("CERRANDO inventario");
         u.style.display = 'none';
     }
 }
