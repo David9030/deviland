@@ -412,18 +412,23 @@ function nuevoJuego() {
     playerStats = { level:1, exp:0, expNeeded:100, puntos:0, fuerza:0, inteligencia:0, agilidad:0, vitalidad:0, sabiduria:0 }; 
     skillsEquipadas = []; 
     inventarioSlots = [];
-    document.getElementById('menu-ui').style.display='none'; 
-    document.getElementById('class-ui').style.display='flex'; 
+    document.getElementById('menu-ui').style.display = 'none'; 
+    document.getElementById('class-ui').style.display = 'flex'; 
 }
 
 function continuarPartida() { 
     const g = cargarPartidaGuardada(); 
-    if(!g){ alert("No hay partida guardada."); return; } 
-    pName = g.nombre; pClass = g.clase; pClassName = g.className || g.clase; 
+    if (!g) { 
+        alert("No hay partida guardada.");
+        return; 
+    } 
+    pName = g.nombre; 
+    pClass = g.clase; 
+    pClassName = g.className || g.clase; 
     equipamiento = g.equipamiento || { arma: null, escudo: null, armadura: null }; 
     playerStats = g.playerStats || { level:1, exp:0, expNeeded:100, puntos:0, fuerza:0, inteligencia:0, agilidad:0, vitalidad:0, sabiduria:0 }; 
-    playerHP = g.playerHP || classStats[pClassName].hp; 
-    playerMana = g.playerMana || classStats[pClassName].mana; 
+    playerHP = g.playerHP || classStats[pClassName]?.hp || 500; 
+    playerMana = g.playerMana || classStats[pClassName]?.mana || 100; 
     
     // RESTAURAR INVENTARIO
     if (g.inventarioSlots && Array.isArray(g.inventarioSlots)) {
@@ -443,9 +448,9 @@ function continuarPartida() {
         skillsEquipadas = g.skillsEquipadas || [];
     } 
     if (skillsEquipadas.length > 3) skillsEquipadas = skillsEquipadas.slice(0,3); 
-    document.getElementById('menu-ui').style.display='none'; 
+    document.getElementById('menu-ui').style.display = 'none'; 
     mostrarPantallaCarga(); 
-    setTimeout(()=>{ iniciarJuegoConCarga(g); },500); 
+    setTimeout(() => { iniciarJuegoConCarga(g); }, 500); 
 }
 
 function seleccionarClase(sprite, nombreClase) { 
