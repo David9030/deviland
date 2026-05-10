@@ -227,6 +227,43 @@ var demonlordCheckInterval;
 var ultimoAtaqueNormal = 0;        // ← NUEVO
 var COOLDOWN_ATAQUE_NORMAL = 1000; // ← NUEVO (1 segundo)
 
+function crearSlotElement(slot, index, origen) { 
+    const d = document.createElement('div'); d.className = 'slot'; d.setAttribute('data-slot-index', index); d.setAttribute('data-origen', origen); 
+    if (slot) { 
+        const i = document.createElement('div'); i.className = 'slot-icon'; 
+        if (slot.icono && (slot.icono.includes('_img') || slot.icono === 'pocion_img' || slot.icono === 'espada_img' || slot.icono === 'antorcha_img' || slot.icono === 'frasco_vida_img')) { 
+            const img = document.createElement('img'); let nombreArchivo = slot.icono.replace('_img', ''); if (nombreArchivo === 'frasco_vida') nombreArchivo = 'frasco_vida'; img.src = `/${nombreArchivo}.png`; img.style.width = '24px'; img.style.height = '24px'; img.style.filter = 'grayscale(100%)'; img.style.objectFit = 'contain'; i.appendChild(img); 
+        } else { i.textContent = slot.icono; } 
+        let estaEquipado = false; if (slot.tipo === 'espada' && equipamiento.arma === slot.id) estaEquipado = true; if (slot.tipo === 'escudo' && equipamiento.escudo === slot.id) estaEquipado = true; if (slot.tipo === 'armadura' && equipamiento.armadura === slot.id) estaEquipado = true; if (estaEquipado) { const eSpan = document.createElement('span'); eSpan.className = 'equipped-icon'; eSpan.textContent = 'E'; i.appendChild(eSpan); } 
+        const c = document.createElement('div'); c.className = 'slot-cantidad'; c.textContent = slot.cantidad; 
+        const n = document.createElement('div'); n.className = 'slot-nombre'; n.textContent = slot.nombre.length > 8 ? slot.nombre.slice(0,6)+'..' : slot.nombre; 
+        d.appendChild(i); d.appendChild(c); d.appendChild(n); 
+        if (slot.tipo === 'espada' || slot.tipo === 'escudo' || slot.tipo === 'armadura') { d.addEventListener('click', (e) => { e.stopPropagation(); let tipo = slot.tipo === 'espada' ? 'arma' : (slot.tipo === 'escudo' ? 'escudo' : 'armadura'); mostrarPreviewStats(slot, tipo); }); } 
+        d.addEventListener('dblclick', (e) => { e.stopPropagation(); 
+            if (slot.tipo === 'pocion') { if (playerHP < playerMaxHP) { const curacion = 20; const nuevaVida = Math.min(playerHP + curacion, playerMaxHP); const curado = nuevaVida - playerHP; playerHP = nuevaVida; actualizarStatsUI(); mostrarMensaje(`❤️ +${curado} HP`, 'exito'); slot.cantidad -= 1; if (slot.cantidad <= 0) { inventarioSlots[index] = null; } renderizarInventario(); guardarPartida(); } else { mostrarMensaje(`❌ Vida al max`, 'error'); } } 
+            else if (slot.tipo === 'espada') { if (equipamiento.arma === slot.id) desequiparItem('arma'); else equiparItem(slot, 'arma'); renderizarInventario(); } 
+            else if (slot.tipo === 'escudo') { if (equipamiento.escudo === slot.id) desequiparItem('escudo'); else equiparItem(slot, 'escudo'); renderizarInventario(); } 
+            else if (slot.tipo === 'armadura') { if (equipamiento.armadura === slot.id) desequiparItem('armadura'); else equiparItem(slot, 'armadura'); renderizarInventario(); } 
+ }); 
+    } else { const e = document.createElement('div'); e.style.fontSize = '12px'; e.style.opacity = '0.2'; e.textContent = '□'; d.appendChild(e); } 
+    d.setAttribute('draggable', 'true'); 
+    d.addEventListener('dragstart', (e) => { if(!slot){e.preventDefault();return false;} e.dataTransfer.setData('text/plain',JSON.stringify({origen:origen,index:index})); e.target.closest('.slot').style.opacity='0.5'; }); 
+    d.addEventListener('dragend', (e) => { if(e.target.closest('.slot')) e.target.closest('.slot').style.opacity='1'; }); 
+    d.addEventListener('dragover', (e) => { e.preventDefault(); e.target.closest('.slot').classList.add('drag-over'); }); 
+    d.addEventListener('dragleave', (e) => { e.target.closest('.slot').classList.remove('drag-over'); }); 
+    return d; 
+}
+
+function renderizarInventario() { 
+    const g = document.getElementById('inventario-grid'); 
+    if (!g) return; 
+    g.innerHTML = ''; 
+    for (let i = 0; i < inventarioSlots.length; i++) { 
+        const s = inventarioSlots[i]; 
+        const d = crearSlotElement(s, i, 'inventario'); 
+        g.appendChild(d); 
+    } 
+}
 
 const SKILLS_DATA = {
     'levantar_muerto': { id: 'levantar_muerto', nombre: 'Levantar Muerto', descripcion: 'Levanta un esqueleto aliado de un cadáver cercano', costo: '200 de vida', icono: 'skills/levantar_muerto.png', soloNecromancer: true, clase: 'NECROMANCER' },
@@ -454,33 +491,6 @@ function quitarItemDelInventario(id,cantidad){
     } return false; 
 }
 
-
-function crearSlotElement(slot, index, origen) { 
-    const d = document.createElement('div'); d.className = 'slot'; d.setAttribute('data-slot-index', index); d.setAttribute('data-origen', origen); 
-    if (slot) { 
-        const i = document.createElement('div'); i.className = 'slot-icon'; 
-        if (slot.icono && (slot.icono.includes('_img') || slot.icono === 'pocion_img' || slot.icono === 'espada_img' || slot.icono === 'antorcha_img' || slot.icono === 'frasco_vida_img')) { 
-            const img = document.createElement('img'); let nombreArchivo = slot.icono.replace('_img', ''); if (nombreArchivo === 'frasco_vida') nombreArchivo = 'frasco_vida'; img.src = `/${nombreArchivo}.png`; img.style.width = '24px'; img.style.height = '24px'; img.style.filter = 'grayscale(100%)'; img.style.objectFit = 'contain'; i.appendChild(img); 
-        } else { i.textContent = slot.icono; } 
-        let estaEquipado = false; if (slot.tipo === 'espada' && equipamiento.arma === slot.id) estaEquipado = true; if (slot.tipo === 'escudo' && equipamiento.escudo === slot.id) estaEquipado = true; if (slot.tipo === 'armadura' && equipamiento.armadura === slot.id) estaEquipado = true; if (estaEquipado) { const eSpan = document.createElement('span'); eSpan.className = 'equipped-icon'; eSpan.textContent = 'E'; i.appendChild(eSpan); } 
-        const c = document.createElement('div'); c.className = 'slot-cantidad'; c.textContent = slot.cantidad; 
-        const n = document.createElement('div'); n.className = 'slot-nombre'; n.textContent = slot.nombre.length > 8 ? slot.nombre.slice(0,6)+'..' : slot.nombre; 
-        d.appendChild(i); d.appendChild(c); d.appendChild(n); 
-        if (slot.tipo === 'espada' || slot.tipo === 'escudo' || slot.tipo === 'armadura') { d.addEventListener('click', (e) => { e.stopPropagation(); let tipo = slot.tipo === 'espada' ? 'arma' : (slot.tipo === 'escudo' ? 'escudo' : 'armadura'); mostrarPreviewStats(slot, tipo); }); } 
-        d.addEventListener('dblclick', (e) => { e.stopPropagation(); 
-            if (slot.tipo === 'pocion') { if (playerHP < playerMaxHP) { const curacion = 20; const nuevaVida = Math.min(playerHP + curacion, playerMaxHP); const curado = nuevaVida - playerHP; playerHP = nuevaVida; actualizarStatsUI(); mostrarMensaje(`❤️ +${curado} HP`, 'exito'); slot.cantidad -= 1; if (slot.cantidad <= 0) { inventarioSlots[index] = null; } renderizarInventario(); guardarPartida(); } else { mostrarMensaje(`❌ Vida al max`, 'error'); } } 
-            else if (slot.tipo === 'espada') { if (equipamiento.arma === slot.id) desequiparItem('arma'); else equiparItem(slot, 'arma'); renderizarInventario(); } 
-            else if (slot.tipo === 'escudo') { if (equipamiento.escudo === slot.id) desequiparItem('escudo'); else equiparItem(slot, 'escudo'); renderizarInventario(); } 
-            else if (slot.tipo === 'armadura') { if (equipamiento.armadura === slot.id) desequiparItem('armadura'); else equiparItem(slot, 'armadura'); renderizarInventario(); } 
- }); 
-    } else { const e = document.createElement('div'); e.style.fontSize = '12px'; e.style.opacity = '0.2'; e.textContent = '□'; d.appendChild(e); } 
-    d.setAttribute('draggable', 'true'); 
-    d.addEventListener('dragstart', (e) => { if(!slot){e.preventDefault();return false;} e.dataTransfer.setData('text/plain',JSON.stringify({origen:origen,index:index})); e.target.closest('.slot').style.opacity='0.5'; }); 
-    d.addEventListener('dragend', (e) => { if(e.target.closest('.slot')) e.target.closest('.slot').style.opacity='1'; }); 
-    d.addEventListener('dragover', (e) => { e.preventDefault(); e.target.closest('.slot').classList.add('drag-over'); }); 
-    d.addEventListener('dragleave', (e) => { e.target.closest('.slot').classList.remove('drag-over'); }); 
-    return d; 
-}
 
 function iniciarJoystick() { 
     const area = document.getElementById('joystick-area'); let tid = null; 
