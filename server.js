@@ -171,8 +171,6 @@ io.on('connection', (socket) => {
             oro: 100, madera: 0, rocas: 0,
             minerales: { hierro: 0, bronce: 0, plata: 0, oro: 0 },
             equipamiento: { cabeza: null, pecho: null, piernas: null, pies: null, arma: null, escudo: null, ring1: null, ring2: null },
-            inventario: { madera: 10, tela: 10, grasa: 10 },
-            tieneAntorcha: false, antorchaActiva: false, antorchaTiempo: 0, attackCooldown: 0,
             mana: baseStats.mana || 100, maxMana: baseStats.mana || 100,
             esqueletosSummon: 0,
             skillsEquipadas: d.className === 'NECROMANCER' ? ['levantar_muerto', 'furia_necrotica', 'ataque_distancia'] : (d.className === 'MAGO' ? ['ataque_distancia'] : []),
@@ -183,14 +181,10 @@ io.on('connection', (socket) => {
         
         // Inicializar inventario del jugador en el servidor
         inventariosJugadores[socket.id] = { items: [], equipamiento: {} };
-        inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 });
-        inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nombre: 'Espada Básica', icono: '⚔️', cantidad: 1, slot: 1 });
-        inventariosJugadores[socket.id].items.push({ id: 'madera', tipo: 'material', nombre: 'Madera', icono: '🌲', cantidad: 10, slot: 2 });
-        inventariosJugadores[socket.id].items.push({ id: 'tela', tipo: 'material', nombre: 'Tela', icono: '🧵', cantidad: 10, slot: 3 });
-        inventariosJugadores[socket.id].items.push({ id: 'grasa', tipo: 'material', nombre: 'Grasa', icono: '🕯️', cantidad: 10, slot: 4 });
+inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 });
+inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nombre: 'Espada Básica', icono: '⚔️', cantidad: 1, slot: 1 });
         
         socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
-        socket.emit('inventarioActualizado', { madera: 10, tela: 10, grasa: 10 });
         socket.broadcast.emit('newPlayer', players[socket.id]);
         io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${d.name} (${d.className || d.class}) se ha unido` });
     });
@@ -463,14 +457,6 @@ io.on('connection', (socket) => {
         if (demonlord.hp <= 0) {
             demonlord.isAlive = false;
             io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y });
-            if (jugador && jugador.inventario) {
-                jugador.inventario.tela = (jugador.inventario.tela || 0) + 5;
-                jugador.inventario.grasa = (jugador.inventario.grasa || 0) + 5;
-                socket.emit('materialObtenido', { tipo: 'tela', cantidad: 5, total: jugador.inventario.tela });
-                socket.emit('materialObtenido', { tipo: 'grasa', cantidad: 5, total: jugador.inventario.grasa });
-                socket.emit('inventarioActualizado', jugador.inventario);
-                io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `👹 ${jugador.name} derrotó al Demonlord y obtuvo 5 tela y 5 grasa!` });
-            }
             setTimeout(() => {
                 for (let i = 0; i < 8; i++) {
                     const angle = (i / 8) * Math.PI * 2;
@@ -616,9 +602,6 @@ io.on('connection', (socket) => {
         let arbol = arboles.find(a => a.activo && getDistance(data.x,data.y,a.x,a.y)<80);
         if(!arbol || arbol.madera<=0) return;
         arbol.madera--;
-        if(!jugador.inventario) jugador.inventario = { madera: 0, tela: 10, grasa: 10 };
-        jugador.inventario.madera = (jugador.inventario.madera || 0) + 1;
-        socket.emit('inventarioActualizado', { madera: jugador.inventario.madera, tela: jugador.inventario.tela, grasa: jugador.inventario.grasa });
         socket.emit('maderaObtenida', { total: jugador.inventario.madera });
         io.emit('arbolTalado', { id: arbol.id, x: arbol.x, y: arbol.y, taladoPor: jugador.name });
         if(arbol.madera <= 0) { 
@@ -692,44 +675,6 @@ io.on('connection', (socket) => {
         }, CONFIG.ROCAS.RESPAWN_TIME);
     });
     
-    socket.on('obtenerInventario', () => {
-        const jugador = players[socket.id];
-        if (jugador && jugador.inventario) {
-            socket.emit('inventarioActualizado', { madera: jugador.inventario.madera, tela: jugador.inventario.tela, grasa: jugador.inventario.grasa });
-        }
-    });
-    
-    socket.on('craftearAntorcha', () => {
-        const jugador = players[socket.id];
-        if (!jugador || !jugador.inventario) return;
-        if (jugador.inventario.madera >= 1 && jugador.inventario.tela >= 1 && jugador.inventario.grasa >= 1) {
-            jugador.inventario.madera -= 1;
-            jugador.inventario.tela -= 1;
-            jugador.inventario.grasa -= 1;
-            jugador.tieneAntorcha = true;
-            socket.emit('inventarioActualizado', { madera: jugador.inventario.madera, tela: jugador.inventario.tela, grasa: jugador.inventario.grasa });
-            socket.emit('crafteoExitoso', { mensaje: 'Antorcha craftada! Presiona T para encender', inventario: jugador.inventario });
-        } else {
-            socket.emit('crafteoFallido', { mensaje: 'Necesitas: 1 madera + 1 tela + 1 grasa' });
-        }
-    });
-    
-    socket.on('encenderAntorcha', () => {
-        const jugador = players[socket.id];
-        if (!jugador) return;
-        if (!jugador.tieneAntorcha) { socket.emit('mensaje', 'No tienes antorcha'); return; }
-        if (jugador.antorchaActiva) { socket.emit('mensaje', 'Ya tienes una antorcha encendida'); return; }
-        jugador.antorchaActiva = true;
-        jugador.tieneAntorcha = false;
-        jugador.antorchaTiempo = 300;
-        socket.emit('antorchaEncendida', { duracion: 300 });
-        setTimeout(() => {
-            if (players[socket.id] && players[socket.id].antorchaActiva) {
-                players[socket.id].antorchaActiva = false;
-                io.to(socket.id).emit('antorchaApagada', { mensaje: 'Tu antorcha se apagó' });
-            }
-        }, 300000);
-    });
     
     socket.on('solicitarDemonlordHP', () => {
         const jugador = players[socket.id];

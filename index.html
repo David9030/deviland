@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -74,7 +74,6 @@
     box-shadow: 0 0 20px rgba(0,0,0,0.8);
 }
         .inventario-grid { display: grid; grid-template-columns: repeat(6, 45px); grid-auto-rows: 45px; gap: 3px; background: #111; padding: 6px; border: 1px solid #333; }
-        .mesa-grid { display: grid; grid-template-columns: repeat(3, 45px); grid-auto-rows: 45px; gap: 3px; background: #111; padding: 6px; border: 1px solid #333; margin: 0 auto; }
         .skills-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
         .skill-slot { background: #1a1a1a; border: 1px solid #444; padding: 10px; cursor: pointer; text-align: center; border-radius: 5px; transition: all 0.2s; }
         .skill-slot.drag-over { border: 2px solid #fff; background: #333; transform: scale(1.02); }
@@ -96,8 +95,6 @@
         .equipped-icon { position: absolute; top: -2px; right: -2px; font-size: 8px; color: #88ff88; background: #000; border-radius: 10px; padding: 0px 2px; }
         .slot-cantidad { font-size: 7px; color: #fff; background: #000; padding: 1px 2px; position: absolute; bottom: 1px; right: 1px; border-radius: 3px; min-width: 10px; text-align: center; }
         .slot-nombre { font-size: 6px; color: #888; margin-top: 1px; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 1px; display: none; }
-        .boton-craftear, .cerrar-btn { margin-top: 6px; padding: 3px 8px; background: #000; color: #fff; border: 1px solid #fff; cursor: pointer; font-family: monospace; font-size: 8px; width: 100%; }
-        hr { border-color: #333; margin: 5px 0; }
         #btn-attack { position: fixed; bottom: 15px; right: 15px; width: 50px; height: 50px; border-radius: 25px; background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff; font-size: 24px; cursor: pointer; z-index: 10000; display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
         #joystick-area { position: fixed; bottom: 15px; left: 15px; width: 100px; height: 100px; border-radius: 50px; background: transparent; z-index: 9999; touch-action: none; }
         .stat-preview { position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%); background: #000; border: 1px solid #fff; padding: 6px 12px; border-radius: 6px; font-size: 9px; z-index: 10000; font-family: monospace; pointer-events: none; max-width: 85vw; text-align: center; line-height: 1.4; }
@@ -106,7 +103,6 @@
         .context-menu-item:hover { background: #333; }
         @media (min-width: 768px) {
             .inventario-grid { grid-template-columns: repeat(6, 60px); grid-auto-rows: 60px; gap: 4px; padding: 8px; }
-            .mesa-grid { grid-template-columns: repeat(3, 60px); grid-auto-rows: 60px; gap: 4px; padding: 8px; }
             .slot-icon { font-size: 28px; }
             .slot-icon img { max-width: 45px; max-height: 45px; }
             .slot-cantidad { font-size: 11px; bottom: 3px; right: 3px; min-width: 18px; padding: 1px 3px; }
@@ -172,8 +168,7 @@
     <div id="skills-bar"></div>
     <div id="joystick-area"></div>
     <div id="stats-panel">
-        <div class="tab-container"><div class="tab" data-tab="mesa" onclick="cambiarTab('mesa')">🔧</div><div class="tab" data-tab="stats" onclick="cambiarTab('stats')">📊</div></div>
-        <div id="tab-mesa" class="tab-content"><div id="mesa-grid" class="mesa-grid" style="margin:0 auto;"></div><button class="boton-craftear" onclick="craftearEnMesa()">C</button></div>
+        <div class="tab-container"><div class="tab" data-tab="stats" onclick="cambiarTab('stats')">📊</div></div>
         <div id="tab-stats" class="tab-content">
             <div class="stat-section"><div class="section-title">📈 NIVEL</div><div class="stat-row">LV:<span id="stat-level" class="stat-value">1</span></div><div class="exp-bar"><div id="exp-fill" class="exp-fill"></div></div><div class="stat-row">EXP:<span id="stat-exp" class="stat-value">0</span>/<span id="stat-exp-next">100</span></div><div class="stat-row">PTS:<span id="stat-puntos" class="stat-value">0</span></div></div>
             <div class="stat-section"><div class="section-title">⚔️ COMBATE</div><div class="stat-row">❤️ HP:<span id="stat-hp" class="stat-value">500/500</span></div><div class="stat-row">💙 MANA:<span id="stat-mana" class="stat-value">100/100</span></div><div class="stat-row">⚔️ ATQ FÍSICO:<span id="stat-ataque-fisico" class="stat-value">0</span></div><div class="stat-row">🔮 ATQ MÁGICO:<span id="stat-ataque-magico" class="stat-value">0</span></div><div class="stat-row">🛡️ DEF FÍSICA:<span id="stat-defensa-fisica" class="stat-value">0</span></div><div class="stat-row">✨ DEF MÁGICA:<span id="stat-defensa-magica" class="stat-value">0</span></div><div class="stat-row">🏃 VELOCIDAD:<span id="stat-velocidad" class="stat-value">150</span></div><div class="stat-row">💥 CRÍTICO:<span id="stat-critico" class="stat-value">20%</span></div></div>
@@ -181,10 +176,8 @@
         </div>
     </div>
     <div id="inventario-ui">
-    <div class="tab-container"><div class="tab" data-tab="inv" onclick="cambiarTabInventario('inv')">📦</div><div class="tab" data-tab="craft" onclick="cambiarTabInventario('craft')">🔧</div></div>
+    <div class="tab-container"><div class="tab active" data-tab="inv">📦 INVENTARIO</div></div>
     <div id="tab-inv" class="tab-content active"><div id="inventario-grid" class="inventario-grid"></div></div>
-    <div id="tab-craft-inventario" class="tab-content"><div id="mesa-inventario-grid" class="mesa-grid"></div><button class="boton-craftear" onclick="craftearEnMesa()">CRAFTEAR</button></div>
-    <hr><div style="margin: 8px 0; text-align: center; background: #111; padding: 5px; border-radius: 4px;"><div style="font-size: 9px; color: #fff;">🪔 ANTORCHA</div><div id="estado-antorcha" style="color: #ffaa66; font-size: 14px; font-weight: bold;">✖</div><div style="font-size: 7px; color: #666; margin-top: 3px;">(Craftea en la mesa: madera+tela+grasa)</div></div>
     <button class="cerrar-btn" onclick="toggleInventario()">CERRAR</button>
 </div>
     <div id="skills-ui" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; padding: 10px; border: 1px solid #fff; z-index: 20000; display: none; width: 400px; max-width: 90vw; text-align: center; font-family: monospace;">
@@ -202,8 +195,6 @@
 // ============================================
 var socket, player, demonlord_sprite, otherPlayers, keys, pName, pClass, pClassName;
 var currentScene = null;
-var tieneAntorchaCraftada = false;
-var antorchaActiva = false;
 var ultimoAtaqueDistancia = 0;
 var proyectiles = [];
 var atacandoDistancia = false;
@@ -227,7 +218,6 @@ var skillsDisponibles = [];
 var skillsEquipadas = [];
 var MAX_SKILLS = 3;
 var inventarioSlots = [];
-var mesaSlots = [null,null,null,null,null,null,null,null,null];
 var equipamiento = { arma: null, escudo: null, armadura: null };
 var playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 };
 var previewTimeout = null;
@@ -244,8 +234,6 @@ const SKILLS_DATA = {
     'ataque_distancia': { id: 'ataque_distancia', nombre: 'Bola de Sombra', descripcion: 'Dispara un proyectil a distancia', costo: '10 maná', icono: 'skills/ataque_distancia.png', soloNecromancer: true }
 };
 
-const recetas = { 'antorcha': { patron: [{ id:'madera', cantidad:1 },{ id:'tela', cantidad:1 },{ id:'grasa', cantidad:1 }], resultado: { id:'antorcha_item', tipo:'herramienta', nombre:'Antorcha', icono:'🪔', cantidad:1, esAntorcha:true } } };
-
 var classStats = {
     'BÁRBARO': { hp: 800, mana: 50, ataqueFisico: 80, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 120, attackSpeed: 0.7, inteligencia: 0, sabiduria: 0 },
     'WARRIOR': { hp: 500, mana: 60, ataqueFisico: 50, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 150, attackSpeed: 1.0, inteligencia: 0, sabiduria: 0 },
@@ -258,14 +246,12 @@ var classStats = {
 // FUNCIONES DE UI Y UTILIDADES
 // ============================================
 function toggleChat() { document.getElementById('chat-container').classList.toggle('chat-minimizado'); }
-
-// toggleInventario CORREGIDO - AHORA SÍ FUNCIONA
+// toggleInventario CORREGIDO - VERSIÓN FINAL SIN CRAFTEO
 function toggleInventario() { 
     let u = document.getElementById('inventario-ui'); 
     if (!u) return;
     if (u.style.display === 'none' || u.style.display === '') {
         if (typeof renderizarInventario === 'function') renderizarInventario();
-        if (typeof renderizarMesaInventario === 'function') renderizarMesaInventario();
         u.style.display = 'block';
         u.style.left = '50%';
         u.style.top = '50%';
@@ -282,7 +268,7 @@ function cambiarTab(tab) {
     document.querySelector(`#stats-panel .tab[data-tab="${tab}"]`).classList.add('active'); 
     document.querySelectorAll('#stats-panel .tab-content').forEach(c => c.classList.remove('active')); 
     document.getElementById(`tab-${tab}`).classList.add('active'); 
-    if (tab === 'mesa') renderizarMesa(); 
+     
 }
 
 function cambiarTabInventario(tab) { 
@@ -338,9 +324,7 @@ function guardarPartida() {
     const p = {
         nombre: pName, clase: pClass, className: pClassName,
         inventarioSlots: inventarioLimpio,
-        mesaSlots: mesaSlots.map(s => s ? { id: s.id, tipo: s.tipo, nombre: s.nombre, icono: s.icono, cantidad: s.cantidad } : null),
         playerHP: playerHP, playerMana: playerMana,
-        tieneAntorchaCraftada: tieneAntorchaCraftada, antorchaActiva: antorchaActiva,
         equipamiento: equipamiento, playerStats: playerStats,
         skillsEquipadas: skillsEquipadas,
         ultimaPosicion: player ? { x: player.x, y: player.y } : { x: 512, y: 512 },
@@ -364,7 +348,6 @@ function nuevoJuego() {
     playerStats = { level:1, exp:0, expNeeded:100, puntos:0, fuerza:0, inteligencia:0, agilidad:0, vitalidad:0, sabiduria:0 }; 
     skillsEquipadas = []; 
     inventarioSlots = [];
-    mesaSlots = [null,null,null,null,null,null,null,null,null];
     document.getElementById('menu-ui').style.display='none'; 
     document.getElementById('class-ui').style.display='flex'; 
 }
@@ -377,7 +360,6 @@ function continuarPartida() {
     playerStats = g.playerStats || { level:1, exp:0, expNeeded:100, puntos:0, fuerza:0, inteligencia:0, agilidad:0, vitalidad:0, sabiduria:0 }; 
     playerHP = g.playerHP || classStats[pClassName].hp; 
     playerMana = g.playerMana || classStats[pClassName].mana; 
-    mesaSlots = g.mesaSlots || [null,null,null,null,null,null,null,null,null];
     
     // RESTAURAR INVENTARIO
     if (g.inventarioSlots && Array.isArray(g.inventarioSlots)) {
@@ -430,9 +412,6 @@ function inicializarInventario() {
     agregarItemAlInventarioEquipo('espada_1','espada','Espada Básica','⚔️',1,false,{ataqueFisico:15,velocidad:-15}); 
     agregarItemAlInventarioEquipo('escudo_1','escudo','Escudo Básico','🛡️',1,false,{defensaFisica:20,velocidad:-15}); 
     agregarItemAlInventarioEquipo('armadura_1','armadura','Armadura Básica','👕',1,false,{defensaFisica:15,velocidad:-20}); 
-    agregarItemAlInventario('madera','material','Madera','🌲',3,false); 
-    agregarItemAlInventario('tela','material','Tela','🧵',5,false); 
-    agregarItemAlInventario('grasa','material','Grasa','🕯️',5,false); 
     renderizarInventario(); 
 }
 
@@ -475,50 +454,6 @@ function quitarItemDelInventario(id,cantidad){
     } return false; 
 }
 
-function craftearEnMesa(){ 
-    let items={}; 
-    for(let i=0;i<mesaSlots.length;i++) if(mesaSlots[i]){ const id=mesaSlots[i].id; if(!items[id])items[id]=0; items[id]+=mesaSlots[i].cantidad; } 
-    for(let rid in recetas){ 
-        const r=recetas[rid]; let ok=true; 
-        for(let req of r.patron) if(!items[req.id] || items[req.id]<req.cantidad){ ok=false; break; } 
-        if(ok){ 
-            for(let req of r.patron){ let rest=req.cantidad; for(let i=0;i<mesaSlots.length && rest>0;i++){ if(mesaSlots[i] && mesaSlots[i].id===req.id){ const q=Math.min(mesaSlots[i].cantidad,rest); mesaSlots[i].cantidad-=q; rest-=q; if(mesaSlots[i].cantidad<=0) mesaSlots[i]=null; } } } 
-            const res=r.resultado; agregarItemAlInventario(res.id,res.tipo,res.nombre,res.icono,res.cantidad,true); 
-            if(res.esAntorcha){ tieneAntorchaCraftada=true; actualizarEstadoAntorcha(false); if(socket) socket.emit('craftearAntorcha'); } 
-            renderizarMesa(); renderizarInventario(); guardarPartida(); return; 
-        } 
-    } mostrarMensaje(`❌ Sin receta`,'error'); 
-}
-
-function moverItem(origen,oi,destino,di){ 
-    let io=null, idest=null; 
-    if(origen==='inventario') io=inventarioSlots[oi]; 
-    else if(origen==='mesa') io=mesaSlots[oi]; 
-    if(destino==='inventario') idest=inventarioSlots[di]; 
-    else if(destino==='mesa') idest=mesaSlots[di]; 
-    if(!idest){ 
-        if(origen==='inventario'){ inventarioSlots[oi]=null; if(destino==='inventario') inventarioSlots[di]=io; else if(destino==='mesa') mesaSlots[di]=io; } 
-        else if(origen==='mesa'){ mesaSlots[oi]=null; if(destino==='inventario') inventarioSlots[di]=io; else if(destino==='mesa') mesaSlots[di]=io; } 
-    } else if(io && idest && io.id===idest.id && io.tipo===idest.tipo){ 
-        idest.cantidad+=io.cantidad; 
-        if(origen==='inventario') inventarioSlots[oi]=null; 
-        else if(origen==='mesa') mesaSlots[oi]=null; 
-    } else { 
-        if(origen==='inventario'){ inventarioSlots[oi]=idest; if(destino==='inventario') inventarioSlots[di]=io; else if(destino==='mesa') mesaSlots[di]=io; } 
-        else if(origen==='mesa'){ mesaSlots[oi]=idest; if(destino==='inventario') inventarioSlots[di]=io; else if(destino==='mesa') mesaSlots[di]=io; } 
-    } renderizarInventario(); renderizarMesa(); guardarPartida(); 
-}
-
-function renderizarMesaInventario() {
-    const g = document.getElementById('mesa-inventario-grid');
-    if (!g) return;
-    g.innerHTML = '';
-    for (let i = 0; i < mesaSlots.length; i++) {
-        const s = mesaSlots[i];
-        const d = crearSlotElement(s, i, 'mesa');
-        g.appendChild(d);
-    }
-}
 
 function crearSlotElement(slot, index, origen) { 
     const d = document.createElement('div'); d.className = 'slot'; d.setAttribute('data-slot-index', index); d.setAttribute('data-origen', origen); 
@@ -537,18 +472,15 @@ function crearSlotElement(slot, index, origen) {
             else if (slot.tipo === 'espada') { if (equipamiento.arma === slot.id) desequiparItem('arma'); else equiparItem(slot, 'arma'); renderizarInventario(); } 
             else if (slot.tipo === 'escudo') { if (equipamiento.escudo === slot.id) desequiparItem('escudo'); else equiparItem(slot, 'escudo'); renderizarInventario(); } 
             else if (slot.tipo === 'armadura') { if (equipamiento.armadura === slot.id) desequiparItem('armadura'); else equiparItem(slot, 'armadura'); renderizarInventario(); } 
-            else if (slot.tipo === 'material' || slot.tipo === 'mineral') { for (let i = 0; i < mesaSlots.length; i++) { if (mesaSlots[i] === null) { mesaSlots[i] = { ...slot, cantidad: 1, slotIndex: i }; slot.cantidad -= 1; if (slot.cantidad <= 0) { inventarioSlots[index] = null; } renderizarInventario(); renderizarMesa(); guardarPartida(); mostrarMensaje(`📦 ${slot.nombre} → mesa`, 'info'); return; } } mostrarMensaje(`❌ Mesa llena`, 'error'); } }); 
+ }); 
     } else { const e = document.createElement('div'); e.style.fontSize = '12px'; e.style.opacity = '0.2'; e.textContent = '□'; d.appendChild(e); } 
     d.setAttribute('draggable', 'true'); 
     d.addEventListener('dragstart', (e) => { if(!slot){e.preventDefault();return false;} e.dataTransfer.setData('text/plain',JSON.stringify({origen:origen,index:index})); e.target.closest('.slot').style.opacity='0.5'; }); 
     d.addEventListener('dragend', (e) => { if(e.target.closest('.slot')) e.target.closest('.slot').style.opacity='1'; }); 
     d.addEventListener('dragover', (e) => { e.preventDefault(); e.target.closest('.slot').classList.add('drag-over'); }); 
     d.addEventListener('dragleave', (e) => { e.target.closest('.slot').classList.remove('drag-over'); }); 
-    d.addEventListener('drop', (e) => { e.preventDefault(); const t=e.target.closest('.slot'); t.classList.remove('drag-over'); const data=JSON.parse(e.dataTransfer.getData('text/plain')); const ti=parseInt(t.getAttribute('data-slot-index')); const to=t.getAttribute('data-origen'); moverItem(data.origen,data.index,to,ti); }); 
     return d; 
 }
-
-function actualizarEstadoAntorcha(a){ let e=document.getElementById('estado-antorcha'); if(e){ if(a){ e.innerHTML='🪔 ●'; e.style.color='#fff'; } else if(tieneAntorchaCraftada){ e.innerHTML='🪔 ○'; e.style.color='#666'; } else { e.innerHTML='✖'; e.style.color='#333'; } } guardarPartida(); }
 
 function iniciarJoystick() { 
     const area = document.getElementById('joystick-area'); let tid = null; 
@@ -748,9 +680,6 @@ function create(){
         inventarioSlots = [];
         for(let i = 0; i < 36; i++) inventarioSlots.push(null);
     }
-    mesaSlots = guardado.mesaSlots || [null,null,null,null,null,null,null,null,null]; 
-    playerHP = guardado.playerHP||500; playerMana = guardado.playerMana||100; 
-    tieneAntorchaCraftada = guardado.tieneAntorchaCraftada||false; antorchaActiva = guardado.antorchaActiva||false; 
     equipamiento = guardado.equipamiento || { arma: null, escudo: null, armadura: null }; 
     playerStats = guardado.playerStats || { level:1, exp:0, expNeeded:100, puntos:0, fuerza:0, inteligencia:0, agilidad:0, vitalidad:0, sabiduria:0 }; 
     if(guardado.ultimaPosicion) player.setPosition(guardado.ultimaPosicion.x,guardado.ultimaPosicion.y); 
@@ -758,15 +687,14 @@ function create(){
     if (guardado.skillsEquipadas) skillsEquipadas = guardado.skillsEquipadas; 
     if (skillsEquipadas.length > 3) skillsEquipadas = skillsEquipadas.slice(0,3); 
 } else { 
-    inicializarInventario(); 
-    for(let i=0;i<9;i++) mesaSlots[i]=null; 
+    inicializarInventario();  
     let statsBase = classStats[pClassName] || classStats['WARRIOR']; 
     playerHP = statsBase.hp; 
     playerMana = statsBase.mana; 
     attackSpeedModifier = statsBase.attackSpeed || 1.0; 
 }
     
-    actualizarStatsUI(); actualizarEstadoAntorcha(antorchaActiva); 
+    actualizarStatsUI();  
     socket.emit('newPlayer', { class: pClass, name: pName, className: pClassName }); 
     socket.emit('solicitarInventarioCompleto');
     cargarSkillsPorClase(); renderizarBarraSkills(); 
@@ -819,11 +747,6 @@ function create(){
     socket.on('demonlordRespawn',(data)=>{ demonlord_sprite.setPosition(data.x,data.y); demonlord_sprite.setVisible(true); demonlord_sprite.clearTint(); demonlordHP=5000; actualizarDemonlordHPBar(); crearTextoDmg(this,data.x,data.y,"RENACE","#fff","22px"); mostrarMensaje(`👹 Demonlord renace`,'combate'); }); 
     socket.on('playerDeath', (data) => { if(data.id===socket.id){ player.setVisible(false); player.body.enable=false; player.attacking=true; player.isAlive=false; mostrarMensaje(`💀 Has muerto!`,'error'); } }); 
     socket.on('playerRespawn', (data) => { if(data.id===socket.id){ player.setPosition(data.x,data.y); player.setVisible(true); player.body.enable=true; player.attacking=false; player.isAlive=true; let statsBase = classStats[pClassName]; playerHP = statsBase.hp; playerMana = statsBase.mana; actualizarStatsUI(); mostrarMensaje(`✨ Revivido`,'exito'); guardarPartida(); } }); 
-    socket.on('crafteoExitoso',()=>{ tieneAntorchaCraftada=true; actualizarEstadoAntorcha(false); }); 
-    socket.on('crafteoFallido',(data)=>{ mostrarMensaje(`❌ ${data.mensaje}`,'error'); }); 
-    socket.on('antorchaEncendida',(data)=>{ antorchaActiva=true; tieneAntorchaCraftada=false; actualizarEstadoAntorcha(true); mostrarMensaje(`🪔 Antorcha encendida`,'exito'); guardarPartida(); }); 
-    socket.on('antorchaApagada',(data)=>{ antorchaActiva=false; actualizarEstadoAntorcha(false); mostrarMensaje(`🪔 Antorcha apagada`,'info'); guardarPartida(); }); 
-    socket.on('materialObtenido',(data)=>{ const nom=data.tipo==='tela'?'Tela':'Grasa'; const ico=data.tipo==='tela'?'🧵':'🕯️'; agregarItemAlInventario(data.tipo,'material',nom,ico,data.cantidad,true); }); 
     socket.on('chatMessage',(data)=>{ if(data.name !== 'Sistema') mostrarMensaje(`[${data.name}] ${data.msg}`,'info'); else mostrarMensaje(`${data.msg}`,'info'); }); 
     socket.on('playerExpGain', (data) => { if (data.id === socket.id) ganarExp(data.exp); }); 
     socket.on('mensaje', (msg) => { mostrarMensaje(msg, 'info'); }); 
