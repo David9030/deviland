@@ -57,31 +57,36 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-#inventario-ui { 
-    position: fixed !important; 
-    top: 50% !important; 
-    left: 50% !important; 
-    transform: translate(-50%, -50%) !important; 
-    background: #000 !important; 
-    padding: 10px !important; 
-    border: 2px solid #fff !important; 
-    z-index: 20000 !important; 
-    display: none; 
-    width: auto !important; 
-    min-width: 320px !important;
-    max-width: 90vw !important; 
-    text-align: center !important; 
-    font-family: monospace !important; 
-    box-shadow: 0 0 20px rgba(0,0,0,0.8) !important;
+#inventario-ui {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    background: #000 !important;
+    border: 3px solid #fff !important;
+    padding: 15px !important;
+    z-index: 999999 !important;
+    width: 450px !important;
+    min-height: 250px !important;
+    display: none;
 }
 
-.inventario-grid { 
-    display: grid !important; 
-    grid-template-columns: repeat(6, 60px) !important; 
-    gap: 4px !important; 
-    background: #111 !important; 
-    padding: 8px !important; 
-    border: 1px solid #333 !important;
+.inventario-grid {
+    display: grid !important;
+    grid-template-columns: repeat(6, 60px) !important;
+    gap: 5px !important;
+    background: #111 !important;
+    padding: 10px !important;
+}
+
+.slot {
+    background: #1a1a1a !important;
+    border: 1px solid #444 !important;
+    width: 60px !important;
+    height: 60px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
         .skills-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
         .skill-slot { background: #1a1a1a; border: 1px solid #444; padding: 10px; cursor: pointer; text-align: center; border-radius: 5px; transition: all 0.2s; }
