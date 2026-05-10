@@ -174,36 +174,47 @@
         </div>
     </div>
     <div class="floating-tabs">
-        <div class="floating-tab" onclick="toggleInventario()">🎒</div>
-        <div class="floating-tab" onclick="toggleStatsPanel()">📊</div>
-        <div class="floating-tab" onclick="toggleSkills()">⭐</div>
-    </div>
-    <div id="btn-attack">⚔️</div>
+    <div class="floating-tab" onclick="toggleInventario()">🎒 INVENTARIO</div>
+</div>
+        <div id="btn-attack">⚔️</div>
     <div id="skills-bar"></div>
     <div id="joystick-area"></div>
-    <div id="stats-panel">
-        <div class="tab-container"><div class="tab" data-tab="stats" onclick="cambiarTab('stats')">📊</div></div>
-        <div id="tab-stats" class="tab-content">
-            <div class="stat-section"><div class="section-title">📈 NIVEL</div><div class="stat-row">LV:<span id="stat-level" class="stat-value">1</span></div><div class="exp-bar"><div id="exp-fill" class="exp-fill"></div></div><div class="stat-row">EXP:<span id="stat-exp" class="stat-value">0</span>/<span id="stat-exp-next">100</span></div><div class="stat-row">PTS:<span id="stat-puntos" class="stat-value">0</span></div></div>
-            <div class="stat-section"><div class="section-title">⚔️ COMBATE</div><div class="stat-row">❤️ HP:<span id="stat-hp" class="stat-value">500/500</span></div><div class="stat-row">💙 MANA:<span id="stat-mana" class="stat-value">100/100</span></div><div class="stat-row">⚔️ ATQ FÍSICO:<span id="stat-ataque-fisico" class="stat-value">0</span></div><div class="stat-row">🔮 ATQ MÁGICO:<span id="stat-ataque-magico" class="stat-value">0</span></div><div class="stat-row">🛡️ DEF FÍSICA:<span id="stat-defensa-fisica" class="stat-value">0</span></div><div class="stat-row">✨ DEF MÁGICA:<span id="stat-defensa-magica" class="stat-value">0</span></div><div class="stat-row">🏃 VELOCIDAD:<span id="stat-velocidad" class="stat-value">150</span></div><div class="stat-row">💥 CRÍTICO:<span id="stat-critico" class="stat-value">20%</span></div></div>
-            <div class="stat-section"><div class="section-title">📈 ATRIBUTOS</div><div class="stat-row">💪 FUERZA:<span id="stat-fuerza" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('fuerza')">+</button></div><div class="stat-row">🔮 INTELIGENCIA:<span id="stat-inteligencia" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('inteligencia')">+</button></div><div class="stat-row">❤️ VITALIDAD:<span id="stat-vitalidad" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('vitalidad')">+</button></div>
+    
+    <!-- INVENTARIO NUEVO (con stats y skills inline) -->
+    <!-- INVENTARIO NUEVO (con stats y skills inline) -->
+<div id="inventario-ui" style="display: none;">
+    <div style="display: flex; flex-direction: row; gap: 15px; background: #000; padding: 15px; border: 2px solid #fff;">
+        <!-- INVENTARIO --> 
+        <div style="flex: 2;">
+            <h3 style="color: #fff; text-align: center;">📦 INVENTARIO</h3>
+            <div id="inventario-grid" class="inventario-grid"></div>
+        </div>
+        <!-- STATS -->
+        <div style="flex: 1; min-width: 180px;">
+            <div id="stats-panel-inline" style="background: #111; padding: 8px; border: 1px solid #333;">
+                <div class="stat-section"><div class="section-title">📈 NIVEL</div><div class="stat-row">LV:<span id="stat-level" class="stat-value">1</span></div><div class="exp-bar"><div id="exp-fill" class="exp-fill"></div></div><div class="stat-row">EXP:<span id="stat-exp" class="stat-value">0</span>/<span id="stat-exp-next">100</span></div><div class="stat-row">PTS:<span id="stat-puntos" class="stat-value">0</span></div></div>
+                <div class="stat-section"><div class="section-title">⚔️ COMBATE</div><div class="stat-row">❤️ HP:<span id="stat-hp" class="stat-value">500/500</span></div><div class="stat-row">💙 MANA:<span id="stat-mana" class="stat-value">100/100</span></div><div class="stat-row">⚔️ ATQ FÍSICO:<span id="stat-ataque-fisico" class="stat-value">0</span></div><div class="stat-row">🔮 ATQ MÁGICO:<span id="stat-ataque-magico" class="stat-value">0</span></div><div class="stat-row">🛡️ DEF FÍSICA:<span id="stat-defensa-fisica" class="stat-value">0</span></div><div class="stat-row">✨ DEF MÁGICA:<span id="stat-defensa-magica" class="stat-value">0</span></div><div class="stat-row">🏃 VELOCIDAD:<span id="stat-velocidad" class="stat-value">150</span></div><div class="stat-row">💥 CRÍTICO:<span id="stat-critico" class="stat-value">20%</span></div></div>
+                <div class="stat-section"><div class="section-title">📈 ATRIBUTOS</div><div class="stat-row">💪 FUERZA:<span id="stat-fuerza" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('fuerza')">+</button></div><div class="stat-row">🔮 INTELIGENCIA:<span id="stat-inteligencia" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('inteligencia')">+</button></div><div class="stat-row">❤️ VITALIDAD:<span id="stat-vitalidad" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('vitalidad')">+</button></div></div>
+            </div>
+        </div>
+        <!-- SKILLS -->
+        <div style="flex: 1; min-width: 200px;">
+            <div style="background: #111; padding: 8px; border: 1px solid #333;">
+                <h3 style="color: #fff; text-align: center;">⭐ SKILLS</h3>
+                <div id="skills-grid-inline" class="skills-grid" style="max-height: 250px; overflow-y: auto;"></div>
+                <div style="margin-top: 10px; font-size: 9px; color: #666;">💡 Arrastra a la barra inferior</div>
+            </div>
         </div>
     </div>
-    <div id="inventario-ui">
-    <div class="tab-container"><div class="tab active" data-tab="inv">📦 INVENTARIO</div></div>
-    <div id="tab-inv" class="tab-content active"><div id="inventario-grid" class="inventario-grid"></div></div>
-    <button class="cerrar-btn" onclick="toggleInventario()">CERRAR</button>
+    <button class="cerrar-btn" onclick="toggleInventario()" style="margin-top: 5px;">CERRAR</button>
 </div>
-    <div id="skills-ui" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; padding: 10px; border: 1px solid #fff; z-index: 20000; display: none; width: 400px; max-width: 90vw; text-align: center; font-family: monospace;">
-        <h3 style="margin:0 0 10px 0; color:#fff;">📚 INVENTARIO DE SKILLS</h3>
-        <div id="skills-grid" class="skills-grid" style="max-height: 300px; overflow-y: auto;"></div>
-        <div style="margin-top: 10px; font-size: 9px; color: #666;">💡 Arrastra un skill a la barra inferior para equiparlo</div>
-        <button class="cerrar-btn" onclick="toggleSkills()" style="margin-top: 10px;">CERRAR</button>
-    </div>
+    <!-- FIN DEL INVENTARIO-UI -->
+
     <div id="stat-preview" class="stat-preview" style="display:none;"></div>
     <div id="context-menu" class="context-menu" style="display:none;">
         <div class="context-menu-item" onclick="invitarJugadorSeleccionado()">🎮 Invitar al equipo</div>
-    </div> <script>
+    </div>
+    <script>
 // ============================================
 // VARIABLES GLOBALES
 // ============================================
@@ -585,17 +596,83 @@ function actualizarStatsUI() {
 // ============================================
 // SKILLS
 // ============================================
-function cargarSkillsPorClase() { 
-    skillsDisponibles = []; Object.keys(SKILLS_DATA).forEach(key => { const skill = SKILLS_DATA[key]; if (!skill.soloNecromancer || (skill.soloNecromancer && pClassName === 'NECROMANCER')) { skillsDisponibles.push({ ...skill }); } }); 
-    const savedSkills = localStorage.getItem(SAVE_KEY + '_skills'); if (savedSkills) { skillsEquipadas = JSON.parse(savedSkills); if (skillsEquipadas.length > MAX_SKILLS) skillsEquipadas = skillsEquipadas.slice(0, MAX_SKILLS); } else { if (pClassName === 'NECROMANCER') { skillsEquipadas = ['levantar_muerto', 'furia_necrotica', 'ataque_distancia']; } else if (pClassName === 'MAGO') { skillsEquipadas = ['ataque_distancia']; } else { skillsEquipadas = []; } } 
-    renderizarInventarioSkills(); renderizarBarraSkills(); 
-}
-
 function renderizarInventarioSkills() { 
     const grid = document.getElementById('skills-grid'); if (!grid) return; grid.innerHTML = ''; 
-    skillsDisponibles.forEach(skill => { const isEquipped = skillsEquipadas.includes(skill.id); const div = document.createElement('div'); div.className = 'skill-slot' + (isEquipped ? ' equipped' : ''); div.setAttribute('data-skill-id', skill.id); div.setAttribute('draggable', 'true'); const img = document.createElement('img'); img.src = skill.icono; img.className = 'skill-icon-img'; img.style.width = '48px'; img.style.height = '48px'; img.onerror = function() { this.style.display = 'none'; }; const nameSpan = document.createElement('div'); nameSpan.className = 'skill-name'; nameSpan.textContent = skill.nombre; const costSpan = document.createElement('div'); costSpan.className = 'skill-cost'; costSpan.textContent = `💰 ${skill.costo}`; div.appendChild(img); div.appendChild(nameSpan); div.appendChild(costSpan); if (isEquipped) { const equippedSpan = document.createElement('div'); equippedSpan.style.cssText = 'color:#88ff88; font-size:7px; margin-top:3px;'; equippedSpan.textContent = '⭐ EQUIPADO'; div.appendChild(equippedSpan); } div.onclick = (e) => { e.stopPropagation(); mostrarDetalleSkill(skill); }; div.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'skill', skillId: skill.id, fromBar: false })); e.dataTransfer.effectAllowed = 'copy'; div.style.opacity = '0.5'; }); div.addEventListener('dragend', (e) => { div.style.opacity = '1'; }); div.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }); div.addEventListener('drop', (e) => { e.preventDefault(); div.classList.remove('drag-over'); try { const data = JSON.parse(e.dataTransfer.getData('text/plain')); if (data.type === 'skill' && data.fromBar === true) { const index = skillsEquipadas.indexOf(data.skillId); if (index !== -1) { skillsEquipadas.splice(index, 1); localStorage.setItem(SAVE_KEY + '_skills', JSON.stringify(skillsEquipadas)); renderizarInventarioSkills(); renderizarBarraSkills(); mostrarMensaje(`🗑️ ${SKILLS_DATA[data.skillId].nombre} desequipado`, 'info'); } } } catch(err) {} }); grid.appendChild(div); }); 
+    skillsDisponibles.forEach(skill => { ... });
 }
 
+// ============================================
+// NUEVA FUNCIÓN PARA SKILLS INLINE
+// ============================================
+function renderizarSkillsInline() {
+    const grid = document.getElementById('skills-grid-inline');
+    if (!grid) return;
+    grid.innerHTML = '';
+    skillsDisponibles.forEach(skill => {
+        const isEquipped = skillsEquipadas.includes(skill.id);
+        const div = document.createElement('div');
+        div.className = 'skill-slot' + (isEquipped ? ' equipped' : '');
+        div.setAttribute('data-skill-id', skill.id);
+        div.setAttribute('draggable', 'true');
+        const img = document.createElement('img');
+        img.src = skill.icono;
+        img.className = 'skill-icon-img';
+        img.style.width = '32px';
+        img.style.height = '32px';
+        img.onerror = function() { this.style.display = 'none'; };
+        const nameSpan = document.createElement('div');
+        nameSpan.className = 'skill-name';
+        nameSpan.textContent = skill.nombre;
+        const costSpan = document.createElement('div');
+        costSpan.className = 'skill-cost';
+        costSpan.textContent = `💰 ${skill.costo}`;
+        div.appendChild(img);
+        div.appendChild(nameSpan);
+        div.appendChild(costSpan);
+        if (isEquipped) {
+            const equippedSpan = document.createElement('div');
+            equippedSpan.style.cssText = 'color:#88ff88; font-size:7px; margin-top:3px;';
+            equippedSpan.textContent = '⭐ EQUIPADO';
+            div.appendChild(equippedSpan);
+        }
+        div.onclick = (e) => { e.stopPropagation(); mostrarDetalleSkill(skill); };
+        div.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'skill', skillId: skill.id, fromBar: false }));
+            e.dataTransfer.effectAllowed = 'copy';
+            div.style.opacity = '0.5';
+        });
+        div.addEventListener('dragend', (e) => { div.style.opacity = '1'; });
+        div.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+        grid.appendChild(div);
+    });
+}
+
+// AHORA MODIFICÁ cargarSkillsPorClase PARA INCLUIR renderizarSkillsInline()
+function cargarSkillsPorClase() { 
+    skillsDisponibles = []; 
+    Object.keys(SKILLS_DATA).forEach(key => { 
+        const skill = SKILLS_DATA[key]; 
+        if (!skill.soloNecromancer || (skill.soloNecromancer && pClassName === 'NECROMANCER')) { 
+            skillsDisponibles.push({ ...skill }); 
+        } 
+    }); 
+    const savedSkills = localStorage.getItem(SAVE_KEY + '_skills'); 
+    if (savedSkills) { 
+        skillsEquipadas = JSON.parse(savedSkills); 
+        if (skillsEquipadas.length > MAX_SKILLS) skillsEquipadas = skillsEquipadas.slice(0, MAX_SKILLS); 
+    } else { 
+        if (pClassName === 'NECROMANCER') { 
+            skillsEquipadas = ['levantar_muerto', 'furia_necrotica', 'ataque_distancia']; 
+        } else if (pClassName === 'MAGO') { 
+            skillsEquipadas = ['ataque_distancia']; 
+        } else { 
+            skillsEquipadas = []; 
+        } 
+    } 
+    renderizarInventarioSkills(); 
+    renderizarSkillsInline();   // ← AGREGAR ESTA LÍNEA
+    renderizarBarraSkills(); 
+}
 function renderizarBarraSkills() { 
     const bar = document.getElementById('skills-bar'); if (!bar) return; bar.innerHTML = ''; 
     for (let i = 0; i < MAX_SKILLS; i++) { const skillId = skillsEquipadas[i]; const skill = skillId ? SKILLS_DATA[skillId] : null; const div = document.createElement('div'); div.className = 'skill-slot-small' + (skill ? ' equipped' : ''); div.setAttribute('data-slot-index', i); div.setAttribute('data-skill-id', skillId || ''); if (skill) { const img = document.createElement('img'); img.src = skill.icono; img.className = 'skill-icon-img'; img.style.width = '28px'; img.style.height = '28px'; img.onerror = function() { this.style.display = 'none'; }; const nameSpan = document.createElement('div'); nameSpan.className = 'skill-name-small'; nameSpan.textContent = skill.nombre.length > 10 ? skill.nombre.substring(0,8)+'..' : skill.nombre; div.appendChild(img); div.appendChild(nameSpan); div.ondblclick = (e) => { e.stopPropagation(); usarSkill(skillId); }; div.onclick = (e) => { e.stopPropagation(); mostrarDetalleSkill(skill); }; } else { const emptySpan = document.createElement('div'); emptySpan.style.fontSize = '20px'; emptySpan.style.opacity = '0.3'; emptySpan.textContent = '❓'; const textSpan = document.createElement('div'); textSpan.className = 'skill-name-small'; textSpan.style.opacity = '0.5'; textSpan.textContent = 'Vacío'; div.appendChild(emptySpan); div.appendChild(textSpan); } if (skill) { div.setAttribute('draggable', 'true'); div.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'skill', skillId: skill.id, fromBar: true, slotIndex: i })); e.dataTransfer.effectAllowed = 'move'; div.style.opacity = '0.5'; }); div.addEventListener('dragend', (e) => { div.style.opacity = '1'; }); } else { div.setAttribute('draggable', 'false'); } div.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; div.classList.add('drag-over'); }); div.addEventListener('dragleave', (e) => { div.classList.remove('drag-over'); }); div.addEventListener('drop', (e) => { e.preventDefault(); div.classList.remove('drag-over'); try { const data = JSON.parse(e.dataTransfer.getData('text/plain')); if (data.type === 'skill') { if (data.fromBar === true && data.slotIndex !== undefined && data.slotIndex !== i) { const temp = skillsEquipadas[i]; skillsEquipadas[i] = skillsEquipadas[data.slotIndex]; skillsEquipadas[data.slotIndex] = temp; localStorage.setItem(SAVE_KEY + '_skills', JSON.stringify(skillsEquipadas)); renderizarInventarioSkills(); renderizarBarraSkills(); mostrarMensaje(`🔄 Skills intercambiadas`, 'info'); } else if (data.fromBar === false) { if (skillsEquipadas.includes(data.skillId)) { mostrarMensaje(`❌ Skill ya equipada`, 'error'); } else if (skillsEquipadas.length >= MAX_SKILLS) { const skillToRemove = skillsEquipadas[i]; if (skillToRemove) { skillsEquipadas[i] = data.skillId; localStorage.setItem(SAVE_KEY + '_skills', JSON.stringify(skillsEquipadas)); renderizarInventarioSkills(); renderizarBarraSkills(); mostrarMensaje(`✅ ${SKILLS_DATA[data.skillId].nombre} equipado (reemplazó a ${SKILLS_DATA[skillToRemove].nombre})`, 'exito'); } } else { skillsEquipadas.push(data.skillId); localStorage.setItem(SAVE_KEY + '_skills', JSON.stringify(skillsEquipadas)); renderizarInventarioSkills(); renderizarBarraSkills(); mostrarMensaje(`✅ ${SKILLS_DATA[data.skillId].nombre} equipado!`, 'exito'); } } } } catch(err) { console.error('Drop error:', err); } }); bar.appendChild(div); } 
