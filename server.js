@@ -641,26 +641,7 @@ socket.on('solicitarEsqueletos', () => {
     console.log(`📦 Re-enviando ${esqueletosCercanos.length} esqueletos a ${socket.id}`);
 });
 
-socket.on('playerRespawn', (data) => {
-    if (data.id === socket.id) {
-        const jugador = players[socket.id];
-        if (!jugador) return;
-        
-        console.log(`📡 Jugador ${jugador.name} revivió, reasignando TODOS los esqueletos enemigos`);
-        
-        esqueletos.forEach(esq => {
-            if (esq.isAlive && !esq.isAlly) {
-                // Quitar la condición de distancia o aumentarla
-                esq.targetId = socket.id;
-                esq.targetType = 'player';
-            }
-        });
-        
-        setTimeout(() => {
-            socket.emit('solicitarEsqueletos');
-        }, 500);
-    }
-});
+socket.on('playerRespawn', (data) => { if (data.id === socket.id) { const jugador = players[socket.id]; if (!jugador) return; console.log(`📡 Jugador ${jugador.name} revivió, reasignando esqueletos cercanos`); esqueletos.forEach(esq => { if (esq.isAlive && !esq.isAlly) { const dist = getDistance(jugador.x, jugador.y, esq.x, esq.y); if (dist < 800) { esq.targetId = socket.id; esq.targetType = 'player'; } } }); setTimeout(() => { socket.emit('solicitarEsqueletos'); }, 500); } });
 
 
     socket.on('disconnect', () => { 
