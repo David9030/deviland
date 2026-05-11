@@ -767,7 +767,7 @@ function addOtherPlayer(self,info){ if(!info.class)return; let escala = (info.cl
 
 function create(){ 
     currentScene = this; 
-    socket = io('https://deviland.onrender.com');
+    socket = io();
     console.log('Socket conectado:', socket.id); 
     chatInput = document.getElementById('chat-input'); chatSend = document.getElementById('chat-send'); 
     function enviarMensaje() { const msg = chatInput.value.trim(); if (msg !== "") { socket.emit('chatMessage', msg); chatInput.value = ""; } } 
