@@ -866,31 +866,33 @@ function create(){
             mostrarMensaje(`⏳ Espera ${tiempoRestante}s para atacar`, 'error');
             return;
         }
-        ultimoAtaqueNormal = ahora; let arbol=false, mina=false, roca=false, aC=null, mC=null, rC=null; if(window.arbolesGrupo) window.arbolesGrupo.getChildren().forEach(ab=>{ if(ab.active && Phaser.Math.Distance.Between(player.x,player.y,ab.x,ab.y)<80){ arbol=true; aC=ab; } }); if(window.minasGrupo) window.minasGrupo.getChildren().forEach(mn=>{ if(mn.active && Phaser.Math.Distance.Between(player.x,player.y,mn.x,mn.y)<80){ mina=true; mC=mn; } }); if(window.rocasGrupo) window.rocasGrupo.getChildren().forEach(rc=>{ if(rc.active && Phaser.Math.Distance.Between(player.x,player.y,rc.x,rc.y)<50){ roca=true; rC=rc; } }); player.attacking=true; player.setVelocity(0,0); player.play(pClass+'_atk_'+player.lastDir, true); this.sound.play('sonidoAtaque', { volume: 0.6 }); let danioFisico = 15; if (pClassName === 'BÁRBARO') danioFisico = 80; else if (pClassName === 'CABALLERO') danioFisico = 50; else if (pClassName === 'WARRIOR') danioFisico = 50; else if (pClassName === 'MAGO' || pClassName === 'NECROMANCER') danioFisico = 15; const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null; if (armaItem && armaItem.ataqueFisico) danioFisico += armaItem.ataqueFisico; let damageBonus = danioFisico; const chanceCritico = 20 + Math.floor(playerStats.agilidad / 10); const esCritico = Math.random() * 100 < chanceCritico; if (esCritico) { damageBonus *= 2; } socket.emit('playerAttack', { damageBonus: damageBonus }); player.once('animationcomplete',(anim)=>{ if(anim.key===pClass+'_atk_'+player.lastDir){ player.attacking=false; if(roca && rC){ socket.emit('recogerRoca',{x:player.x,y:player.y}); rC.destroy(); } else if(mina && mC){ socket.emit('minarMina',{x:player.x,y:player.y}); if(currentScene) currentScene.sound.play('sonidoMina', { volume: 0.7 }); } else if(arbol && aC){ socket.emit('talarArbol',{x:player.x,y:player.y}); if(currentScene) currentScene.sound.play('sonidoTalar', { volume: 0.7 }); } else if(demonlord_sprite && demonlord_sprite.visible && Phaser.Math.Distance.Between(player.x,player.y,demonlord_sprite.x,demonlord_sprite.y)<135){ socket.emit('demonlordHit', { damageBonus: damageBonus, esCritico: esCritico }); if(currentScene){ if(esCritico) crearTextoDmg(currentScene,demonlord_sprite.x,demonlord_sprite.y,"CRÍTICO!","#ff4444","18px"); else crearTextoDmg(currentScene,demonlord_sprite.x,demonlord_sprite.y,"⚔️","#fff","16px"); } } if (window.esqueletosGrupo) {
-    let esqueletoMasCercano = null;
-    let distanciaMinima = Infinity;
-    
-    window.esqueletosGrupo.getChildren().forEach(esq => {
-        if (esq.active && !esq.isAlly) {
-            const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y);
-            if (dist < 80 && dist < distanciaMinima) {
-                distanciaMinima = dist;
-                esqueletoMasCercano = esq;
+        ultimoAtaqueNormal = ahora; let arbol=false, mina=false, roca=false, aC=null, mC=null, rC=null; if(window.arbolesGrupo) window.arbolesGrupo.getChildren().forEach(ab=>{ if(ab.active && Phaser.Math.Distance.Between(player.x,player.y,ab.x,ab.y)<80){ arbol=true; aC=ab; } }); if(window.minasGrupo) window.minasGrupo.getChildren().forEach(mn=>{ if(mn.active && Phaser.Math.Distance.Between(player.x,player.y,mn.x,mn.y)<80){ mina=true; mC=mn; } }); if(window.rocasGrupo) window.rocasGrupo.getChildren().forEach(rc=>{ if(rc.active && Phaser.Math.Distance.Between(player.x,player.y,rc.x,rc.y)<50){ roca=true; rC=rc; } }); player.attacking=true; player.setVelocity(0,0); player.play(pClass+'_atk_'+player.lastDir, true); this.sound.play('sonidoAtaque', { volume: 0.6 }); let danioFisico = 15; if (pClassName === 'BÁRBARO') danioFisico = 80; else if (pClassName === 'CABALLERO') danioFisico = 50; else if (pClassName === 'WARRIOR') danioFisico = 50; else if (pClassName === 'MAGO' || pClassName === 'NECROMANCER') danioFisico = 15; const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null; if (armaItem && armaItem.ataqueFisico) danioFisico += armaItem.ataqueFisico; let damageBonus = danioFisico; const chanceCritico = 20 + Math.floor(playerStats.agilidad / 10); const esCritico = Math.random() * 100 < chanceCritico; if (esCritico) { damageBonus *= 2; } socket.emit('playerAttack', { damageBonus: damageBonus }); player.once('animationcomplete',(anim)=>{ if(anim.key===pClass+'_atk_'+player.lastDir){ player.attacking=false; if(roca && rC){ socket.emit('recogerRoca',{x:player.x,y:player.y}); rC.destroy(); } else if(mina && mC){ socket.emit('minarMina',{x:player.x,y:player.y}); if(currentScene) currentScene.sound.play('sonidoMina', { volume: 0.7 }); } else if(arbol && aC){ socket.emit('talarArbol',{x:player.x,y:player.y}); if(currentScene) currentScene.sound.play('sonidoTalar', { volume: 0.7 }); } else if(demonlord_sprite && demonlord_sprite.visible && Phaser.Math.Distance.Between(player.x,player.y,demonlord_sprite.x,demonlord_sprite.y)<135){ socket.emit('demonlordHit', { damageBonus: damageBonus, esCritico: esCritico }); if(currentScene){ if(esCritico) crearTextoDmg(currentScene,demonlord_sprite.x,demonlord_sprite.y,"CRÍTICO!","#ff4444","18px"); else crearTextoDmg(currentScene,demonlord_sprite.x,demonlord_sprite.y,"⚔️","#fff","16px"); } } 
+
+    if (window.esqueletosGrupo) {
+        let esqueletoMasCercano = null;
+        let distanciaMinima = Infinity;
+        
+        window.esqueletosGrupo.getChildren().forEach(esq => {
+            if (esq.active && !esq.isAlly) {
+                const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y);
+                if (dist < 80 && dist < distanciaMinima) {
+                    distanciaMinima = dist;
+                    esqueletoMasCercano = esq;
+                }
             }
-        }
-    });
-    
-    if (esqueletoMasCercano) {
-        socket.emit('esqueletoHit', { 
-            id: esqueletoMasCercano.esqueletoId, 
-            damageBonus: damageBonus, 
-            esCritico: esCritico 
         });
+        
+        if (esqueletoMasCercano) {
+            socket.emit('esqueletoHit', { 
+                id: esqueletoMasCercano.esqueletoId, 
+                damageBonus: damageBonus, 
+                esCritico: esCritico 
+            });
+        }
     }
-}
-    
-    btnAttack.addEventListener('click', () => { if(window.simularAtaque) window.simularAtaque(); });
-    
+} };  // ← Cierra el player.once y cierra window.simularAtaque
+
+btnAttack.addEventListener('click', () => { if(window.simularAtaque) window.simularAtaque(); });
     socket.on('currentPlayers',(ps)=>{ Object.keys(ps).forEach(id=>{ if(id!==socket.id) addOtherPlayer(this,ps[id]); }); }); 
     socket.on('newPlayer',(info)=>{ if(info.id!==socket.id) addOtherPlayer(this,info); mostrarMensaje(`📡 ${info.name} (${info.className || info.class})`,'info'); }); 
     socket.on('playerMoved',(info)=>{ otherPlayers.getChildren().forEach(other=>{ if(info.id===other.id){ other.targetX=info.x; other.targetY=info.y; other.lastDir=info.dir; if(info.isMoving) other.play(other.pClass+'_walk_'+info.dir,true); else other.play(other.pClass+'_idle_'+info.dir,true); } }); }); 
@@ -1006,7 +1008,7 @@ function update() {
         ultimoGuardadoPosicionTime = ahora; 
         guardarPartida(); 
     } 
-}  // ← Esta llave cierra la función update()
+}  
 
 // FIN DEL SCRIPT
 </script>
