@@ -771,18 +771,27 @@ setInterval(() => {
                         io.emit('esqueletoDestroy', { id: closestTarget.id });
                     }, 100);
                 } else {
-                    closestTarget.isAlive = false;
-                    io.emit('playerDeath', { id: closestTarget.id, name: closestTarget.name });
-                    setTimeout(() => {
-                        if (players[closestTarget.id]) {
-                            players[closestTarget.id].hp = CONFIG.PLAYER.MAX_HP;
-                            players[closestTarget.id].isAlive = true;
-                            players[closestTarget.id].x = 512;
-                            players[closestTarget.id].y = 512;
-                            io.emit('playerRespawn', { id: closestTarget.id, x: 512, y: 512 });
-                        }
-                    }, CONFIG.PLAYER.RESPAWN_TIME);
-                }
+    closestTarget.isAlive = false;
+    io.emit('playerDeath', { id: closestTarget.id, name: closestTarget.name });
+    
+    // Hacer que los esqueletos dejen de atacar a este jugador
+    esqueletos.forEach(esq => {
+        if (esq.targetId === closestTarget.id) {
+            esq.targetId = null;
+            esq.targetType = null;
+        }
+    });
+    
+    setTimeout(() => {
+        if (players[closestTarget.id]) {
+            players[closestTarget.id].hp = CONFIG.PLAYER.MAX_HP;
+            players[closestTarget.id].isAlive = true;
+            players[closestTarget.id].x = 512;
+            players[closestTarget.id].y = 512;
+            io.emit('playerRespawn', { id: closestTarget.id, x: 512, y: 512 });
+        }
+    }, CONFIG.PLAYER.RESPAWN_TIME);
+}
             }
         }
     }
