@@ -694,6 +694,30 @@ socket.on('solicitarEsqueletos', () => {
     socket.emit('esqueletosIniciales', esqueletosCercanos);
     console.log(`📦 Re-enviando ${esqueletosCercanos.length} esqueletos a ${socket.id}`);
 });
+
+// ✅ AGREGÁ ESTE EVENTO COMPLETO
+socket.on('playerRespawn', (data) => {
+    if (data.id === socket.id) {
+        const jugador = players[socket.id];
+        if (!jugador) return;
+        
+        console.log(`📡 Jugador ${jugador.name} revivió, reasignando esqueletos`);
+        
+        // Hacer que los esqueletos enemigos cercanos te detecten de nuevo
+        esqueletos.forEach(esq => {
+            if (esq.isAlive && !esq.isAlly && getDistance(jugador.x, jugador.y, esq.x, esq.y) < 800) {
+                esq.targetId = socket.id;
+                esq.targetType = 'player';
+            }
+        });
+        
+        setTimeout(() => {
+            socket.emit('solicitarEsqueletos');
+        }, 500);
+    }
+});
+
+
     socket.on('disconnect', () => { 
         const teamId = playerTeam[socket.id];
         if (teamId && teams[teamId]) {

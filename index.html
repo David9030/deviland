@@ -796,12 +796,6 @@ function create(){
         } 
     });
     
-    socket.on('inventarioActualizado', (data) => { 
-        if (data.madera !== undefined) { let slotMadera = inventarioSlots.find(s => s && s.id === 'madera'); if (slotMadera) slotMadera.cantidad = data.madera; } 
-        if (data.tela !== undefined) { let slotTela = inventarioSlots.find(s => s && s.id === 'tela'); if (slotTela) slotTela.cantidad = data.tela; } 
-        if (data.grasa !== undefined) { let slotGrasa = inventarioSlots.find(s => s && s.id === 'grasa'); if (slotGrasa) slotGrasa.cantidad = data.grasa; } 
-        renderizarInventario(); guardarPartida(); 
-    });
     // Re-sincronización automática de esqueletos
     setTimeout(() => {
         console.log("🔄 Forzando re-sincronización de esqueletos");
@@ -909,7 +903,24 @@ function create(){
     socket.on('demonlordDeath',(data)=>{ demonlord_sprite.setVisible(false); crearTextoDmg(this,data.x,data.y,"VENCIDO","#fff","22px"); mostrarMensaje(`🏆 Demonlord derrotado! +500 EXP`,'exito'); ganarExp(500); }); 
     socket.on('demonlordRespawn',(data)=>{ demonlord_sprite.setPosition(data.x,data.y); demonlord_sprite.setVisible(true); demonlord_sprite.clearTint(); demonlordHP=5000; actualizarDemonlordHPBar(); crearTextoDmg(this,data.x,data.y,"RENACE","#fff","22px"); mostrarMensaje(`👹 Demonlord renace`,'combate'); }); 
     socket.on('playerDeath', (data) => { if(data.id===socket.id){ player.setVisible(false); player.body.enable=false; player.attacking=true; player.isAlive=false; mostrarMensaje(`💀 Has muerto!`,'error'); } }); 
-    socket.on('playerRespawn', (data) => { if(data.id===socket.id){ player.setPosition(data.x,data.y); player.setVisible(true); player.body.enable=true; player.attacking=false; player.isAlive=true; let statsBase = classStats[pClassName]; playerHP = statsBase.hp; playerMana = statsBase.mana; actualizarStatsUI(); mostrarMensaje(`✨ Revivido`,'exito'); guardarPartida(); } }); 
+   socket.on('playerRespawn', (data) => {
+    if (data.id === socket.id) {
+        player.setPosition(data.x, data.y);
+        player.setVisible(true);
+        player.body.enable = true;
+        player.attacking = false;
+        player.isAlive = true;
+        let statsBase = classStats[pClassName];
+        playerHP = statsBase.hp;
+        playerMana = statsBase.mana;
+        actualizarStatsUI();
+        mostrarMensaje(`✨ Revivido`, 'exito');
+        guardarPartida();
+        
+        // ← AGREGÁ ESTA LÍNEA
+        socket.emit('solicitarEsqueletos');
+    }
+});
     socket.on('chatMessage',(data)=>{ if(data.name !== 'Sistema') mostrarMensaje(`[${data.name}] ${data.msg}`,'info'); else mostrarMensaje(`${data.msg}`,'info'); }); 
     socket.on('playerExpGain', (data) => { if (data.id === socket.id) ganarExp(data.exp); }); 
     socket.on('mensaje', (msg) => { mostrarMensaje(msg, 'info'); }); 
