@@ -303,42 +303,54 @@ inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nom
     });
     
     socket.on('playerAttack', (data) => {
-        const jugador = players[socket.id];
-        if (!jugador || !jugador.isAlive) return;
-        
-        socket.broadcast.emit('playerAttacked', { id: socket.id, dir: jugador.dir, class: jugador.class });
-        
-        let esqueletoCercano = null;
-        let distanciaMinima = 80;
-        
-        esqueletos.forEach(esqueleto => {
-            if (esqueleto.isAlive && !esqueleto.isAlly) {
-                const dist = getDistance(jugador.x, jugador.y, esqueleto.x, esqueleto.y);
-                if (dist < distanciaMinima) {
-                    distanciaMinima = dist;
-                    esqueletoCercano = esqueleto;
-                }
-            }
-        });
-        
-        if (esqueletoCercano) {
-            let damage = jugador.ataqueFisico;
-            if (data.damageBonus) damage += data.damageBonus;
-            if (data.esCritico) damage *= 2;
-            
-            const finalDamage = Math.max(1, damage);
-            esqueletoCercano.hp = Math.max(0, esqueletoCercano.hp - finalDamage);
-            
-            io.emit('enemyDamaged', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, dmg: finalDamage });
-            
-            if (esqueletoCercano.hp <= 0) {
-                esqueletoCercano.isAlive = false;
-                io.emit('esqueletoDeath', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, exp: CONFIG.SKELETON.EXP });
-                darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP);
-                respawnEsqueleto(esqueletoCercano.id);
+    const jugador = players[socket.id];
+    if (!jugador || !jugador.isAlive) return;
+    
+    socket.broadcast.emit('playerAttacked', { id: socket.id, dir: jugador.dir, class: jugador.class });
+    
+    // Encontrar el esqueleto MÁS CERCANO
+    let esqueletoCercano = null;
+    let distanciaMinima = 80;
+    
+    for (let esqueleto of esqueletos) {
+        if (esqueleto.isAlive && !esqueleto.isAlly) {
+            const dist = getDistance(jugador.x, jugador.y, esqueleto.x, esqueleto.y);
+            if (dist < distanciaMinima) {
+                distanciaMinima = dist;
+                esqueletoCercano = esqueleto;
             }
         }
-    });
+    }
+    
+    // Si hay un esqueleto cercano, aplicar daño UNA SOLA VEZ
+    if (esqueletoCercano) {
+        let damage = jugador.ataqueFisico;
+        if (data.damageBonus) damage += data.damageBonus;
+        if (data.esCritico) damage *= 2;
+        
+        const finalDamage = Math.max(1, Math.floor(damage));
+        esqueletoCercano.hp = Math.max(0, esqueletoCercano.hp - finalDamage);
+        
+        io.emit('enemyDamaged', { 
+            id: esqueletoCercano.id, 
+            x: esqueletoCercano.x, 
+            y: esqueletoCercano.y, 
+            dmg: finalDamage 
+        });
+        
+        if (esqueletoCercano.hp <= 0) {
+            esqueletoCercano.isAlive = false;
+            io.emit('esqueletoDeath', { 
+                id: esqueletoCercano.id, 
+                x: esqueletoCercano.x, 
+                y: esqueletoCercano.y, 
+                exp: CONFIG.SKELETON.EXP 
+            });
+            darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP);
+            respawnEsqueleto(esqueletoCercano.id);
+        }
+    }
+});
     
     socket.on('chatMessage', (msg) => {
         if (!msg.startsWith('/')) {
