@@ -790,14 +790,19 @@ setInterval(() => {
     });
     
     setTimeout(() => {
-        if (players[closestTarget.id]) {
-            players[closestTarget.id].hp = CONFIG.PLAYER.MAX_HP;
-            players[closestTarget.id].isAlive = true;
-            players[closestTarget.id].x = 512;
-            players[closestTarget.id].y = 512;
-            io.emit('playerRespawn', { id: closestTarget.id, x: 512, y: 512 });
-        }
-    }, CONFIG.PLAYER.RESPAWN_TIME);
+    console.log("⏰ Ejecutando setTimeout de respawn para ID:", closestTarget.id);
+    console.log("¿Existe jugador?", players[closestTarget.id] ? "Sí" : "No");
+    if (players[closestTarget.id]) {
+        players[closestTarget.id].hp = CONFIG.PLAYER.MAX_HP;
+        players[closestTarget.id].isAlive = true;
+        players[closestTarget.id].x = 512;
+        players[closestTarget.id].y = 512;
+        console.log(`💀 Jugador ${players[closestTarget.id].name} revive`);
+        io.emit('playerRespawn', { id: closestTarget.id, x: 512, y: 512 });
+    } else {
+        console.log("❌ ERROR: Jugador no encontrado al intentar revivir");
+    }
+}, CONFIG.PLAYER.RESPAWN_TIME);
 }
             }
         }
