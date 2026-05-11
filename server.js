@@ -179,33 +179,62 @@ io.on('connection', (socket) => {
             ataqueFisico: ataqueFisico
         };
         
-        // Inicializar inventario del jugador en el servidor
         inventariosJugadores[socket.id] = { items: [], equipamiento: {} };
-inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 });
-inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nombre: 'Espada Básica', icono: '⚔️', cantidad: 1, slot: 1 });
+        inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 });
+        inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nombre: 'Espada Básica', icono: '⚔️', cantidad: 1, slot: 1 });
         
         socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
         socket.broadcast.emit('newPlayer', players[socket.id]);
         io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${d.name} (${d.className || d.class}) se ha unido` });
     });
     
-    // ========== EVENTO NUEVO: SOLICITAR INVENTARIO COMPLETO ==========
     socket.on('solicitarInventarioCompleto', () => {
         console.log(`📦 Enviando inventario completo a ${socket.id}`);
         if (inventariosJugadores[socket.id]) {
             socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
         } else {
-            // Si no existe, crear inventario por defecto
             inventariosJugadores[socket.id] = { 
                 items: [
                     { id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 },
                     { id: 'espada_1', tipo: 'espada', nombre: 'Espada Básica', icono: '⚔️', cantidad: 1, slot: 1 },
-                   
                 ], 
                 equipamiento: {} 
             };
             socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
         }
+    });
+    
+    // ========== SINCRONIZACIÓN DE INVENTARIO ==========
+    socket.on('actualizarInventario', (data) => {
+        const jugador = players[socket.id];
+        if (!jugador) return;
+        
+        if (data.inventarioSlots) {
+            inventariosJugadores[socket.id].items = [];
+            for (let i = 0; i < data.inventarioSlots.length; i++) {
+                if (data.inventarioSlots[i]) {
+                    inventariosJugadores[socket.id].items.push({
+                        ...data.inventarioSlots[i],
+                        slot: i
+                    });
+                }
+            }
+        }
+        
+        if (data.equipamiento) {
+            inventariosJugadores[socket.id].equipamiento = data.equipamiento;
+        }
+    });
+    
+    socket.on('usarPocion', (data) => {
+        const jugador = players[socket.id];
+        if (!jugador) return;
+        
+        const curacion = data.curacion || 20;
+        jugador.hp = Math.min(jugador.maxHp, jugador.hp + curacion);
+        
+        io.emit('playerStatsUpdate', { id: socket.id, hp: jugador.hp });
+        socket.emit('mensaje', `❤️ +${curacion} HP`);
     });
     
     socket.on('actualizarStats', (data) => {
@@ -217,11 +246,24 @@ inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nom
         if (data.agilidad !== undefined) jugador.stats.agilidad = data.agilidad;
         if (data.vitalidad !== undefined) jugador.stats.vitalidad = data.vitalidad;
         if (data.sabiduria !== undefined) jugador.stats.sabiduria = data.sabiduria;
-        
-        console.log(`📊 Stats actualizados para ${jugador.name}`);
     });
     
-    socket.on('esqueletoHit', (data) => { const jugador = players[socket.id]; if (!jugador || !jugador.isAlive) return; let esqueleto = esqueletos.find(e => e.id === data.id && e.isAlive); if (!esqueleto) return; let damage = data.damageBonus || 0; const finalDamage = Math.max(1, damage); esqueleto.hp = Math.max(0, esqueleto.hp - finalDamage); io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: finalDamage }); if (esqueleto.hp <= 0) { esqueleto.isAlive = false; io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP }); darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP); respawnEsqueleto(esqueleto.id); } });
+    socket.on('esqueletoHit', (data) => { 
+        const jugador = players[socket.id]; 
+        if (!jugador || !jugador.isAlive) return; 
+        let esqueleto = esqueletos.find(e => e.id === data.id && e.isAlive); 
+        if (!esqueleto) return; 
+        let damage = data.damageBonus || 0; 
+        const finalDamage = Math.max(1, damage); 
+        esqueleto.hp = Math.max(0, esqueleto.hp - finalDamage); 
+        io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: finalDamage }); 
+        if (esqueleto.hp <= 0) { 
+            esqueleto.isAlive = false; 
+            io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP }); 
+            darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP); 
+            respawnEsqueleto(esqueleto.id); 
+        } 
+    });
     
     socket.on('invitarJugador', (data) => {
         const invitador = players[socket.id];
@@ -284,7 +326,42 @@ inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nom
         }
     });
     
-    socket.on('playerAttack', (data) => { const jugador = players[socket.id]; if (!jugador || !jugador.isAlive) return; const ahora = Date.now(); if (ultimoAtaque && ultimoAtaque[socket.id] && (ahora - ultimoAtaque[socket.id] < 100)) { return; } if (!ultimoAtaque) { ultimoAtaque = {}; } ultimoAtaque[socket.id] = ahora; socket.broadcast.emit('playerAttacked', { id: socket.id, dir: jugador.dir, class: jugador.class }); let esqueletoCercano = null; let distanciaMinima = 80; for (let esqueleto of esqueletos) { if (esqueleto.isAlive && !esqueleto.isAlly) { const dist = getDistance(jugador.x, jugador.y, esqueleto.x, esqueleto.y); if (dist < distanciaMinima) { distanciaMinima = dist; esqueletoCercano = esqueleto; } } } if (esqueletoCercano) { let damage = data.damageBonus || jugador.ataqueFisico; const finalDamage = Math.max(1, Math.floor(damage)); esqueletoCercano.hp = Math.max(0, esqueletoCercano.hp - finalDamage); io.emit('enemyDamaged', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, dmg: finalDamage }); if (esqueletoCercano.hp <= 0) { esqueletoCercano.isAlive = false; io.emit('esqueletoDeath', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, exp: CONFIG.SKELETON.EXP }); darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP); respawnEsqueleto(esqueletoCercano.id); } } });
+    socket.on('playerAttack', (data) => { 
+        const jugador = players[socket.id]; 
+        if (!jugador || !jugador.isAlive) return; 
+        const ahora = Date.now(); 
+        if (ultimoAtaque && ultimoAtaque[socket.id] && (ahora - ultimoAtaque[socket.id] < 100)) { 
+            return; 
+        } 
+        if (!ultimoAtaque) { 
+            ultimoAtaque = {}; 
+        } 
+        ultimoAtaque[socket.id] = ahora; 
+        socket.broadcast.emit('playerAttacked', { id: socket.id, dir: jugador.dir, class: jugador.class }); 
+        let esqueletoCercano = null; 
+        let distanciaMinima = 80; 
+        for (let esqueleto of esqueletos) { 
+            if (esqueleto.isAlive && !esqueleto.isAlly) { 
+                const dist = getDistance(jugador.x, jugador.y, esqueleto.x, esqueleto.y); 
+                if (dist < distanciaMinima) { 
+                    distanciaMinima = dist; 
+                    esqueletoCercano = esqueleto; 
+                } 
+            } 
+        } 
+        if (esqueletoCercano) { 
+            let damage = data.damageBonus || jugador.ataqueFisico; 
+            const finalDamage = Math.max(1, Math.floor(damage)); 
+            esqueletoCercano.hp = Math.max(0, esqueletoCercano.hp - finalDamage); 
+            io.emit('enemyDamaged', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, dmg: finalDamage }); 
+            if (esqueletoCercano.hp <= 0) { 
+                esqueletoCercano.isAlive = false; 
+                io.emit('esqueletoDeath', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, exp: CONFIG.SKELETON.EXP }); 
+                darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP); 
+                respawnEsqueleto(esqueletoCercano.id); 
+            } 
+        } 
+    });
     
     socket.on('chatMessage', (msg) => {
         if (!msg.startsWith('/')) {
@@ -542,8 +619,15 @@ inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nom
     socket.on('talarArbol', (data) => {
         let jugador = players[socket.id];
         if(!jugador || !jugador.isAlive) return;
-        let arbol = arboles.find(a => a.activo && getDistance(data.x,data.y,a.x,a.y)<80);
+        let arbol = arboles.find(a => a.activo && getDistance(data.x, data.y, a.x, a.y) < 80);
         if(!arbol || arbol.madera<=0) return;
+        
+        const distJugadorArbol = getDistance(jugador.x, jugador.y, arbol.x, arbol.y);
+        if (distJugadorArbol > 100) {
+            socket.emit('mensaje', '❌ Estás demasiado lejos del árbol');
+            return;
+        }
+        
         arbol.madera--;
         io.emit('arbolTalado', { id: arbol.id, x: arbol.x, y: arbol.y, taladoPor: jugador.name });
         if(arbol.madera <= 0) { 
@@ -571,6 +655,13 @@ inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nom
             }
         }
         if (!minaCercana || minaCercana.minerales <= 0) return;
+        
+        const distJugadorMina = getDistance(jugador.x, jugador.y, minaCercana.x, minaCercana.y);
+        if (distJugadorMina > 100) {
+            socket.emit('mensaje', '❌ Estás demasiado lejos de la mina');
+            return;
+        }
+        
         minaCercana.minerales--;
         const random = Math.random() * 100;
         let mineral = 'hierro';
@@ -601,6 +692,13 @@ inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nom
         if(!jugador || !jugador.isAlive) return;
         let roca = rocas.find(r => r.activo && getDistance(data.x,data.y,r.x,r.y)<50);
         if(!roca || jugador.rocas>=CONFIG.ROCAS.MAX_POR_JUGADOR) return;
+        
+        const distJugadorRoca = getDistance(jugador.x, jugador.y, roca.x, roca.y);
+        if (distJugadorRoca > 70) {
+            socket.emit('mensaje', '❌ Estás demasiado lejos de la roca');
+            return;
+        }
+        
         jugador.rocas++;
         roca.activo=false;
         io.emit('rocaDesaparece', { id: roca.id, x: roca.x, y: roca.y });
@@ -617,7 +715,6 @@ inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nom
         }, CONFIG.ROCAS.RESPAWN_TIME);
     });
     
-    
     socket.on('solicitarDemonlordHP', () => {
         const jugador = players[socket.id];
         if (!jugador) return;
@@ -629,47 +726,60 @@ inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nom
         }
     });
     
-socket.on('solicitarEsqueletos', () => {
-    const jugador = players[socket.id];
-    if (!jugador) return;
-    
-    const esqueletosCercanos = esqueletos.filter(e => {
-        return getDistance(jugador.x, jugador.y, e.x, e.y) < 1500;
-    });
-    
-    socket.emit('esqueletosIniciales', esqueletosCercanos);
-    console.log(`📦 Re-enviando ${esqueletosCercanos.length} esqueletos a ${socket.id}`);
-});
-
-socket.on('playerRespawn', (data) => {
-    console.log("🔥 playerRespawn RECIBIDO en servidor para ID:", data.id);
-    if (data.id === socket.id) {
+    socket.on('solicitarEsqueletos', () => {
         const jugador = players[socket.id];
         if (!jugador) return;
         
-        console.log(`📡 Jugador ${jugador.name} revivió, reasignando esqueletos cercanos`);
-        
-        let count = 0;
-        esqueletos.forEach(esq => {
-            if (esq.isAlive && !esq.isAlly) {
-                const dist = getDistance(jugador.x, jugador.y, esq.x, esq.y);
-                if (dist < 800) {
-                    esq.targetId = socket.id;
-                    esq.targetType = 'player';
-                    count++;
-                    console.log(`  → Esqueleto ${esq.id} reasignado, distancia: ${Math.floor(dist)}`);
-                }
-            }
+        const esqueletosCercanos = esqueletos.filter(e => {
+            return getDistance(jugador.x, jugador.y, e.x, e.y) < 1500;
         });
         
-        console.log(`✅ Reasignados ${count} esqueletos para seguir a ${jugador.name}`);
-        
-        setTimeout(() => {
-            socket.emit('solicitarEsqueletos');
-        }, 500);
-    }
-});
-
+        socket.emit('esqueletosIniciales', esqueletosCercanos);
+        console.log(`📦 Re-enviando ${esqueletosCercanos.length} esqueletos a ${socket.id}`);
+    });
+    
+    // ========== CORRECCIÓN PRINCIPAL: RESPAWN DE JUGADOR ==========
+    socket.on('playerRespawn', (data) => {
+        console.log("🔥 playerRespawn RECIBIDO en servidor para ID:", data.id);
+        if (data.id === socket.id) {
+            const jugador = players[socket.id];
+            if (!jugador) {
+                console.log("❌ ERROR: Jugador no encontrado");
+                return;
+            }
+            
+            console.log(`📡 Jugador ${jugador.name} revivió, reasignando esqueletos cercanos`);
+            
+            jugador.isAlive = true;
+            jugador.hp = CONFIG.PLAYER.MAX_HP;
+            jugador.x = 512;
+            jugador.y = 512;
+            
+            let count = 0;
+            esqueletos.forEach(esq => {
+                if (esq.isAlive && !esq.isAlly) {
+                    const dist = getDistance(jugador.x, jugador.y, esq.x, esq.y);
+                    if (dist < 1500) {
+                        esq.targetId = socket.id;
+                        esq.targetType = 'player';
+                        count++;
+                        console.log(`  → Esqueleto ${esq.id} reasignado a ${jugador.name}, distancia: ${Math.floor(dist)}`);
+                    }
+                }
+            });
+            
+            console.log(`✅ Reasignados ${count} esqueletos para seguir a ${jugador.name}`);
+            
+            setTimeout(() => {
+                const esqueletosCercanos = esqueletos.filter(e => {
+                    return getDistance(jugador.x, jugador.y, e.x, e.y) < 1500;
+                });
+                socket.emit('esqueletosIniciales', esqueletosCercanos);
+                console.log(`📦 Enviados ${esqueletosCercanos.length} esqueletos a ${jugador.name}`);
+            }, 500);
+        }
+    });
+    
     socket.on('disconnect', () => { 
         const teamId = playerTeam[socket.id];
         if (teamId && teams[teamId]) {
@@ -778,32 +888,26 @@ setInterval(() => {
                         io.emit('esqueletoDestroy', { id: closestTarget.id });
                     }, 100);
                 } else {
-    closestTarget.isAlive = false;
-    io.emit('playerDeath', { id: closestTarget.id, name: closestTarget.name });
-    
-    // Hacer que los esqueletos dejen de atacar a este jugador
-    esqueletos.forEach(esq => {
-        if (esq.targetId === closestTarget.id) {
-            esq.targetId = null;
-            esq.targetType = null;
-        }
-    });
-    
-    setTimeout(() => {
-    console.log("⏰ Ejecutando setTimeout de respawn para ID:", closestTarget.id);
-    console.log("¿Existe jugador?", players[closestTarget.id] ? "Sí" : "No");
-    if (players[closestTarget.id]) {
-        players[closestTarget.id].hp = CONFIG.PLAYER.MAX_HP;
-        players[closestTarget.id].isAlive = true;
-        players[closestTarget.id].x = 512;
-        players[closestTarget.id].y = 512;
-        console.log(`💀 Jugador ${players[closestTarget.id].name} revive`);
-        io.emit('playerRespawn', { id: closestTarget.id, x: 512, y: 512 });
-    } else {
-        console.log("❌ ERROR: Jugador no encontrado al intentar revivir");
-    }
-}, CONFIG.PLAYER.RESPAWN_TIME);
-}
+                    closestTarget.isAlive = false;
+                    io.emit('playerDeath', { id: closestTarget.id, name: closestTarget.name });
+                    
+                    esqueletos.forEach(esq => {
+                        if (esq.targetId === closestTarget.id) {
+                            esq.targetId = null;
+                            esq.targetType = null;
+                        }
+                    });
+                    
+                    setTimeout(() => {
+                        if (players[closestTarget.id]) {
+                            players[closestTarget.id].hp = CONFIG.PLAYER.MAX_HP;
+                            players[closestTarget.id].isAlive = true;
+                            players[closestTarget.id].x = 512;
+                            players[closestTarget.id].y = 512;
+                            io.emit('playerRespawn', { id: closestTarget.id, x: 512, y: 512 });
+                        }
+                    }, CONFIG.PLAYER.RESPAWN_TIME);
+                }
             }
         }
     }
@@ -811,7 +915,7 @@ setInterval(() => {
     if (demonlord.attackCooldown > 0) demonlord.attackCooldown -= 100;
 }, 100);
 
-// MOVIMIENTO DE ESQUELETOS
+// ========== MOVIMIENTO DE ESQUELETOS (CORREGIDO) ==========
 setInterval(() => {
     esqueletos.forEach(esqueleto => {
         if (!esqueleto.isAlive) return;
@@ -822,32 +926,14 @@ setInterval(() => {
         let nearestDistance = Infinity;
         let nearestTarget = null;
         
-        if (esqueleto.isAlly === true) {
-            if (demonlord.isAlive) {
-                const dist = getDistance(esqueleto.x, esqueleto.y, demonlord.x, demonlord.y);
-                if (dist < nearestDistance) {
-                    nearestDistance = dist;
-                    nearestTarget = demonlord;
-                }
-            }
-            esqueletos.forEach(otherSkeleton => {
-                if (!otherSkeleton.isAlive) return;
-                if (otherSkeleton.id === esqueleto.id) return;
-                if (otherSkeleton.isAlly === false) {
-                    const dist = getDistance(esqueleto.x, esqueleto.y, otherSkeleton.x, otherSkeleton.y);
+        if (esqueleto.isAlly === false) {
+            Object.values(players).forEach(player => {
+                if (player.isAlive) {
+                    const dist = getDistance(esqueleto.x, esqueleto.y, player.x, player.y);
                     if (dist < nearestDistance) {
                         nearestDistance = dist;
-                        nearestTarget = otherSkeleton;
+                        nearestTarget = player;
                     }
-                }
-            });
-        } else {
-            Object.values(players).forEach(player => {
-                if (!player.isAlive) return;
-                const dist = getDistance(esqueleto.x, esqueleto.y, player.x, player.y);
-                if (dist < nearestDistance) {
-                    nearestDistance = dist;
-                    nearestTarget = player;
                 }
             });
             
@@ -863,6 +949,25 @@ setInterval(() => {
                 if (!otherSkeleton.isAlive) return;
                 if (otherSkeleton.id === esqueleto.id) return;
                 if (otherSkeleton.isAlly === true) {
+                    const dist = getDistance(esqueleto.x, esqueleto.y, otherSkeleton.x, otherSkeleton.y);
+                    if (dist < nearestDistance) {
+                        nearestDistance = dist;
+                        nearestTarget = otherSkeleton;
+                    }
+                }
+            });
+        } else {
+            if (demonlord.isAlive) {
+                const dist = getDistance(esqueleto.x, esqueleto.y, demonlord.x, demonlord.y);
+                if (dist < nearestDistance) {
+                    nearestDistance = dist;
+                    nearestTarget = demonlord;
+                }
+            }
+            esqueletos.forEach(otherSkeleton => {
+                if (!otherSkeleton.isAlive) return;
+                if (otherSkeleton.id === esqueleto.id) return;
+                if (otherSkeleton.isAlly === false) {
                     const dist = getDistance(esqueleto.x, esqueleto.y, otherSkeleton.x, otherSkeleton.y);
                     if (dist < nearestDistance) {
                         nearestDistance = dist;
@@ -958,7 +1063,7 @@ setInterval(() => {
                         respawnEsqueleto(closestTarget.id);
                     }
                 }
-                    io.emit('enemyDamaged', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, dmg: damage }); // ✅ BIEN
+                io.emit('enemyDamaged', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, dmg: damage });
             }
         } else {
             io.emit('esqueletoMoved', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dir: esqueleto.dir, isMoving: false });
@@ -977,4 +1082,4 @@ setInterval(() => {
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, '0.0.0.0', () => {
     console.log(`🔥 DEVILAND - Servidor en puerto ${PORT}`);
-}); 
+});
