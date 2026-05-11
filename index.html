@@ -834,7 +834,7 @@ function create(){
     DL_CONFIG.direcciones.forEach(conf=>{ const off=(conf.r*DL_CONFIG.fPF)+(conf.b*DL_CONFIG.fPB); Object.keys(DL_CONFIG.filas).forEach(st=>{ const start=(DL_CONFIG.filas[st]*DL_CONFIG.fPF)+off; this.anims.create({key:`dl_${st}_${conf.d}`, frames:this.anims.generateFrameNumbers('demonlord',{start:start,end:start+7}), frameRate:(st==='ataque')?16:10, repeat:(st==='idle'||st==='walk'||st==='tired')?-1:0}); }); }); 
     
     let escalaJugador = (pClassName === 'NECROMANCER' || pClassName === 'MAGO') ? 0.3 : 2;
-    player=this.physics.add.sprite(512,512,pClass).setScale(escalaJugador).setCollideWorldBounds(true); player.lastDir='Abajo'; player.attacking=false; player.isAlive=true; 
+    player=this.physics.add.sprite(512,512,pClass).setScale(escalaJugador).setCollideWorldBounds(true); player.lastDir='Abajo'; player.attacking=false; player.isAlive=true; this.cameras.main.startFollow(player, true, 0.1, 0.1);
     demonlord_sprite=this.physics.add.sprite(1500,1500,'demonlord').setScale(2.5).setDepth(1500); demonlord_sprite.cDir='Abajo'; 
     const guardado=window.guardadoPendiente||null; if(guardado){ 
     if (guardado.inventarioSlots) {
