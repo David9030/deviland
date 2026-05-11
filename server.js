@@ -221,26 +221,7 @@ inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nom
         console.log(`📊 Stats actualizados para ${jugador.name}`);
     });
     
-    socket.on('esqueletoHit', (data) => {
-        const jugador = players[socket.id];
-        if (!jugador || !jugador.isAlive) return;
-        
-        let esqueleto = esqueletos.find(e => e.id === data.id && e.isAlive);
-        if (!esqueleto) return;
-        
-        let damage = data.damageBonus || 0;
-        const finalDamage = Math.max(1, damage);
-        esqueleto.hp = Math.max(0, esqueleto.hp - finalDamage);
-        
-        io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: finalDamage });
-        
-        if (esqueleto.hp <= 0) {
-            esqueleto.isAlive = false;
-            io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP });
-            darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP);
-            respawnEsqueleto(esqueleto.id);
-        }
-    });
+    socket.on('esqueletoHit', (data) => { const jugador = players[socket.id]; if (!jugador || !jugador.isAlive) return; let esqueleto = esqueletos.find(e => e.id === data.id && e.isAlive); if (!esqueleto) return; let damage = data.damageBonus || 0; const finalDamage = Math.max(1, damage); esqueleto.hp = Math.max(0, esqueleto.hp - finalDamage); io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: finalDamage }); if (esqueleto.hp <= 0) { esqueleto.isAlive = false; io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP }); darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP); respawnEsqueleto(esqueleto.id); } });
     
     socket.on('invitarJugador', (data) => {
         const invitador = players[socket.id];
