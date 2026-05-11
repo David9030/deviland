@@ -956,7 +956,7 @@ setInterval(() => {
                         respawnEsqueleto(closestTarget.id);
                     }
                 }
-                io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: damage, hp: esqueleto.hp });
+                io.emit('enemyDamaged', { id: socket.id, x: jugador.x, y: jugador.y, dmg: damage });
             }
         } else {
             io.emit('esqueletoMoved', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dir: esqueleto.dir, isMoving: false });
