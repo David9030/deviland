@@ -923,14 +923,31 @@ btnAttack.addEventListener('click', () => { if(window.simularAtaque) window.simu
     socket.on('chatMessage',(data)=>{ if(data.name !== 'Sistema') mostrarMensaje(`[${data.name}] ${data.msg}`,'info'); else mostrarMensaje(`${data.msg}`,'info'); }); 
     socket.on('playerExpGain', (data) => { if (data.id === socket.id) ganarExp(data.exp); }); 
     socket.on('mensaje', (msg) => { mostrarMensaje(msg, 'info'); }); 
-    
-    
+
+let zoomActivo = false;
+    const ZOOM_NORMAL = 1, ZOOM_CERCA = 1.5;
+    this.input.on('pointerdown', (pointer) => {
+        if (pointer.doubleClick) {
+            zoomActivo = !zoomActivo;
+            this.cameras.main.setZoom(zoomActivo ? ZOOM_CERCA : ZOOM_NORMAL);
+        }
+    });
+
+    this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
+        let nz = this.cameras.main.zoom;
+        if (deltaY < 0) nz = Math.min(nz + 0.1, 2);
+        else if (deltaY > 0) nz = Math.max(nz - 0.1, 0.5);
+        this.cameras.main.setZoom(nz);
+    });
+
     this.events.on('update',()=>{ otherPlayers.getChildren().forEach(other=>{ if(other.targetX!==undefined && other.targetY!==undefined){ other.x+=(other.targetX-other.x)*0.25; other.y+=(other.targetY-other.y)*0.25; other.setDepth(other.y); } }); if(player && player.active && btnAttack) actualizarIconoAtaque(); }); 
     window.addEventListener('beforeunload',()=>guardarPartida()); 
     setInterval(()=>{ if(player && player.active) guardarPartida(); },30000); 
     iniciarJoystick(); 
     if (summonCooldown > 0) { setInterval(() => { if (summonCooldown > 0) summonCooldown -= 1000; }, 1000); } 
 }
+
+
 
 function crearTextoDmg(esc,x,y,txt,col,sz){ if(!esc)return; let t=esc.add.text(x,y,txt,{fontSize:sz||'18px',fill:col||'#fff',fontStyle:'bold',fontFamily:'monospace',stroke:'#000',strokeThickness:2}).setOrigin(0.5).setDepth(9999); esc.tweens.add({targets:t,y:y-50,alpha:0,duration:600,onComplete:()=>t.destroy()}); }
 
