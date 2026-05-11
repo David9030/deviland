@@ -890,7 +890,11 @@ function create(){
             });
         }
     }
-} };  // ← Cierra el player.once y cierra window.simularAtaque
+} 
+
+}
+
+};  
 
 btnAttack.addEventListener('click', () => { if(window.simularAtaque) window.simularAtaque(); });
     socket.on('currentPlayers',(ps)=>{ Object.keys(ps).forEach(id=>{ if(id!==socket.id) addOtherPlayer(this,ps[id]); }); }); 
