@@ -602,8 +602,63 @@ function actualizarStatsUI() {
 // SKILLS
 // ============================================
 function renderizarInventarioSkills() { 
-    const grid = document.getElementById('skills-grid'); if (!grid) return; grid.innerHTML = ''; 
-    skillsDisponibles.forEach(skill => { ... });
+    const grid = document.getElementById('skills-grid'); 
+    if (!grid) return; 
+    grid.innerHTML = ''; 
+    skillsDisponibles.forEach(skill => { 
+        const isEquipped = skillsEquipadas.includes(skill.id); 
+        const div = document.createElement('div'); 
+        div.className = 'skill-slot' + (isEquipped ? ' equipped' : ''); 
+        div.setAttribute('data-skill-id', skill.id); 
+        div.setAttribute('draggable', 'true'); 
+        const img = document.createElement('img'); 
+        img.src = skill.icono; 
+        img.className = 'skill-icon-img'; 
+        img.style.width = '48px'; 
+        img.style.height = '48px'; 
+        img.onerror = function() { this.style.display = 'none'; }; 
+        const nameSpan = document.createElement('div'); 
+        nameSpan.className = 'skill-name'; 
+        nameSpan.textContent = skill.nombre; 
+        const costSpan = document.createElement('div'); 
+        costSpan.className = 'skill-cost'; 
+        costSpan.textContent = `💰 ${skill.costo}`; 
+        div.appendChild(img); 
+        div.appendChild(nameSpan); 
+        div.appendChild(costSpan); 
+        if (isEquipped) { 
+            const equippedSpan = document.createElement('div'); 
+            equippedSpan.style.cssText = 'color:#88ff88; font-size:7px; margin-top:3px;'; 
+            equippedSpan.textContent = '⭐ EQUIPADO'; 
+            div.appendChild(equippedSpan); 
+        } 
+        div.onclick = (e) => { e.stopPropagation(); mostrarDetalleSkill(skill); }; 
+        div.addEventListener('dragstart', (e) => { 
+            e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'skill', skillId: skill.id, fromBar: false })); 
+            e.dataTransfer.effectAllowed = 'copy'; 
+            div.style.opacity = '0.5'; 
+        }); 
+        div.addEventListener('dragend', (e) => { div.style.opacity = '1'; }); 
+        div.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }); 
+        div.addEventListener('drop', (e) => { 
+            e.preventDefault(); 
+            div.classList.remove('drag-over'); 
+            try { 
+                const data = JSON.parse(e.dataTransfer.getData('text/plain')); 
+                if (data.type === 'skill' && data.fromBar === true) { 
+                    const index = skillsEquipadas.indexOf(data.skillId); 
+                    if (index !== -1) { 
+                        skillsEquipadas.splice(index, 1); 
+                        localStorage.setItem(SAVE_KEY + '_skills', JSON.stringify(skillsEquipadas)); 
+                        renderizarInventarioSkills(); 
+                        renderizarBarraSkills(); 
+                        mostrarMensaje(`🗑️ ${SKILLS_DATA[data.skillId].nombre} desequipado`, 'info'); 
+                    } 
+                } 
+            } catch(err) {} 
+        }); 
+        grid.appendChild(div); 
+    }); 
 }
 
 // ============================================
