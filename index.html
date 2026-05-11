@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -174,47 +174,41 @@
         </div>
     </div>
     <div class="floating-tabs">
-    <div class="floating-tab" onclick="toggleInventario()">🎒 INVENTARIO</div>
-</div>
-        <div id="btn-attack">⚔️</div>
+        <div class="floating-tab" onclick="toggleInventario()">🎒 INVENTARIO</div>
+    </div>
+    <div id="btn-attack">⚔️</div>
     <div id="skills-bar"></div>
     <div id="joystick-area"></div>
     
-    <!-- INVENTARIO NUEVO (con stats y skills inline) -->
-    <!-- INVENTARIO NUEVO (con stats y skills inline) -->
-<div id="inventario-ui" style="display: none;">
-    <div style="display: flex; flex-direction: row; gap: 15px; background: #000; padding: 15px; border: 2px solid #fff;">
-        <!-- INVENTARIO --> 
-        <div style="flex: 2;">
-            <h3 style="color: #fff; text-align: center;">📦 INVENTARIO</h3>
-            <div id="inventario-grid" class="inventario-grid"></div>
-        </div>
-        <!-- STATS -->
-        <div style="flex: 1; min-width: 180px;">
-            <div id="stats-panel-inline" style="background: #111; padding: 8px; border: 1px solid #333;">
-                <div class="stat-section"><div class="section-title">📈 NIVEL</div><div class="stat-row">LV:<span id="stat-level" class="stat-value">1</span></div><div class="exp-bar"><div id="exp-fill" class="exp-fill"></div></div><div class="stat-row">EXP:<span id="stat-exp" class="stat-value">0</span>/<span id="stat-exp-next">100</span></div><div class="stat-row">PTS:<span id="stat-puntos" class="stat-value">0</span></div></div>
-                <div class="stat-section"><div class="section-title">⚔️ COMBATE</div><div class="stat-row">❤️ HP:<span id="stat-hp" class="stat-value">500/500</span></div><div class="stat-row">💙 MANA:<span id="stat-mana" class="stat-value">100/100</span></div><div class="stat-row">⚔️ ATQ FÍSICO:<span id="stat-ataque-fisico" class="stat-value">0</span></div><div class="stat-row">🔮 ATQ MÁGICO:<span id="stat-ataque-magico" class="stat-value">0</span></div><div class="stat-row">🛡️ DEF FÍSICA:<span id="stat-defensa-fisica" class="stat-value">0</span></div><div class="stat-row">✨ DEF MÁGICA:<span id="stat-defensa-magica" class="stat-value">0</span></div><div class="stat-row">🏃 VELOCIDAD:<span id="stat-velocidad" class="stat-value">150</span></div><div class="stat-row">💥 CRÍTICO:<span id="stat-critico" class="stat-value">20%</span></div></div>
-                <div class="stat-section"><div class="section-title">📈 ATRIBUTOS</div><div class="stat-row">💪 FUERZA:<span id="stat-fuerza" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('fuerza')">+</button></div><div class="stat-row">🔮 INTELIGENCIA:<span id="stat-inteligencia" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('inteligencia')">+</button></div><div class="stat-row">❤️ VITALIDAD:<span id="stat-vitalidad" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('vitalidad')">+</button></div></div>
+    <!-- INVENTARIO UI -->
+    <div id="inventario-ui" style="display: none;">
+        <div style="display: flex; flex-direction: row; gap: 15px; background: #000; padding: 15px; border: 2px solid #fff;">
+            <div style="flex: 2;">
+                <h3 style="color: #fff; text-align: center;">📦 INVENTARIO</h3>
+                <div id="inventario-grid" class="inventario-grid"></div>
+            </div>
+            <div style="flex: 1; min-width: 180px;">
+                <div id="stats-panel-inline" style="background: #111; padding: 8px; border: 1px solid #333;">
+                    <div class="stat-section"><div class="section-title">📈 NIVEL</div><div class="stat-row">LV:<span id="stat-level" class="stat-value">1</span></div><div class="exp-bar"><div id="exp-fill" class="exp-fill"></div></div><div class="stat-row">EXP:<span id="stat-exp" class="stat-value">0</span>/<span id="stat-exp-next">100</span></div><div class="stat-row">PTS:<span id="stat-puntos" class="stat-value">0</span></div></div>
+                    <div class="stat-section"><div class="section-title">⚔️ COMBATE</div><div class="stat-row">❤️ HP:<span id="stat-hp" class="stat-value">500/500</span></div><div class="stat-row">💙 MANA:<span id="stat-mana" class="stat-value">100/100</span></div><div class="stat-row">⚔️ ATQ FÍSICO:<span id="stat-ataque-fisico" class="stat-value">0</span></div><div class="stat-row">🔮 ATQ MÁGICO:<span id="stat-ataque-magico" class="stat-value">0</span></div><div class="stat-row">🛡️ DEF FÍSICA:<span id="stat-defensa-fisica" class="stat-value">0</span></div><div class="stat-row">✨ DEF MÁGICA:<span id="stat-defensa-magica" class="stat-value">0</span></div><div class="stat-row">🏃 VELOCIDAD:<span id="stat-velocidad" class="stat-value">150</span></div><div class="stat-row">💥 CRÍTICO:<span id="stat-critico" class="stat-value">20%</span></div></div>
+                    <div class="stat-section"><div class="section-title">📈 ATRIBUTOS</div><div class="stat-row">💪 FUERZA:<span id="stat-fuerza" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('fuerza')">+</button></div><div class="stat-row">🔮 INTELIGENCIA:<span id="stat-inteligencia" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('inteligencia')">+</button></div><div class="stat-row">❤️ VITALIDAD:<span id="stat-vitalidad" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('vitalidad')">+</button></div></div>
+                </div>
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <div style="background: #111; padding: 8px; border: 1px solid #333;">
+                    <h3 style="color: #fff; text-align: center;">⭐ SKILLS</h3>
+                    <div id="skills-grid-inline" class="skills-grid" style="max-height: 250px; overflow-y: auto;"></div>
+                    <div style="margin-top: 10px; font-size: 9px; color: #666;">💡 Arrastra a la barra inferior</div>
+                </div>
             </div>
         </div>
-        <!-- SKILLS -->
-        <div style="flex: 1; min-width: 200px;">
-            <div style="background: #111; padding: 8px; border: 1px solid #333;">
-                <h3 style="color: #fff; text-align: center;">⭐ SKILLS</h3>
-                <div id="skills-grid-inline" class="skills-grid" style="max-height: 250px; overflow-y: auto;"></div>
-                <div style="margin-top: 10px; font-size: 9px; color: #666;">💡 Arrastra a la barra inferior</div>
-            </div>
-        </div>
+        <button class="cerrar-btn" onclick="toggleInventario()" style="margin-top: 5px;">CERRAR</button>
     </div>
-    <button class="cerrar-btn" onclick="toggleInventario()" style="margin-top: 5px;">CERRAR</button>
-</div>
-    <!-- FIN DEL INVENTARIO-UI -->
 
     <div id="stat-preview" class="stat-preview" style="display:none;"></div>
     <div id="context-menu" class="context-menu" style="display:none;">
         <div class="context-menu-item" onclick="invitarJugadorSeleccionado()">🎮 Invitar al equipo</div>
-    </div>
-    <script>
+    </div>    <script>
 // ============================================
 // VARIABLES GLOBALES
 // ============================================
@@ -249,8 +243,8 @@ var previewTimeout = null;
 var tabInventarioActivo = 'inv';
 var chatInput, chatSend;
 var demonlordCheckInterval;
-var ultimoAtaqueNormal = 0;        // ← NUEVO
-var COOLDOWN_ATAQUE_NORMAL = 1000; // ← NUEVO (1 segundo)
+var ultimoAtaqueNormal = 0;
+var COOLDOWN_ATAQUE_NORMAL = 1000;
 
 function crearSlotElement(slot, index, origen) { 
     const d = document.createElement('div'); d.className = 'slot'; d.setAttribute('data-slot-index', index); d.setAttribute('data-origen', origen); 
@@ -265,11 +259,26 @@ function crearSlotElement(slot, index, origen) {
         d.appendChild(i); d.appendChild(c); d.appendChild(n); 
         if (slot.tipo === 'espada' || slot.tipo === 'escudo' || slot.tipo === 'armadura') { d.addEventListener('click', (e) => { e.stopPropagation(); let tipo = slot.tipo === 'espada' ? 'arma' : (slot.tipo === 'escudo' ? 'escudo' : 'armadura'); mostrarPreviewStats(slot, tipo); }); } 
         d.addEventListener('dblclick', (e) => { e.stopPropagation(); 
-            if (slot.tipo === 'pocion') { if (playerHP < playerMaxHP) { const curacion = 20; const nuevaVida = Math.min(playerHP + curacion, playerMaxHP); const curado = nuevaVida - playerHP; playerHP = nuevaVida; actualizarStatsUI(); mostrarMensaje(`❤️ +${curado} HP`, 'exito'); slot.cantidad -= 1; if (slot.cantidad <= 0) { inventarioSlots[index] = null; } renderizarInventario(); guardarPartida(); } else { mostrarMensaje(`❌ Vida al max`, 'error'); } } 
+            if (slot.tipo === 'pocion') { 
+                if (playerHP < playerMaxHP) { 
+                    const curacion = 20; 
+                    const nuevaVida = Math.min(playerHP + curacion, playerMaxHP); 
+                    const curado = nuevaVida - playerHP; 
+                    playerHP = nuevaVida; 
+                    actualizarStatsUI(); 
+                    mostrarMensaje(`❤️ +${curado} HP`, 'exito'); 
+                    slot.cantidad -= 1; 
+                    if (slot.cantidad <= 0) { inventarioSlots[index] = null; } 
+                    renderizarInventario(); 
+                    guardarPartida();
+                    guardarInventarioEnServidor();
+                    if (socket) socket.emit('usarPocion', { curacion: curacion });
+                } else { mostrarMensaje(`❌ Vida al max`, 'error'); } 
+            } 
             else if (slot.tipo === 'espada') { if (equipamiento.arma === slot.id) desequiparItem('arma'); else equiparItem(slot, 'arma'); renderizarInventario(); } 
             else if (slot.tipo === 'escudo') { if (equipamiento.escudo === slot.id) desequiparItem('escudo'); else equiparItem(slot, 'escudo'); renderizarInventario(); } 
             else if (slot.tipo === 'armadura') { if (equipamiento.armadura === slot.id) desequiparItem('armadura'); else equiparItem(slot, 'armadura'); renderizarInventario(); } 
- }); 
+        }); 
     } else { const e = document.createElement('div'); e.style.fontSize = '12px'; e.style.opacity = '0.2'; e.textContent = '□'; d.appendChild(e); } 
     d.setAttribute('draggable', 'true'); 
     d.addEventListener('dragstart', (e) => { if(!slot){e.preventDefault();return false;} e.dataTransfer.setData('text/plain',JSON.stringify({origen:origen,index:index})); e.target.closest('.slot').style.opacity='0.5'; }); 
@@ -290,6 +299,24 @@ function renderizarInventario() {
     } 
 }
 
+// ========== NUEVA FUNCIÓN: GUARDAR INVENTARIO EN SERVIDOR ==========
+function guardarInventarioEnServidor() {
+    if (!socket || !juegoIniciado) return;
+    
+    const inventarioLimpio = inventarioSlots.map(s => s ? {
+        id: s.id, tipo: s.tipo, nombre: s.nombre, 
+        icono: s.icono, cantidad: s.cantidad,
+        ataqueFisico: s.ataqueFisico, ataqueMagico: s.ataqueMagico,
+        defensaFisica: s.defensaFisica, defensaMagica: s.defensaMagica,
+        velocidad: s.velocidad
+    } : null);
+    
+    socket.emit('actualizarInventario', {
+        inventarioSlots: inventarioLimpio,
+        equipamiento: equipamiento
+    });
+}
+
 const SKILLS_DATA = {
     'levantar_muerto': { id: 'levantar_muerto', nombre: 'Levantar Muerto', descripcion: 'Levanta un esqueleto aliado de un cadáver cercano', costo: '200 de vida', icono: 'skills/levantar_muerto.png', soloNecromancer: true, clase: 'NECROMANCER' },
     'furia_necrotica': { id: 'furia_necrotica', nombre: 'Furia Necrótica', descripcion: 'Potencia esqueletos aliados: +7% daño por cada esqueleto, 10 segundos, 10 maná por esqueleto', costo: '10 maná por esqueleto', icono: 'skills/furia_necrotica.png', soloNecromancer: true, clase: 'NECROMANCER' },
@@ -308,19 +335,13 @@ var classStats = {
 // FUNCIONES DE UI Y UTILIDADES
 // ============================================
 function toggleChat() { document.getElementById('chat-container').classList.toggle('chat-minimizado'); }
-    function toggleInventario() { 
+function toggleInventario() { 
     let u = document.getElementById('inventario-ui'); 
-    if (!u) {
-        console.log("ERROR: No encontré inventario-ui");
-        return;
-    }
-    console.log("Display actual:", u.style.display);
+    if (!u) return;
     if (u.style.display === 'none' || u.style.display === '') {
-        console.log("ABRIENDO inventario");
         if (typeof renderizarInventario === 'function') renderizarInventario();
         u.style.display = 'block';
     } else { 
-        console.log("CERRANDO inventario");
         u.style.display = 'none';
     }
 }
@@ -332,7 +353,6 @@ function cambiarTab(tab) {
     document.querySelector(`#stats-panel .tab[data-tab="${tab}"]`).classList.add('active'); 
     document.querySelectorAll('#stats-panel .tab-content').forEach(c => c.classList.remove('active')); 
     document.getElementById(`tab-${tab}`).classList.add('active'); 
-     
 }
 
 function cambiarTabInventario(tab) { 
@@ -340,7 +360,6 @@ function cambiarTabInventario(tab) {
     document.querySelectorAll('#inventario-ui .tab').forEach(t => t.classList.remove('active')); 
     document.querySelector(`#inventario-ui .tab[data-tab="${tab}"]`).classList.add('active'); 
     document.querySelectorAll('#inventario-ui .tab-content').forEach(c => c.classList.remove('active')); 
-    
     if (tab === 'inv') {
         document.getElementById('tab-inv').classList.add('active');
     } else if (tab === 'craft') {
@@ -371,11 +390,9 @@ function ganarExp(cantidad) { if (!juegoIniciado) return; playerStats.exp += can
 
 function aumentarStat(stat) { if (playerStats.puntos <= 0) { mostrarMensaje(`❌ Sin puntos`, 'error'); return; } playerStats[stat]++; playerStats.puntos--; actualizarStatsUI(); guardarPartida(); mostrarMensaje(`✅ +1 ${stat.toUpperCase()}`, 'exito'); }
 
-function equiparItem(item, tipo) { if (equipamiento[tipo]) desequiparItem(tipo); equipamiento[tipo] = item.id; mostrarMensaje(`🔨 ${item.nombre} equipado!`, 'exito'); actualizarStatsUI(); renderizarInventario(); guardarPartida(); }
+function equiparItem(item, tipo) { if (equipamiento[tipo]) desequiparItem(tipo); equipamiento[tipo] = item.id; mostrarMensaje(`🔨 ${item.nombre} equipado!`, 'exito'); actualizarStatsUI(); renderizarInventario(); guardarPartida(); guardarInventarioEnServidor(); }
 
-function desequiparItem(tipo) { if (equipamiento[tipo]) { equipamiento[tipo] = null; mostrarMensaje(`🗑️ Item desequipado`, 'info'); actualizarStatsUI(); renderizarInventario(); guardarPartida(); } }
-
-// ============================================
+function desequiparItem(tipo) { if (equipamiento[tipo]) { equipamiento[tipo] = null; mostrarMensaje(`🗑️ Item desequipado`, 'info'); actualizarStatsUI(); renderizarInventario(); guardarPartida(); guardarInventarioEnServidor(); } }// ============================================
 // GUARDAR Y CARGAR PARTIDA
 // ============================================
 function guardarPartida() { 
@@ -396,6 +413,7 @@ function guardarPartida() {
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(p));
     localStorage.setItem(SAVE_KEY + '_skills', JSON.stringify(skillsEquipadas));
+    guardarInventarioEnServidor();
 }
 
 function cargarPartidaGuardada() { const g=localStorage.getItem(SAVE_KEY); try{return JSON.parse(g);}catch(e){return null;} }
@@ -430,7 +448,6 @@ function continuarPartida() {
     playerHP = g.playerHP || classStats[pClassName]?.hp || 500; 
     playerMana = g.playerMana || classStats[pClassName]?.mana || 100; 
     
-    // RESTAURAR INVENTARIO
     if (g.inventarioSlots && Array.isArray(g.inventarioSlots)) {
         inventarioSlots = g.inventarioSlots;
         for (let i = 0; i < inventarioSlots.length; i++) {
@@ -482,18 +499,19 @@ function inicializarInventario() {
     agregarItemAlInventarioEquipo('escudo_1','escudo','Escudo Básico','🛡️',1,false,{defensaFisica:20,velocidad:-15}); 
     agregarItemAlInventarioEquipo('armadura_1','armadura','Armadura Básica','👕',1,false,{defensaFisica:15,velocidad:-20}); 
     renderizarInventario(); 
+    guardarInventarioEnServidor();
 }
 
 function agregarItemAlInventarioEquipo(id,tipo,nombre,icono,cantidad,mostrarMsg,stats){ 
     for(let i=0;i<inventarioSlots.length;i++){ 
         if(inventarioSlots[i] && inventarioSlots[i].id===id && inventarioSlots[i].tipo===tipo){ 
-            inventarioSlots[i].cantidad+=cantidad; renderizarInventario(); if(mostrarMsg) mostrarMensaje(`+${cantidad} ${nombre}`,'exito'); guardarPartida(); return true; 
+            inventarioSlots[i].cantidad+=cantidad; renderizarInventario(); if(mostrarMsg) mostrarMensaje(`+${cantidad} ${nombre}`,'exito'); guardarPartida(); guardarInventarioEnServidor(); return true; 
         } 
     } 
     for(let i=0;i<inventarioSlots.length;i++){ 
         if(inventarioSlots[i]===null){ 
             inventarioSlots[i]={id,tipo,nombre,icono,cantidad,slotIndex:i,ataqueFisico:stats.ataqueFisico,ataqueMagico:stats.ataqueMagico,defensaFisica:stats.defensaFisica,defensaMagica:stats.defensaMagica,velocidad:stats.velocidad}; 
-            renderizarInventario(); if(mostrarMsg) mostrarMensaje(`+${cantidad} ${nombre}`,'exito'); guardarPartida(); return true; 
+            renderizarInventario(); if(mostrarMsg) mostrarMensaje(`+${cantidad} ${nombre}`,'exito'); guardarPartida(); guardarInventarioEnServidor(); return true; 
         } 
     } 
     mostrarMensaje(`❌ Inventario lleno!`,'error'); return false; 
@@ -502,12 +520,12 @@ function agregarItemAlInventarioEquipo(id,tipo,nombre,icono,cantidad,mostrarMsg,
 function agregarItemAlInventario(id,tipo,nombre,icono,cantidad,mostrarMsg=true){ 
     for(let i=0;i<inventarioSlots.length;i++){ 
         if(inventarioSlots[i] && inventarioSlots[i].id===id && inventarioSlots[i].tipo===tipo){ 
-            inventarioSlots[i].cantidad+=cantidad; renderizarInventario(); if(mostrarMsg) mostrarMensaje(`+${cantidad} ${nombre}`,'exito'); guardarPartida(); return true; 
+            inventarioSlots[i].cantidad+=cantidad; renderizarInventario(); if(mostrarMsg) mostrarMensaje(`+${cantidad} ${nombre}`,'exito'); guardarPartida(); guardarInventarioEnServidor(); return true; 
         } 
     } 
     for(let i=0;i<inventarioSlots.length;i++){ 
         if(inventarioSlots[i]===null){ 
-            inventarioSlots[i]={id,tipo,nombre,icono,cantidad,slotIndex:i}; renderizarInventario(); if(mostrarMsg) mostrarMensaje(`+${cantidad} ${nombre}`,'exito'); guardarPartida(); return true; 
+            inventarioSlots[i]={id,tipo,nombre,icono,cantidad,slotIndex:i}; renderizarInventario(); if(mostrarMsg) mostrarMensaje(`+${cantidad} ${nombre}`,'exito'); guardarPartida(); guardarInventarioEnServidor(); return true; 
         } 
     } 
     mostrarMensaje(`❌ Inventario lleno!`,'error'); return false; 
@@ -518,11 +536,10 @@ function quitarItemDelInventario(id,cantidad){
         if(inventarioSlots[i] && inventarioSlots[i].id===id){ 
             inventarioSlots[i].cantidad-=cantidad; 
             if(inventarioSlots[i].cantidad<=0) inventarioSlots[i]=null; 
-            renderizarInventario(); guardarPartida(); return true; 
+            renderizarInventario(); guardarPartida(); guardarInventarioEnServidor(); return true; 
         } 
     } return false; 
 }
-
 
 function iniciarJoystick() { 
     const area = document.getElementById('joystick-area'); let tid = null; 
@@ -560,9 +577,7 @@ function mostrarPreviewStats(item, tipo) {
     const preview = document.getElementById('stat-preview'); preview.textContent = mensaje; 
     if (diffAtq > 0 || diffDef > 0 || diffVel > 0) preview.style.color = '#88ff88'; else if (diffAtq < 0 || diffDef < 0 || diffVel < 0) preview.style.color = '#ff8888'; else preview.style.color = '#fff'; 
     preview.style.display = 'block'; if (previewTimeout) clearTimeout(previewTimeout); previewTimeout = setTimeout(() => { atqElem.textContent = statsOriginales.ataqueFisico; defElem.textContent = statsOriginales.defensaFisica; velElem.textContent = statsOriginales.velocidad; hpElem.textContent = statsOriginales.hp; atqElem.classList.remove('stat-up', 'stat-down'); defElem.classList.remove('stat-up', 'stat-down'); velElem.classList.remove('stat-up', 'stat-down'); preview.style.display = 'none'; }, 2500); 
-}
-
-function actualizarStatsUI() { 
+}function actualizarStatsUI() { 
     let statsBase = classStats[pClassName] || classStats['WARRIOR']; 
     let ataqueFisico = statsBase.ataqueFisico + playerStats.fuerza; 
     let ataqueMagico = statsBase.ataqueMagico + Math.floor((playerStats.inteligencia + statsBase.inteligencia) * 1.5); 
@@ -594,8 +609,40 @@ function actualizarStatsUI() {
     document.getElementById('mana-fill').style.width = (playerMana / playerMaxMana) * 100 + '%'; 
     document.getElementById('hp-text').innerHTML = `❤️ ${Math.floor(playerHP)}/${Math.floor(playerMaxHP)}`; 
     document.getElementById('mana-text').innerHTML = `💙 ${Math.floor(playerMana)}/${Math.floor(playerMaxMana)}`; 
+    
     const RESPAWN_TIME = 10000; 
-    if (playerHP <= 0 && player && player.isAlive === true && juegoIniciado) { playerHP = 0; player.isAlive = false; if (player.body) player.body.enable = false; if (player.setVisible) player.setVisible(false); mostrarMensaje(`💀 HAS MUERTO! Espera ${RESPAWN_TIME/1000} segundos`, 'error'); setTimeout(() => { if (player && !player.isAlive) { playerHP = playerMaxHP; playerMana = playerMaxMana; player.isAlive = true; if (player.body) player.body.enable = true; if (player.setVisible) player.setVisible(true); player.setPosition(512, 512); actualizarStatsUI(); mostrarMensaje(`✨ HAS REVIVIDO en el punto de inicio!`, 'exito'); } }, RESPAWN_TIME); } 
+    if (playerHP <= 0 && player && player.isAlive === true && juegoIniciado) { 
+        playerHP = 0; 
+        player.isAlive = false; 
+        if (player.body) player.body.enable = false; 
+        if (player.setVisible) player.setVisible(false); 
+        mostrarMensaje(`💀 HAS MUERTO! Espera ${RESPAWN_TIME/1000} segundos`, 'error'); 
+        
+        // CORRECCIÓN: Avisar al servidor que el jugador murió
+        if (socket && socket.emit) {
+            socket.emit('playerMurio', { id: socket.id });
+        }
+        
+        setTimeout(() => { 
+            if (player && !player.isAlive) { 
+                playerHP = playerMaxHP; 
+                playerMana = playerMaxMana; 
+                player.isAlive = true; 
+                if (player.body) player.body.enable = true; 
+                if (player.setVisible) player.setVisible(true); 
+                player.setPosition(512, 512); 
+                actualizarStatsUI(); 
+                mostrarMensaje(`✨ HAS REVIVIDO en el punto de inicio!`, 'exito'); 
+                
+                // CORRECCIÓN CLAVE: Notificar al servidor que reviviste para reasignar esqueletos
+                if (socket && socket.emit) {
+                    socket.emit('playerRespawn', { id: socket.id });
+                    socket.emit('solicitarEsqueletos');
+                    mostrarMensaje(`📡 Enviando señal de respawn al servidor...`, 'info');
+                }
+            } 
+        }, RESPAWN_TIME); 
+    } 
 }
 
 // ============================================
@@ -661,9 +708,6 @@ function renderizarInventarioSkills() {
     }); 
 }
 
-// ============================================
-// NUEVA FUNCIÓN PARA SKILLS INLINE
-// ============================================
 function renderizarSkillsInline() {
     const grid = document.getElementById('skills-grid-inline');
     if (!grid) return;
@@ -707,7 +751,6 @@ function renderizarSkillsInline() {
     });
 }
 
-// AHORA MODIFICÁ cargarSkillsPorClase PARA INCLUIR renderizarSkillsInline()
 function cargarSkillsPorClase() { 
     skillsDisponibles = []; 
     Object.keys(SKILLS_DATA).forEach(key => { 
@@ -730,9 +773,10 @@ function cargarSkillsPorClase() {
         } 
     } 
     renderizarInventarioSkills(); 
-    renderizarSkillsInline();   // ← AGREGAR ESTA LÍNEA
+    renderizarSkillsInline();
     renderizarBarraSkills(); 
 }
+
 function renderizarBarraSkills() { 
     const bar = document.getElementById('skills-bar'); if (!bar) return; bar.innerHTML = ''; 
     for (let i = 0; i < MAX_SKILLS; i++) { const skillId = skillsEquipadas[i]; const skill = skillId ? SKILLS_DATA[skillId] : null; const div = document.createElement('div'); div.className = 'skill-slot-small' + (skill ? ' equipped' : ''); div.setAttribute('data-slot-index', i); div.setAttribute('data-skill-id', skillId || ''); if (skill) { const img = document.createElement('img'); img.src = skill.icono; img.className = 'skill-icon-img'; img.style.width = '28px'; img.style.height = '28px'; img.onerror = function() { this.style.display = 'none'; }; const nameSpan = document.createElement('div'); nameSpan.className = 'skill-name-small'; nameSpan.textContent = skill.nombre.length > 10 ? skill.nombre.substring(0,8)+'..' : skill.nombre; div.appendChild(img); div.appendChild(nameSpan); div.ondblclick = (e) => { e.stopPropagation(); usarSkill(skillId); }; div.onclick = (e) => { e.stopPropagation(); mostrarDetalleSkill(skill); }; } else { const emptySpan = document.createElement('div'); emptySpan.style.fontSize = '20px'; emptySpan.style.opacity = '0.3'; emptySpan.textContent = '❓'; const textSpan = document.createElement('div'); textSpan.className = 'skill-name-small'; textSpan.style.opacity = '0.5'; textSpan.textContent = 'Vacío'; div.appendChild(emptySpan); div.appendChild(textSpan); } if (skill) { div.setAttribute('draggable', 'true'); div.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'skill', skillId: skill.id, fromBar: true, slotIndex: i })); e.dataTransfer.effectAllowed = 'move'; div.style.opacity = '0.5'; }); div.addEventListener('dragend', (e) => { div.style.opacity = '1'; }); } else { div.setAttribute('draggable', 'false'); } div.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; div.classList.add('drag-over'); }); div.addEventListener('dragleave', (e) => { div.classList.remove('drag-over'); }); div.addEventListener('drop', (e) => { e.preventDefault(); div.classList.remove('drag-over'); try { const data = JSON.parse(e.dataTransfer.getData('text/plain')); if (data.type === 'skill') { if (data.fromBar === true && data.slotIndex !== undefined && data.slotIndex !== i) { const temp = skillsEquipadas[i]; skillsEquipadas[i] = skillsEquipadas[data.slotIndex]; skillsEquipadas[data.slotIndex] = temp; localStorage.setItem(SAVE_KEY + '_skills', JSON.stringify(skillsEquipadas)); renderizarInventarioSkills(); renderizarBarraSkills(); mostrarMensaje(`🔄 Skills intercambiadas`, 'info'); } else if (data.fromBar === false) { if (skillsEquipadas.includes(data.skillId)) { mostrarMensaje(`❌ Skill ya equipada`, 'error'); } else if (skillsEquipadas.length >= MAX_SKILLS) { const skillToRemove = skillsEquipadas[i]; if (skillToRemove) { skillsEquipadas[i] = data.skillId; localStorage.setItem(SAVE_KEY + '_skills', JSON.stringify(skillsEquipadas)); renderizarInventarioSkills(); renderizarBarraSkills(); mostrarMensaje(`✅ ${SKILLS_DATA[data.skillId].nombre} equipado (reemplazó a ${SKILLS_DATA[skillToRemove].nombre})`, 'exito'); } } else { skillsEquipadas.push(data.skillId); localStorage.setItem(SAVE_KEY + '_skills', JSON.stringify(skillsEquipadas)); renderizarInventarioSkills(); renderizarBarraSkills(); mostrarMensaje(`✅ ${SKILLS_DATA[data.skillId].nombre} equipado!`, 'exito'); } } } } catch(err) { console.error('Drop error:', err); } }); bar.appendChild(div); } 
@@ -769,6 +813,13 @@ function create(){
     currentScene = this; 
     socket = io();
     console.log('Socket conectado:', socket.id); 
+    
+    // Definir grupos globales
+    window.arbolesGrupo = this.add.group();
+    window.minasGrupo = this.add.group();
+    window.rocasGrupo = this.add.group();
+    window.esqueletosGrupo = this.add.group();
+    
     chatInput = document.getElementById('chat-input'); chatSend = document.getElementById('chat-send'); 
     function enviarMensaje() { const msg = chatInput.value.trim(); if (msg !== "") { socket.emit('chatMessage', msg); chatInput.value = ""; } } 
     if (chatSend) chatSend.addEventListener('click', enviarMensaje); 
@@ -779,7 +830,6 @@ function create(){
     socket.on('invitacionRecibida', (data) => { mostrarMensaje(`🎮 ${data.from} te invitó al equipo "${data.teamName}". Escribe /aceptar para unirte`, 'exito'); }); 
     socket.on('proyectilCreado', (data) => { crearProyectil(data.origenX, data.origenY, data.targetX, data.targetY, data.damage, false); });
     
-    // SOCKET: INVENTARIO COMPLETO DESDE SERVIDOR
     socket.on('inventarioCompleto', (data) => { 
         if (data && data.items) { 
             for (let i = 0; i < data.items.length; i++) { 
@@ -796,7 +846,6 @@ function create(){
         } 
     });
     
-    // Re-sincronización automática de esqueletos
     setTimeout(() => {
         console.log("🔄 Forzando re-sincronización de esqueletos");
         if (socket && socket.id) socket.emit('solicitarEsqueletos');
@@ -810,7 +859,7 @@ function create(){
     
     this.physics.world.setBounds(0,0,3000,3000); this.cameras.main.setBounds(0,0,3000,3000); this.add.tileSprite(1500,1500,3000,3000,'suelo').setAlpha(0.6); 
     keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,SHIFT,R,I,T'); otherPlayers=this.add.group(); 
-    window.arbolesGrupo=this.add.group(); window.minasGrupo=this.add.group(); window.rocasGrupo=this.add.group(); window.esqueletosGrupo = this.add.group(); 
+    
     const musica = this.sound.add('musicaFondo', { loop: true, volume: 0.5 }); musica.play(); 
     const dirs = ['Derecha','Arriba','Abajo','Izquierda'];
     ['barbaro','caballero','warrior'].forEach(k=>{ dirs.forEach((d,i)=>{ this.anims.create({key:k+'_walk_'+d, frames:this.anims.generateFrameNumbers(k,{start:32+i*8,end:32+i*8+7}), frameRate:12, repeat:-1}); this.anims.create({key:k+'_idle_'+d, frames:[{key:k, frame:32+i*8}], frameRate:1}); this.anims.create({key:k+'_atk_'+d, frames:this.anims.generateFrameNumbers(k,{start:i*8,end:i*8+7}), frameRate: k === 'barbaro' ? 10 : 18}); }); }); 
@@ -867,7 +916,25 @@ btnAttack.addEventListener('click', () => { if(window.simularAtaque) window.simu
     socket.on('playerMoved',(info)=>{ otherPlayers.getChildren().forEach(other=>{ if(info.id===other.id){ other.targetX=info.x; other.targetY=info.y; other.lastDir=info.dir; if(info.isMoving) other.play(other.pClass+'_walk_'+info.dir,true); else other.play(other.pClass+'_idle_'+info.dir,true); } }); }); 
     socket.on('playerDisconnected',(id)=>{ otherPlayers.getChildren().forEach(other=>{ if(id===other.id) other.destroy(); }); }); 
     socket.on('playerAttacked', (data) => { otherPlayers.getChildren().forEach(other => { if (other.id === data.id) { other.play(other.pClass + '_atk_' + data.dir, true); other.once('animationcomplete', () => { if (other.active) { other.play(other.pClass + '_idle_' + data.dir, true); } }); } }); }); 
-    socket.on('esqueletosIniciales', (data) => { data.forEach(esqueleto => { if (esqueleto.isAlive !== false) { const img = this.physics.add.sprite(esqueleto.x, esqueleto.y, 'esqueleto').setScale(0.4).setDepth(esqueleto.y); img.esqueletoId = esqueleto.id; img.isAlly = esqueleto.isAlly || false; img.setCollideWorldBounds(true); img.play('esqueleto_idle_Abajo', true); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = esqueleto.id; mostrarMensaje(`💀 Esqueleto ${esqueleto.isAlly ? 'aliado' : 'enemigo'} seleccionado. Usa skill para levantarlo (si es cadáver)`, 'info'); }); if (window.esqueletosGrupo) window.esqueletosGrupo.add(img); } }); }); 
+    socket.on('esqueletosIniciales', (data) => { 
+        if (!window.esqueletosGrupo) window.esqueletosGrupo = this.add.group();
+        window.esqueletosGrupo.clear(true, true);
+        data.forEach(esqueleto => { 
+            if (esqueleto.isAlive !== false) { 
+                const img = this.physics.add.sprite(esqueleto.x, esqueleto.y, 'esqueleto').setScale(0.4).setDepth(esqueleto.y); 
+                img.esqueletoId = esqueleto.id; 
+                img.isAlly = esqueleto.isAlly || false; 
+                img.setCollideWorldBounds(true); 
+                img.play('esqueleto_idle_Abajo', true); 
+                img.setInteractive(); 
+                img.on('pointerdown', () => { 
+                    ultimoEsqueletoClickeado = esqueleto.id; 
+                    mostrarMensaje(`💀 Esqueleto ${esqueleto.isAlly ? 'aliado' : 'enemigo'} seleccionado. Usa skill para levantarlo (si es cadáver)`, 'info'); 
+                }); 
+                if (window.esqueletosGrupo) window.esqueletosGrupo.add(img); 
+            } 
+        }); 
+    }); 
     socket.on('esqueletoMoved', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.setPosition(data.x, data.y); esq.setDepth(data.y); if (data.isMoving) { esq.play(`esqueleto_walk_${data.dir}`, true); } else { esq.play(`esqueleto_idle_${data.dir}`, true); } } }); } }); 
     socket.on('esqueletoAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); crearTextoDmg(this, player.x, player.y, data.damage, "#fff", "20px"); this.cameras.main.shake(150, 0.005); mostrarMensaje(`💀 Esqueleto te golpeó por ${data.damage}`, 'combate'); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play(`esqueleto_atk_${data.dir}`, true); setTimeout(() => { if (esq.active) { esq.play(`esqueleto_idle_${data.dir}`, true); } }, 300); } }); } }); 
     socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) { currentScene.sound.play('esqueletoMuere', { volume: 0.6 }); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play('esqueleto_die_Abajo'); esq.once('animationcomplete', () => { if (esq && esq.active) { esq.stop(); esq.setFrame(55); esq.body.enable = false; esq.setVisible(true); setTimeout(() => { if (esq && esq.active) { esq.destroy(); } }, 60000); } }); if (data.exp > 0) ganarExp(data.exp); return; } }); } }); 
@@ -895,29 +962,27 @@ btnAttack.addEventListener('click', () => { if(window.simularAtaque) window.simu
     socket.on('demonlordDeath',(data)=>{ demonlord_sprite.setVisible(false); crearTextoDmg(this,data.x,data.y,"VENCIDO","#fff","22px"); mostrarMensaje(`🏆 Demonlord derrotado! +500 EXP`,'exito'); ganarExp(500); }); 
     socket.on('demonlordRespawn',(data)=>{ demonlord_sprite.setPosition(data.x,data.y); demonlord_sprite.setVisible(true); demonlord_sprite.clearTint(); demonlordHP=5000; actualizarDemonlordHPBar(); crearTextoDmg(this,data.x,data.y,"RENACE","#fff","22px"); mostrarMensaje(`👹 Demonlord renace`,'combate'); }); 
     socket.on('playerDeath', (data) => { if(data.id===socket.id){ player.setVisible(false); player.body.enable=false; player.attacking=true; player.isAlive=false; mostrarMensaje(`💀 Has muerto!`,'error'); } }); 
-   socket.on('playerRespawn', (data) => {
-    if (data.id === socket.id) {
-        player.setPosition(data.x, data.y);
-        player.setVisible(true);
-        player.body.enable = true;
-        player.attacking = false;
-        player.isAlive = true;
-        let statsBase = classStats[pClassName];
-        playerHP = statsBase.hp;
-        playerMana = statsBase.mana;
-        actualizarStatsUI();
-        mostrarMensaje(`✨ Revivido`, 'exito');
-        guardarPartida();
-        
-        // ← AGREGÁ ESTA LÍNEA
-        socket.emit('solicitarEsqueletos');
-    }
-});
+    socket.on('playerRespawn', (data) => {
+        if (data.id === socket.id) {
+            player.setPosition(data.x, data.y);
+            player.setVisible(true);
+            player.body.enable = true;
+            player.attacking = false;
+            player.isAlive = true;
+            let statsBase = classStats[pClassName];
+            playerHP = statsBase.hp;
+            playerMana = statsBase.mana;
+            actualizarStatsUI();
+            mostrarMensaje(`✨ Revivido`, 'exito');
+            guardarPartida();
+            socket.emit('solicitarEsqueletos');
+        }
+    });
     socket.on('chatMessage',(data)=>{ if(data.name !== 'Sistema') mostrarMensaje(`[${data.name}] ${data.msg}`,'info'); else mostrarMensaje(`${data.msg}`,'info'); }); 
     socket.on('playerExpGain', (data) => { if (data.id === socket.id) ganarExp(data.exp); }); 
     socket.on('mensaje', (msg) => { mostrarMensaje(msg, 'info'); }); 
 
-let zoomActivo = false;
+    let zoomActivo = false;
     const ZOOM_NORMAL = 1, ZOOM_CERCA = 1.5;
     this.input.on('pointerdown', (pointer) => {
         if (pointer.doubleClick) {
@@ -939,8 +1004,6 @@ let zoomActivo = false;
     iniciarJoystick(); 
     if (summonCooldown > 0) { setInterval(() => { if (summonCooldown > 0) summonCooldown -= 1000; }, 1000); } 
 }
-
-
 
 function crearTextoDmg(esc,x,y,txt,col,sz){ if(!esc)return; let t=esc.add.text(x,y,txt,{fontSize:sz||'18px',fill:col||'#fff',fontStyle:'bold',fontFamily:'monospace',stroke:'#000',strokeThickness:2}).setOrigin(0.5).setDepth(9999); esc.tweens.add({targets:t,y:y-50,alpha:0,duration:600,onComplete:()=>t.destroy()}); }
 
@@ -995,7 +1058,6 @@ function update() {
         guardarPartida(); 
     } 
 }  
-
 // FIN DEL SCRIPT
 </script>
 </body>
