@@ -789,8 +789,75 @@ function mostrarDetalleSkill(skill) { const preview = document.getElementById('s
 
 function levantarEsqueleto(id) { if (pClassName !== 'NECROMANCER') { mostrarMensaje(`❌ Solo Necromancer`, 'error'); return; } if (summonCooldown > 0) { mostrarMensaje(`⏳ Espera ${Math.ceil(summonCooldown/1000)}s`, 'error'); return; } const vidaEnemigo = 200; if (playerHP >= vidaEnemigo) { playerHP = playerHP - vidaEnemigo; actualizarStatsUI(); mostrarMensaje(`💀 Has gastado ${vidaEnemigo} de vida para levantar el esqueleto. Te queda ${playerHP} de vida`, 'exito'); socket.emit('levantarEsqueleto', { id: id }); } else { mostrarMensaje(`❌ Necesitas ${vidaEnemigo} de vida para levantar un esqueleto (tienes ${playerHP})`, 'error'); } summonCooldown = 1000; setTimeout(() => { summonCooldown = 0; }, 1000); }
 
-function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = true) { if (!currentScene) return; const angle = Math.atan2(targetY - origenY, targetX - origenX); const velocityX = Math.cos(angle) * 250; const velocityY = Math.sin(angle) * 250; const rotation = angle - Math.PI / 2; const proyectil = currentScene.add.sprite(origenX, origenY, 'fireball_0001'); proyectil.setScale(0.6); proyectil.setRotation(rotation); proyectil.setDepth(9000); currentScene.physics.add.existing(proyectil); proyectil.body.setSize(10, 10); proyectil.body.setOffset(10, 10); proyectil.body.setVelocity(velocityX, velocityY); proyectil.body.setCollideWorldBounds(true); proyectil.damage = damage; proyectil.ownerId = socket.id; proyectil.startX = origenX; proyectil.startY = origenY; proyectiles.push(proyectil); let frameIndex = 1; const animInterval = setInterval(() => { if (!proyectil || !proyectil.active) { clearInterval(animInterval); return; } frameIndex++; if (frameIndex > 216) frameIndex = 1; const frameNum = frameIndex.toString().padStart(4, '0'); proyectil.setTexture(`fireball_${frameNum}`); proyectil.setRotation(angle - Math.PI / 2); }, 30); currentScene.physics.add.overlap(proyectil, window.esqueletosGrupo, (p, esqueleto) => { if (esqueleto.isAlly === false && esqueleto.active && p.active) { const danioTotal = 15 + Math.floor(playerStats.inteligencia * 1.5); socket.emit('esqueletoHit', { id: esqueleto.esqueletoId, damageBonus: danioTotal }); if (currentScene) currentScene.sound.play('sonidoAtaque', { volume: 0.4 }); p.destroy(); clearInterval(animInterval); const index = proyectiles.indexOf(p); if (index !== -1) proyectiles.splice(index, 1); } }); const checkDistance = setInterval(() => { if (!proyectil || !proyectil.active) { clearInterval(checkDistance); return; } const distRecorrida = Math.hypot(proyectil.x - proyectil.startX, proyectil.y - proyectil.startY); if (distRecorrida > 600) { if (proyectil.active) proyectil.destroy(); clearInterval(checkDistance); clearInterval(animInterval); const index = proyectiles.indexOf(proyectil); if (index !== -1) proyectiles.splice(index, 1); } }, 50); if (esLocal) { socket.emit('crearProyectil', { origenX, origenY, targetX, targetY, damage }); } }
-
+function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = true) { 
+    if (!currentScene) return; 
+    const angle = Math.atan2(targetY - origenY, targetX - origenX); 
+    const velocityX = Math.cos(angle) * 250; 
+    const velocityY = Math.sin(angle) * 250; 
+    const rotation = angle - Math.PI / 2; 
+    const proyectil = currentScene.add.sprite(origenX, origenY, 'fireball_0001'); 
+    proyectil.setScale(0.6); 
+    proyectil.setRotation(rotation); 
+    proyectil.setDepth(9000); 
+    currentScene.physics.add.existing(proyectil); 
+    proyectil.body.setSize(10, 10); 
+    proyectil.body.setOffset(10, 10); 
+    proyectil.body.setVelocity(velocityX, velocityY); 
+    proyectil.body.setCollideWorldBounds(true); 
+    proyectil.damage = damage; 
+    proyectil.ownerId = socket.id; 
+    proyectil.startX = origenX; 
+    proyectil.startY = origenY; 
+    proyectiles.push(proyectil); 
+    let frameIndex = 1; 
+    const animInterval = setInterval(() => { 
+        if (!proyectil || !proyectil.active) { 
+            clearInterval(animInterval); 
+            return; 
+        } 
+        frameIndex++; 
+        if (frameIndex > 216) frameIndex = 1; 
+        const frameNum = frameIndex.toString().padStart(4, '0'); 
+        proyectil.setTexture(`fireball_${frameNum}`); 
+        proyectil.setRotation(angle - Math.PI / 2); 
+    }, 30); 
+    
+    currentScene.physics.add.overlap(proyectil, window.esqueletosGrupo, (p, esqueleto) => { 
+        if (esqueleto.isAlly === false && esqueleto.active && p.active) { 
+            // 🔽🔽🔽 LÍNEA CORREGIDA 🔽🔽🔽
+            let statsBaseMago = classStats[pClassName] || classStats['MAGO'];
+            let ataqueMagicoTotal = statsBaseMago.ataqueMagico + Math.floor((playerStats.inteligencia + statsBaseMago.inteligencia) * 1.5);
+            const danioTotal = ataqueMagicoTotal;
+            // 🔼🔼🔼 FIN DE LA CORRECCIÓN 🔼🔼🔼
+            
+            socket.emit('esqueletoHit', { id: esqueleto.esqueletoId, damageBonus: danioTotal }); 
+            if (currentScene) currentScene.sound.play('sonidoAtaque', { volume: 0.4 }); 
+            p.destroy(); 
+            clearInterval(animInterval); 
+            const index = proyectiles.indexOf(p); 
+            if (index !== -1) proyectiles.splice(index, 1); 
+        } 
+    }); 
+    
+    const checkDistance = setInterval(() => { 
+        if (!proyectil || !proyectil.active) { 
+            clearInterval(checkDistance); 
+            return; 
+        } 
+        const distRecorrida = Math.hypot(proyectil.x - proyectil.startX, proyectil.y - proyectil.startY); 
+        if (distRecorrida > 600) { 
+            if (proyectil.active) proyectil.destroy(); 
+            clearInterval(checkDistance); 
+            clearInterval(animInterval); 
+            const index = proyectiles.indexOf(proyectil); 
+            if (index !== -1) proyectiles.splice(index, 1); 
+        } 
+    }, 50); 
+    
+    if (esLocal) { 
+        socket.emit('crearProyectil', { origenX, origenY, targetX, targetY, damage }); 
+    } 
+}
 function usarSkill(skillId) { if (skillId === 'levantar_muerto') { if (ultimoEsqueletoClickeado) { levantarEsqueleto(ultimoEsqueletoClickeado); } else { mostrarMensaje(`❌ Selecciona un cadáver primero (click en esqueleto muerto)`, 'error'); } } else if (skillId === 'furia_necrotica') { socket.emit('furiaNecrotica'); } else if (skillId === 'ataque_distancia' && (pClassName === 'NECROMANCER' || pClassName === 'MAGO')) { const ahora = Date.now(); if (ahora - ultimoAtaqueDistancia < 1000) { mostrarMensaje(`⏳ Espera ${Math.ceil((1000 - (ahora - ultimoAtaqueDistancia)) / 1000)}s`, 'error'); return; } if (playerMana < 10) { mostrarMensaje(`❌ Maná insuficiente (10)`, 'error'); return; } playerMana -= 10; actualizarStatsUI(); ultimoAtaqueDistancia = ahora; mostrarMensaje(`💀 Bola de sombra! -10 maná`, 'exito'); let dir = player.lastDir; let targetX = player.x; let targetY = player.y; switch(dir) { case 'Derecha': targetX += 200; break; case 'Izquierda': targetX -= 200; break; case 'Arriba': targetY -= 200; break; case 'Abajo': targetY += 200; break; default: targetY += 200; } const animDir = dir; const animTargetX = targetX; const animTargetY = targetY; player.play(pClass + '_atk_' + animDir, true); player.once('animationcomplete', () => { if (player && player.active) { player.play(pClass + '_idle_' + animDir, true); crearProyectil(player.x, player.y, animTargetX, animTargetY, 35); } }); } }
 
 // ============================================
@@ -860,9 +927,11 @@ function create(){
         }
     }, 10000);
     
-    this.physics.world.setBounds(0,0,3000,3000); this.cameras.main.setBounds(0,0,3000,3000); this.add.tileSprite(1500,1500,3000,3000,'suelo').setAlpha(0.6); 
-    keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,SHIFT,R,I,T'); otherPlayers=this.add.group(); 
-    
+    this.physics.world.setBounds(0,0,3000,3000); 
+    this.cameras.main.setBounds(0,0,3000,3000); 
+    this.add.tileSprite(1500,1500,3000,3000,'suelo').setAlpha(0.6);  // ← 0.6 original
+    keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,SHIFT,R,I,T'); 
+    otherPlayers=this.add.group();
     const musica = this.sound.add('musicaFondo', { loop: true, volume: 0.5 }); musica.play(); 
     const dirs = ['Derecha','Arriba','Abajo','Izquierda'];
     ['barbaro','caballero','warrior'].forEach(k=>{ dirs.forEach((d,i)=>{ this.anims.create({key:k+'_walk_'+d, frames:this.anims.generateFrameNumbers(k,{start:32+i*8,end:32+i*8+7}), frameRate:12, repeat:-1}); this.anims.create({key:k+'_idle_'+d, frames:[{key:k, frame:32+i*8}], frameRate:1}); this.anims.create({key:k+'_atk_'+d, frames:this.anims.generateFrameNumbers(k,{start:i*8,end:i*8+7}), frameRate: k === 'barbaro' ? 10 : 18}); }); }); 
