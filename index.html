@@ -862,18 +862,28 @@ function usarSkill(skillId) { if (skillId === 'levantar_muerto') { if (ultimoEsq
 // ============================================
 // PHASER: PRELOAD, CREATE, UPDATE
 // ============================================
+// ============================================
+// PHASER: PRELOAD, CREATE, UPDATE
+// ============================================
 function preload(){ 
     this.load.image('suelo','ground_stone1.png'); 
     this.load.spritesheet('mago_sprite', 'mago.png', {frameWidth: 255, frameHeight: 255}); 
     this.load.spritesheet('necromancer_sprite', 'necromancer.png', {frameWidth: 255, frameHeight: 255}); 
-    this.load.image('pino_1','pino_1.png'); this.load.image('mina','mina.png'); this.load.image('roca','roca.png'); 
+    this.load.image('pino_1','pino_1.png'); 
+    this.load.image('mina','mina.png'); 
+    this.load.image('roca','roca.png'); 
     this.load.spritesheet('barbaro','Barbaro.png',{frameWidth:128,frameHeight:128}); 
     this.load.spritesheet('caballero','caballero.png',{frameWidth:128,frameHeight:128}); 
     this.load.spritesheet('warrior','warrior.png',{frameWidth:128,frameHeight:128}); 
     this.load.spritesheet('demonlord','demonlord.png',{frameWidth:128,frameHeight:128}); 
     this.load.spritesheet('esqueleto', 'esqueleto.png', { frameWidth: 255, frameHeight: 255 }); 
     for (let i = 1; i <= 216; i++) { const frameNum = i.toString().padStart(4, '0'); this.load.image(`fireball_${frameNum}`, `fireball/${frameNum}.png`); } 
-    this.load.audio('sonidoTalar', 'talar.mp3'); this.load.audio('sonidoMina', 'mina.mp3'); this.load.audio('sonidoAtaque', 'ataque.mp3'); this.load.audio('musicaFondo', 'musica1.mp3'); this.load.audio('esqueletoMuere', 'esqueleto_muere.mp3'); this.load.audio('esqueletoLevanta', 'esqueleto_levanta.mp3'); 
+    this.load.audio('sonidoTalar', 'talar.mp3'); 
+    this.load.audio('sonidoMina', 'mina.mp3'); 
+    this.load.audio('sonidoAtaque', 'ataque.mp3'); 
+    this.load.audio('musicaFondo', 'musica1.mp3'); 
+    this.load.audio('esqueletoMuere', 'esqueleto_muere.mp3'); 
+    this.load.audio('esqueletoLevanta', 'esqueleto_levanta.mp3'); 
 }
 
 function addOtherPlayer(self,info){ if(!info.class)return; let escala = (info.className === 'NECROMANCER' || info.className === 'MAGO') ? 0.3 : 2; const o=self.physics.add.sprite(info.x,info.y,info.class).setScale(escala); o.id=info.id; o.pClass=info.class; o.targetX=info.x; o.targetY=info.y; o.setDepth(info.y); o.setInteractive(); o.on('pointerdown', (pointer) => { if (pointer.rightButtonDown()) { jugadorSeleccionadoId = info.id; const menu = document.getElementById('context-menu'); menu.style.display = 'block'; menu.style.left = pointer.worldX + 'px'; menu.style.top = pointer.worldY + 'px'; setTimeout(() => { document.addEventListener('click', function ocultar() { menu.style.display = 'none'; document.removeEventListener('click', ocultar); }); }, 100); } }); otherPlayers.add(o); }
