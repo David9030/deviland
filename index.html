@@ -570,25 +570,24 @@ function mostrarPreviewStats(item, tipo) {
     const velActualNum = statsOriginales.velocidad; const velNuevoNum = Math.floor(velocidadBase); 
     atqElem.textContent = atqNuevoNum; defElem.textContent = defNuevoNum; velElem.textContent = velNuevoNum; hpElem.textContent = `${Math.floor(Math.min(hpBase, playerHP))}/${Math.floor(hpBase)}`; 
     if (atqNuevoNum > atqActualNum) atqElem.classList.add('stat-up'); else if (atqNuevoNum < atqActualNum) atqElem.classList.add('stat-down'); 
-    if (defNuevoNum > defActualNum) defElem.classList.add('stat-up'); else if (defNuevoNum < defActualNum) defElem.classList.add('stat-down'); 
-    if (velNuevoNum > velActualNum) velElem.classList.add('stat-up'); else if (velNuevoNum < velActualNum) velElem.classList.add('stat-down'); 
-    let mensaje = `${item.nombre}`; const diffAtq = atqNuevoNum - atqActualNum; const diffDef = defNuevoNum - defActualNum; const diffVel = velNuevoNum - velActualNum; 
-    if (diffAtq !== 0) mensaje += `\n⚔️ ATQ: ${diffAtq > 0 ? '+' : ''}${diffAtq}`; if (diffDef !== 0) mensaje += `\n🛡️ DEF: ${diffDef > 0 ? '+' : ''}${diffDef}`; if (diffVel !== 0) mensaje += `\n🏃 VEL: ${diffVel > 0 ? '+' : ''}${diffVel}`; 
-    const preview = document.getElementById('stat-preview'); preview.textContent = mensaje; 
-    if (diffAtq > 0 || diffDef > 0 || diffVel > 0) preview.style.color = '#88ff88'; else if (diffAtq < 0 || diffDef < 0 || diffVel < 0) preview.style.color = '#ff8888'; else preview.style.color = '#fff'; 
-    preview.style.display = 'block'; if (previewTimeout) clearTimeout(previewTimeout); previewTimeout = setTimeout(() => { atqElem.textContent = statsOriginales.ataqueFisico; defElem.textContent = statsOriginales.defensaFisica; velElem.textContent = statsOriginales.velocidad; hpElem.textContent = statsOriginales.hp; atqElem.classList.remove('stat-up', 'stat-down'); defElem.classList.remove('stat-up', 'stat-down'); velElem.classList.remove('stat-up', 'stat-down'); preview.style.display = 'none'; }, 2500); 
-
+  if (defNuevoNum > defActualNum) defElem.classList.add('stat-up'); else if (defNuevoNum < defActualNum) defElem.classList.add('stat-down'); 
+if (velNuevoNum > velActualNum) velElem.classList.add('stat-up'); else if (velNuevoNum < velActualNum) velElem.classList.add('stat-down'); 
+let mensaje = `${item.nombre}`; const diffAtq = atqNuevoNum - atqActualNum; const diffDef = defNuevoNum - defActualNum; const diffVel = velNuevoNum - velActualNum; 
+if (diffAtq !== 0) mensaje += `\n⚔️ ATQ: ${diffAtq > 0 ? '+' : ''}${diffAtq}`; if (diffDef !== 0) mensaje += `\n🛡️ DEF: ${diffDef > 0 ? '+' : ''}${diffDef}`; if (diffVel !== 0) mensaje += `\n🏃 VEL: ${diffVel > 0 ? '+' : ''}${diffVel}`; 
+const preview = document.getElementById('stat-preview'); preview.textContent = mensaje; 
+if (diffAtq > 0 || diffDef > 0 || diffVel > 0) preview.style.color = '#88ff88'; else if (diffAtq < 0 || diffDef < 0 || diffVel < 0) preview.style.color = '#ff8888'; else preview.style.color = '#fff'; 
+preview.style.display = 'block'; if (previewTimeout) clearTimeout(previewTimeout); previewTimeout = setTimeout(() => { atqElem.textContent = statsOriginales.ataqueFisico; defElem.textContent = statsOriginales.defensaFisica; velElem.textContent = statsOriginales.velocidad; hpElem.textContent = statsOriginales.hp; atqElem.classList.remove('stat-up', 'stat-down'); defElem.classList.remove('stat-up', 'stat-down'); velElem.classList.remove('stat-up', 'stat-down'); preview.style.display = 'none'; }, 2500); 
+} 
 function actualizarStatsUI() {
-
 let statsBase = classStats[pClassName] || classStats['WARRIOR']; 
 let ataqueFisico = statsBase.ataqueFisico + playerStats.fuerza;
-    let ataqueMagico = statsBase.ataqueMagico + Math.floor((playerStats.inteligencia + statsBase.inteligencia) * 1.5); 
-    let defensaFisica = statsBase.defensaFisica; let defensaMagica = statsBase.defensaMagica; 
-    let velocidad = statsBase.velocidad + (playerStats.agilidad * 1.5); 
-    let hpTotal = statsBase.hp + (playerStats.vitalidad * 10); let manaTotal = statsBase.mana + (playerStats.sabiduria * 10); 
-    const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null; 
-    const escudoItem = equipamiento.escudo ? encontrarItemPorId(equipamiento.escudo) : null; 
-    const armaduraItem = equipamiento.armadura ? encontrarItemPorId(equipamiento.armadura) : null; 
+let ataqueMagico = statsBase.ataqueMagico + Math.floor((playerStats.inteligencia + statsBase.inteligencia) * 1.5); 
+let defensaFisica = statsBase.defensaFisica; let defensaMagica = statsBase.defensaMagica; 
+let velocidad = statsBase.velocidad + (playerStats.agilidad * 1.5); 
+let hpTotal = statsBase.hp + (playerStats.vitalidad * 10); let manaTotal = statsBase.mana + (playerStats.sabiduria * 10); 
+const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null; 
+const escudoItem = equipamiento.escudo ? encontrarItemPorId(equipamiento.escudo) : null; 
+const armaduraItem = equipamiento.armadura ? encontrarItemPorId(equipamiento.armadura) : null; 
     if (armaItem) { if (armaItem.ataqueFisico) ataqueFisico += armaItem.ataqueFisico; if (armaItem.ataqueMagico) ataqueMagico += armaItem.ataqueMagico; if (armaItem.velocidad) velocidad += armaItem.velocidad; } 
     if (escudoItem) { if (escudoItem.defensaFisica) defensaFisica += escudoItem.defensaFisica; if (escudoItem.defensaMagica) defensaMagica += escudoItem.defensaMagica; if (escudoItem.velocidad) velocidad += escudoItem.velocidad; } 
     if (armaduraItem) { if (armaduraItem.defensaFisica) defensaFisica += armaduraItem.defensaFisica; if (armaduraItem.defensaMagica) defensaMagica += armaduraItem.defensaMagica; if (armaduraItem.velocidad) velocidad += armaduraItem.velocidad; } 
@@ -859,9 +858,7 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
 }
 function usarSkill(skillId) { if (skillId === 'levantar_muerto') { if (ultimoEsqueletoClickeado) { levantarEsqueleto(ultimoEsqueletoClickeado); } else { mostrarMensaje(`❌ Selecciona un cadáver primero (click en esqueleto muerto)`, 'error'); } } else if (skillId === 'furia_necrotica') { socket.emit('furiaNecrotica'); } else if (skillId === 'ataque_distancia' && (pClassName === 'NECROMANCER' || pClassName === 'MAGO')) { const ahora = Date.now(); if (ahora - ultimoAtaqueDistancia < 1000) { mostrarMensaje(`⏳ Espera ${Math.ceil((1000 - (ahora - ultimoAtaqueDistancia)) / 1000)}s`, 'error'); return; } if (playerMana < 10) { mostrarMensaje(`❌ Maná insuficiente (10)`, 'error'); return; } playerMana -= 10; actualizarStatsUI(); ultimoAtaqueDistancia = ahora; mostrarMensaje(`💀 Bola de sombra! -10 maná`, 'exito'); let dir = player.lastDir; let targetX = player.x; let targetY = player.y; switch(dir) { case 'Derecha': targetX += 200; break; case 'Izquierda': targetX -= 200; break; case 'Arriba': targetY -= 200; break; case 'Abajo': targetY += 200; break; default: targetY += 200; } const animDir = dir; const animTargetX = targetX; const animTargetY = targetY; player.play(pClass + '_atk_' + animDir, true); player.once('animationcomplete', () => { if (player && player.active) { player.play(pClass + '_idle_' + animDir, true); crearProyectil(player.x, player.y, animTargetX, animTargetY, 35); } }); } }
 
-// ============================================
-// PHASER: PRELOAD, CREATE, UPDATE
-// ============================================
+
 // ============================================
 // PHASER: PRELOAD, CREATE, UPDATE
 // ============================================
