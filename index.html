@@ -214,6 +214,7 @@
     <div id="context-menu" class="context-menu">
         <div class="context-menu-item" onclick="invitarJugadorSeleccionado()">🎮 Invitar al equipo</div>
     </div>
+
 <script>
 // ============================================
 // VARIABLES GLOBALES
@@ -303,8 +304,7 @@ function invitarJugadorSeleccionado() {
 function mostrarMensaje(m, t = 'info') { 
     const l = document.getElementById('chat-logs'); 
     if (l) { 
-        const c = t === 'exito' ? 'mensaje-exito' : (t === 'error' ? 'mensaje-error' : (t === 'combate' ? 'mensaje-combate' : 'mensaje-info')); 
-        l.innerHTML += `<div class="${c}" style="color:${t === 'exito' ? '#88ff88' : (t === 'error' ? '#ff8888' : '#aaa')}">${m}</div>`; 
+        l.innerHTML += `<div style="color:${t === 'exito' ? '#88ff88' : (t === 'error' ? '#ff8888' : '#aaa')}">${m}</div>`; 
         l.scrollTop = l.scrollHeight; 
         while (l.children.length > 100) l.removeChild(l.firstChild); 
     } 
@@ -592,15 +592,13 @@ function agregarItemAlInventario(id, tipo, nombre, icono, cantidad, mostrarMsg =
             return true; 
         } 
     } 
-       mostrarMensaje(`❌ Inventario lleno!`, 'error'); 
+    mostrarMensaje(`❌ Inventario lleno!`, 'error'); 
     return false; 
 }
 
-</script>
-
-<script>
 // ============================================
 // FUNCIONES DE INVENTARIO Y RENDERIZADO
+// ============================================
 function crearSlotElement(slot, index, origen) { 
     const d = document.createElement('div'); 
     d.className = 'slot'; 
@@ -1265,9 +1263,7 @@ function crearTextoDmg(esc, x, y, txt, col, sz) {
     }).setOrigin(0.5).setDepth(9999); 
     esc.tweens.add({ targets: t, y: y - 50, alpha: 0, duration: 600, onComplete: () => t.destroy() }); 
 }
-</script>
 
-<script>
 // ============================================
 // PHASER: PRELOAD
 // ============================================
@@ -1809,5 +1805,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('class-ui').style.display = 'none';
     document.getElementById('loading-ui').style.display = 'none';
 });
+</script>
 </body>
 </html>
