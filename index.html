@@ -540,9 +540,8 @@ function iniciarJuegoConCarga(g) {
 function inicializarInventario() { 
     inventarioSlots = []; 
     for (let i = 0; i < 36; i++) inventarioSlots.push(null); 
-    agregarItemAlInventario('pocion_1', 'pocion', 'Pocion', '❤️', 2); 
-    agregarItemAlInventarioEquipo('espada_1', 'espada', 'Espada Básica', 'espada_img', 1, { ataqueFisico: 15, velocidad: -15 }); 
-    agregarItemAlInventarioEquipo('escudo_1', 'escudo', 'Escudo Básico', 'escudo_madera_img', 1, { defensaFisica: 20, velocidad: -15 }); 
+    agregarItemAlInventarioEquipo('espada_1', 'espada', 'Espada Básica', 'espada_img', 1, { ataqueFisico: 15, velocidad: -15 });
+    agregarItemAlInventarioEquipo('escudo_1', 'escudo', 'Escudo Básico', 'escudo_madera_img', 1, { defensaFisica: 20, velocidad: -15 });
     agregarItemAlInventarioEquipo('armadura_1', 'armadura', 'Armadura Básica', 'armadura_de_cuero_img', 1, { defensaFisica: 15, velocidad: -20 }); 
     renderizarInventario(); 
 }
