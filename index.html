@@ -1265,16 +1265,14 @@ function crearTextoDmg(esc, x, y, txt, col, sz) {
     }).setOrigin(0.5).setDepth(9999); 
     esc.tweens.add({ targets: t, y: y - 50, alpha: 0, duration: 600, onComplete: () => t.destroy() }); 
 }
-</script>     ← Cierra el script anterior
+</script>
 
-<script>      ← Abre el nuevo script
-// ============================================
-// PHASER: PRELOAD
+<script>
 // ============================================
 // PHASER: PRELOAD
 // ============================================
 function preload() { 
-    this.load.image('suelo', 'ground_stone1.png'); 
+    this.load.image('suelo', 'ground_stone1.png');
     this.load.spritesheet('mago_sprite', 'mago.png', { frameWidth: 255, frameHeight: 255 }); 
     this.load.spritesheet('necromancer_sprite', 'necromancer.png', { frameWidth: 255, frameHeight: 255 }); 
     this.load.image('pino_1', 'pino_1.png'); 
