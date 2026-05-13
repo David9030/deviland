@@ -577,12 +577,11 @@ function mostrarPreviewStats(item, tipo) {
     const preview = document.getElementById('stat-preview'); preview.textContent = mensaje; 
     if (diffAtq > 0 || diffDef > 0 || diffVel > 0) preview.style.color = '#88ff88'; else if (diffAtq < 0 || diffDef < 0 || diffVel < 0) preview.style.color = '#ff8888'; else preview.style.color = '#fff'; 
     preview.style.display = 'block'; if (previewTimeout) clearTimeout(previewTimeout); previewTimeout = setTimeout(() => { atqElem.textContent = statsOriginales.ataqueFisico; defElem.textContent = statsOriginales.defensaFisica; velElem.textContent = statsOriginales.velocidad; hpElem.textContent = statsOriginales.hp; atqElem.classList.remove('stat-up', 'stat-down'); defElem.classList.remove('stat-up', 'stat-down'); velElem.classList.remove('stat-up', 'stat-down'); preview.style.display = 'none'; }, 2500); 
-    }
 
-    function actualizarStatsUI() {
+function actualizarStatsUI() {
 
-    let statsBase = classStats[pClassName] || classStats['WARRIOR']; 
-    let ataqueFisico = statsBase.ataqueFisico + playerStats.fuerza; 
+let statsBase = classStats[pClassName] || classStats['WARRIOR']; 
+let ataqueFisico = statsBase.ataqueFisico + playerStats.fuerza;
     let ataqueMagico = statsBase.ataqueMagico + Math.floor((playerStats.inteligencia + statsBase.inteligencia) * 1.5); 
     let defensaFisica = statsBase.defensaFisica; let defensaMagica = statsBase.defensaMagica; 
     let velocidad = statsBase.velocidad + (playerStats.agilidad * 1.5); 
