@@ -611,7 +611,7 @@ function crearSlotElement(slot, index, origen) {
         if (slot.icono && (slot.icono.includes('_img') || slot.icono === 'pocion_img' || slot.icono === 'espada_img')) { 
             const img = document.createElement('img'); 
             let nombreArchivo = slot.icono.replace('_img', ''); 
-            img.src = `/${nombreArchivo}.png`; 
+            img.src = `/${nombreArchivo}`; 
             img.style.width = '24px'; 
             img.style.height = '24px'; 
             img.style.objectFit = 'contain'; 
