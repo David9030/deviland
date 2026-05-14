@@ -445,6 +445,28 @@ function borrarPartida() {
     localStorage.removeItem(SAVE_KEY + '_skills'); 
 }
 
+function forzarIconosCorrectos() {
+    if (!inventarioSlots) return;
+    let cambio = false;
+    inventarioSlots.forEach(slot => {
+        if (slot) {
+            if (slot.icono === '⚔️') {
+                slot.icono = 'espada_img';
+                cambio = true;
+            }
+            if (slot.icono === '🛡️') {
+                slot.icono = 'escudo_madera_img';
+                cambio = true;
+            }
+        }
+    });
+    if (cambio) {
+        renderizarInventario();
+        guardarPartida();
+        console.log('✅ Iconos corregidos automáticamente');
+    }
+} 
+
 // ============================================
 // MIGRACIÓN DE DATOS (para partidas guardadas viejas)
 // ============================================
@@ -561,7 +583,8 @@ function continuarPartida() {
     if (skillsEquipadas.length > 3) skillsEquipadas = skillsEquipadas.slice(0, 3); 
     document.getElementById('menu-ui').style.display = 'none'; 
     mostrarPantallaCarga(); 
-    setTimeout(() => { iniciarJuegoConCarga(g); }, 500); 
+    setTimeout(() => { iniciarJuegoConCarga(g); }, 500);
+ 
 }
 
 function seleccionarClase(sprite, nombreClase) { 
@@ -611,6 +634,11 @@ function iniciarJuegoConCarga(g) {
         physics: { default: 'arcade' }, 
         scene: { preload: preload, create: create, update: update } 
     }); 
+    
+    // 👇 Esperar un poco a que el juego se inicialice
+    setTimeout(() => {
+        forzarIconosCorrectos();
+    }, 500);
 }
 
 function inicializarInventario() { 
@@ -1518,7 +1546,10 @@ function create() {
         playerMana = statsBase.mana; 
         attackSpeedModifier = statsBase.attackSpeed || 1.0; 
     }
-    
+
+    // 👇 **AGREGAR ACÁ**
+    forzarIconosCorrectos();
+
     actualizarStatsUI(); 
     socket.emit('newPlayer', { class: pClass, name: pName, className: pClassName }); 
     socket.emit('solicitarInventarioCompleto');
