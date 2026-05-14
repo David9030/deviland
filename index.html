@@ -248,7 +248,7 @@ let previewTimeout = null;
 let ultimoAtaqueNormal = 0;
 const COOLDOWN_ATAQUE_NORMAL = 1000;
 let ultimoGuardadoPosicionTime = 0;
-const DATA_VERSION = 2; 
+const DATA_VERSION = 3; 
 
 const SKILLS_DATA = {
     'levantar_muerto': { 
@@ -484,6 +484,19 @@ function migrarPartidaGuardada(datos) {
         migrado = true;
     }
     
+    // Versión 2 → 3: Corregir espada que quedó con emoji (por si acaso)
+    if (datos.version < 3) {
+        if (datos.inventarioSlots) {
+            datos.inventarioSlots.forEach(slot => {
+                if (slot && slot.icono === '⚔️') {
+                    slot.icono = 'espada_img';
+                }
+            });
+        }
+        datos.version = 3;
+        migrado = true;
+    }
+    
     if (migrado && typeof mostrarMensaje === 'function') {
         mostrarMensaje(`🎁 Se agregaron nuevos items a tu inventario (actualización)`, 'exito');
     }
@@ -603,10 +616,13 @@ function iniciarJuegoConCarga(g) {
 function inicializarInventario() { 
     inventarioSlots = []; 
     for (let i = 0; i < 36; i++) inventarioSlots.push(null); 
-    agregarItemAlInventario('pocion_1', 'pocion', 'Pocion', '❤️', 2); 
+    
+    // Agregar items en el orden deseado
+    agregarItemAlInventario('pocion_1', 'pocion', 'Poción de Vida', '❤️', 2);
     agregarItemAlInventarioEquipo('espada_1', 'espada', 'Espada Básica', 'espada_img', 1, { ataqueFisico: 15, velocidad: -15 });
+    agregarItemAlInventarioEquipo('armadura_1', 'armadura', 'Armadura Básica', 'armadura_de_cuero_img', 1, { defensaFisica: 15, velocidad: -20 });
     agregarItemAlInventarioEquipo('escudo_1', 'escudo', 'Escudo Básico', 'escudo_madera_img', 1, { defensaFisica: 20, velocidad: -15 });
-    agregarItemAlInventarioEquipo('armadura_1', 'armadura', 'Armadura Básica', 'armadura_de_cuero_img', 1, { defensaFisica: 15, velocidad: -20 }); 
+    
     renderizarInventario(); 
 }
 
@@ -1867,5 +1883,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 </body>
-</html>< ! - -   f o r c e   d e p l o y   - - >  
- 
+</html>
