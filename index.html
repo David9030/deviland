@@ -563,19 +563,29 @@ function continuarPartida() {
     pClass = g.clase; 
     pClassName = g.className || g.clase; 
     equipamiento = g.equipamiento || { arma: null, escudo: null, armadura: null }; 
-    playerStats = g.playerStats || { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 }; 
-    playerHP = g.playerHP || (classStats[pClassName]?.hp || 500); 
-    playerMana = g.playerMana || (classStats[pClassName]?.mana || 100); 
+   playerStats = g.playerStats || { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 }; 
+playerHP = g.playerHP || (classStats[pClassName]?.hp || 500); 
+playerMana = g.playerMana || (classStats[pClassName]?.mana || 100); 
+
+if (g.inventarioSlots && Array.isArray(g.inventarioSlots)) {
+    inventarioSlots = g.inventarioSlots;
     
-    if (g.inventarioSlots && Array.isArray(g.inventarioSlots)) {
-        inventarioSlots = g.inventarioSlots;
-    } else {
-        inicializarInventario();
+    // 👇 FORZAR CORRECCIÓN DE ESPADA Y ESCUDO ACÁ
+    if (inventarioSlots[1] && inventarioSlots[1].icono === '⚔️') {
+        inventarioSlots[1].icono = 'espada_img';
+        console.log('🔧 Espada corregida en continuarPartida');
     }
-    
-    if (pClassName === 'NECROMANCER') {
-        skillsEquipadas = g.skillsEquipadas || ['levantar_muerto', 'furia_necrotica', 'ataque_distancia'];
-    } else if (pClassName === 'MAGO') {
+    if (inventarioSlots[3] && inventarioSlots[3].icono === '🛡️') {
+        inventarioSlots[3].icono = 'escudo_madera_img';
+        console.log('🔧 Escudo corregido en continuarPartida');
+    }
+} else {
+    inicializarInventario();
+}
+
+if (pClassName === 'NECROMANCER') {
+    skillsEquipadas = g.skillsEquipadas || ['levantar_muerto', 'furia_necrotica', 'ataque_distancia'];
+} else if (pClassName === 'MAGO') {
         skillsEquipadas = g.skillsEquipadas || ['ataque_distancia'];
     } else {
         skillsEquipadas = g.skillsEquipadas || [];
