@@ -35,40 +35,30 @@
         
         /* UI Elements */
         #info { position: fixed; bottom: 5px; right: 5px; color: #666; font-size: 8px; background: #000; padding: 2px 5px; border: 1px solid #333; z-index: 1000; }
-        #chat-container { position: fixed; bottom: 5px; left: 50%; transform: translateX(-50%); width: 260px; z-index: 1000; background: rgba(0,0,0,0.8); border-radius: 5px; }
-        #chat-logs { background: #000; color: #aaa; overflow-y: auto; font-size: 8px; padding: 4px; border: 1px solid #444; height: 90px; font-family: monospace; }
-        #chat-header { background: #111; border: 1px solid #444; border-bottom: none; padding: 4px 8px; cursor: pointer; display: flex; justify-content: space-between; color: #fff; font-size: 9px; border-radius: 5px 5px 0 0; }
-        .chat-minimizado #chat-logs, .chat-minimizado #chat-input-container { display: none; }
-        #chat-input-container { display: flex; margin-top: 5px; gap: 4px; padding: 4px; background: #111; border: 1px solid #444; border-top: none; border-radius: 0 0 5px 5px; }
-        #chat-input { flex: 1; background: #000; border: 1px solid #444; color: #fff; padding: 4px; font-family: monospace; font-size: 8px; }
-        #chat-send { background: #000; border: 1px solid #444; color: #fff; padding: 4px 8px; cursor: pointer; font-size: 8px; }
-        
-        /* Bars */
-        #hp-bar, #mana-bar, #demonlord-hp-bar { 
-            position: fixed; height: 10px; background: rgba(80,0,0,0.7); 
-            border: 1px solid rgba(255,50,50,0.8); border-radius: 5px; overflow: hidden; z-index: 1000; 
-        }
-        #hp-bar { top: 5px; left: 5px; width: 140px; }
-        #mana-bar { top: 20px; left: 5px; width: 140px; background: rgba(0,0,80,0.7); border-color: rgba(50,50,255,0.8); }
-        #demonlord-hp-bar { top: 5px; right: 5px; left: auto; width: 160px; border-color: rgba(255,100,0,0.8); display: none; }
-        #hp-fill { width: 100%; height: 100%; background: rgba(255,50,50,0.8); }
-        #mana-fill { width: 100%; height: 100%; background: rgba(50,50,255,0.8); }
-        #demonlord-hp-fill { width: 100%; height: 100%; background: rgba(255,100,0,0.8); }
-        
-        #hp-text, #mana-text, #demonlord-hp-text {
-            position: fixed; font-size: 7px; font-weight: bold; color: #fff; 
-            text-shadow: 1px 1px 0 #000; z-index: 1001; font-family: monospace;
-        }
-        #hp-text { top: 5px; left: 5px; width: 140px; text-align: center; }
-        #mana-text { top: 20px; left: 5px; width: 140px; text-align: center; }
-        #demonlord-hp-text { top: 5px; right: 5px; left: auto; width: 160px; text-align: center; display: none; }
+        /* Chat a la izquierda abajo */
+/* Chat a la izquierda abajo */
+#chat-container { position: fixed; bottom: 15px; left: 15px; width: 260px; z-index: 1000; background: rgba(0,0,0,0.8); border-radius: 5px; }
+#chat-logs { background: #000; color: #aaa; overflow-y: auto; font-size: 10px; padding: 5px; border: 1px solid #444; height: 120px; font-family: monospace; }
+#chat-header { background: #111; border: 1px solid #444; border-bottom: none; padding: 5px 10px; cursor: pointer; display: flex; justify-content: space-between; color: #fff; font-size: 11px; border-radius: 5px 5px 0 0; }
+.chat-minimizado #chat-logs, .chat-minimizado #chat-input-container { display: none; }
+#chat-input-container { display: flex; margin-top: 5px; gap: 5px; padding: 5px; background: #111; border: 1px solid #444; border-top: none; border-radius: 0 0 5px 5px; }
+#chat-input { flex: 1; background: #000; border: 1px solid #444; color: #fff; padding: 5px; font-family: monospace; font-size: 11px; }
+#chat-send { background: #000; border: 1px solid #444; color: #fff; padding: 5px 10px; cursor: pointer; font-size: 11px; }
+
+/* Skills bar - CENTRO ABAJO (5 slots) */
+#skills-bar { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10000; background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 50px; }
+.skill-slot-small { width: 60px; height: 70px; }
+
+/* Botón de ataque - DERECHA ABAJO */
+#btn-attack { position: fixed; bottom: 15px; right: 15px; width: 60px; height: 60px; border-radius: 30px; background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff; font-size: 28px; cursor: pointer; z-index: 10000; display: flex; align-items: center; justify-content: center; }
+
+/* Joystick: solo en móvil, en PC lo ocultamos */
+#joystick-area { display: none; }
         
         /* Floating Elements */
         .floating-tabs { position: fixed; top: 55px; left: 5px; display: flex; gap: 5px; z-index: 10000; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 15px; }
         .floating-tab { background: rgba(0,0,0,0.7); border: 1px solid #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; color: #fff; }
-        #btn-attack { position: fixed; bottom: 15px; right: 15px; width: 50px; height: 50px; border-radius: 25px; background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff; font-size: 24px; cursor: pointer; z-index: 10000; display: flex; align-items: center; justify-content: center; }
-        #joystick-area { position: fixed; bottom: 15px; left: 15px; width: 100px; height: 100px; border-radius: 50px; background: transparent; z-index: 9999; touch-action: none; }
-        #skills-bar { position: fixed; bottom: 15px; right: 160px; display: flex; gap: 8px; z-index: 10000; }
+        
         
         /* Inventory UI */
         #inventario-ui {
@@ -220,7 +210,7 @@ let joystickVector = { x: 0, y: 0 };
 let joystickActivo = false;
 let skillsDisponibles = [];
 let skillsEquipadas = [];
-let MAX_SKILLS = 3;
+let MAX_SKILLS = 5;
 let inventarioSlots = [];
 let equipamiento = { arma: null, escudo: null, armadura: null };
 let playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 };
