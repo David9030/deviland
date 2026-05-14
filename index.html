@@ -611,9 +611,6 @@ function crearSlotElement(slot, index, origen) {
             const img = document.createElement('img'); 
             let nombreArchivo = slot.icono.replace('_img', ''); 
             img.src = `/${nombreArchivo}.png`; 
-            img.style.width = '24px'; 
-            img.style.height = '24px'; 
-            img.style.objectFit = 'contain'; 
             i.appendChild(img); 
         } else { 
             i.textContent = slot.icono; 
