@@ -248,6 +248,7 @@ let previewTimeout = null;
 let ultimoAtaqueNormal = 0;
 const COOLDOWN_ATAQUE_NORMAL = 1000;
 let ultimoGuardadoPosicionTime = 0;
+const DATA_VERSION = 2; 
 
 const SKILLS_DATA = {
     'levantar_muerto': { 
@@ -399,6 +400,7 @@ function guardarPartida() {
         defensaFisica: s.defensaFisica, defensaMagica: s.defensaMagica, velocidad: s.velocidad
     } : null);
     const saveData = {
+        version: DATA_VERSION,
         nombre: pName, clase: pClass, className: pClassName,
         inventarioSlots: inventarioLimpio,
         playerHP: playerHP, playerMana: playerMana,
@@ -419,12 +421,74 @@ function guardarPartida() {
 
 function cargarPartidaGuardada() { 
     const g = localStorage.getItem(SAVE_KEY); 
-    try { return JSON.parse(g); } catch(e) { return null; } 
+    if (!g) return null;
+    
+    let datos;
+    try { 
+        datos = JSON.parse(g); 
+    } catch(e) { 
+        return null; 
+    }
+    
+    // Migrar si la partida es de una versión anterior
+    if (!datos.version || datos.version < DATA_VERSION) {
+        datos = migrarPartidaGuardada(datos);
+        localStorage.setItem(SAVE_KEY, JSON.stringify(datos));
+        console.log('📦 Partida migrada a versión', DATA_VERSION);
+    }
+    
+    return datos;
 }
 
 function borrarPartida() { 
     localStorage.removeItem(SAVE_KEY); 
     localStorage.removeItem(SAVE_KEY + '_skills'); 
+}
+
+// ============================================
+// MIGRACIÓN DE DATOS (para partidas guardadas viejas)
+// ============================================
+function migrarPartidaGuardada(datos) {
+    let migrado = false;
+    
+    // Versión 1 → 2: Agregar escudo y corregir emojis
+    if (!datos.version || datos.version < 2) {
+        if (datos.inventarioSlots) {
+            // Corregir iconos
+            datos.inventarioSlots.forEach(slot => {
+                if (slot) {
+                    if (slot.icono === '⚔️') slot.icono = 'espada_img';
+                    if (slot.icono === '🛡️') slot.icono = 'escudo_madera_img';
+                    if (slot.icono === '👕') slot.icono = 'armadura_de_cuero_img';
+                }
+            });
+            
+            // Agregar escudo si no existe
+            const escudoExiste = datos.inventarioSlots.some(slot => slot && slot.nombre === 'Escudo Básico');
+            if (!escudoExiste) {
+                const slotVacio = datos.inventarioSlots.findIndex(slot => slot === null);
+                if (slotVacio !== -1) {
+                    datos.inventarioSlots[slotVacio] = {
+                        id: 'escudo_1',
+                        tipo: 'escudo',
+                        nombre: 'Escudo Básico',
+                        icono: 'escudo_madera_img',
+                        cantidad: 1,
+                        defensaFisica: 20,
+                        velocidad: -15
+                    };
+                }
+            }
+        }
+        datos.version = 2;
+        migrado = true;
+    }
+    
+    if (migrado && typeof mostrarMensaje === 'function') {
+        mostrarMensaje(`🎁 Se agregaron nuevos items a tu inventario (actualización)`, 'exito');
+    }
+    
+    return datos;
 }
 
 function mostrarPantallaCarga() { 
