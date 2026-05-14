@@ -910,18 +910,22 @@ function actualizarStatsUI() {
         mostrarMensaje(`💀 HAS MUERTO! Espera ${RESPAWN_TIME/1000} segundos`, 'error'); 
         if (socket && socket.emit) socket.emit('playerMurio', { id: socket.id }); 
         setTimeout(() => { 
-            if (player && !player.isAlive) { 
-                playerHP = playerMaxHP; 
-                playerMana = playerMaxMana; 
-                player.isAlive = true; 
-                if (player.body) player.body.enable = true; 
-                if (player.setVisible) player.setVisible(true); 
-                player.setPosition(512, 512); 
-                actualizarStatsUI(); 
-                mostrarMensaje(`✨ HAS REVIVIDO en el punto de inicio!`, 'exito'); 
-                if (socket && socket.emit) socket.emit('playerRespawn', { id: socket.id }); 
-            } 
-        }, RESPAWN_TIME); 
+    if (player && !player.isAlive) { 
+        playerHP = playerMaxHP; 
+        playerMana = playerMaxMana; 
+        player.isAlive = true; 
+        player.attacking = false;      // ← IMPORTANTE: desactiva estado de ataque
+        if (player.body) {
+            player.body.enable = true;
+            player.body.setVelocity(0, 0);  // ← Reinicia velocidad
+        }
+        if (player.setVisible) player.setVisible(true); 
+        player.setPosition(512, 512); 
+        actualizarStatsUI(); 
+        mostrarMensaje(`✨ HAS REVIVIDO en el punto de inicio!`, 'exito'); 
+        if (socket && socket.emit) socket.emit('playerRespawn', { id: socket.id }); 
+    } 
+    }, RESPAWN_TIME); 
     } 
 }
 
