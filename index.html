@@ -86,13 +86,13 @@
        .slot-nombre { font-size: 6px; color: #888; margin-top: 1px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: none; }
         
         .skills-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
-        .skill-slot { background: #1a1a1a; border: 1px solid #444; padding: 10px; cursor: pointer; text-align: center; border-radius: 5px; }
-        .skill-slot.equipped { border-color: #88ff88; background: #1a3a1a; }
-        .skill-slot-small { background: #1a1a1a; border: 1px solid #444; width: 60px; height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; border-radius: 5px; }
-        .skill-slot-small.equipped { border-color: #88ff88; background: #1a3a1a; }
-        .skill-name { font-size: 12px; font-weight: bold; color: #fff; margin-top: 5px; }
-        .skill-name-small { font-size: 8px; margin-top: 5px; color: #fff; text-align: center; }
-        .skill-icon-img { width: 32px; height: 32px; image-rendering: pixelated; object-fit: contain; }
+.skill-slot { background: #1a1a1a; border: 1px solid #444; padding: 10px; cursor: pointer; text-align: center; border-radius: 5px; }
+.skill-slot.equipped { border-color: #88ff88; background: #1a3a1a; }
+.skill-slot-small { background: #1a1a1a; border: 1px solid #444; width: 70px; height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; border-radius: 5px; }
+.skill-slot-small.equipped { border-color: #88ff88; background: #1a3a1a; }
+.skill-name { font-size: 12px; font-weight: bold; color: #fff; margin-top: 5px; }
+.skill-name-small { font-size: 8px; margin-top: 5px; color: #fff; text-align: center; }
+.skill-icon-img { width: 95%; height: 95%; image-rendering: pixelated; object-fit: contain; }
         
         #stats-panel { position: fixed; top: 50%; right: 5px; transform: translateY(-50%); background: rgba(0,0,0,0.9); border: 1px solid #fff; border-radius: 5px; padding: 8px; min-width: 150px; z-index: 1000; font-size: 8px; display: none; }
         #stats-panel.visible { display: block; }
@@ -109,15 +109,16 @@
         .context-menu-item:hover { background: #333; }
         
         @media (min-width: 768px) {
-            .inventario-grid { grid-template-columns: repeat(6, 60px); grid-auto-rows: 60px; }
-            .slot-nombre { display: block; }
-            #stats-panel { min-width: 180px; padding: 12px; font-size: 11px; }
-            .skill-slot-small { width: 70px; height: 80px; }
-            #btn-attack { width: 65px; height: 65px; font-size: 32px; }
-            #joystick-area { width: 140px; height: 140px; }
-            #hp-bar, #mana-bar, #demonlord-hp-bar { width: 200px; height: 14px; }
-            #chat-container { width: 320px; }
-        }
+    .inventario-grid { grid-template-columns: repeat(6, 60px); grid-auto-rows: 60px; }
+    .slot-nombre { display: block; }
+    #stats-panel { min-width: 180px; padding: 12px; font-size: 11px; }
+    .skill-slot-small { width: 80px; height: 90px; }
+    .skill-icon-img { width: 95%; height: 95%; }
+    #btn-attack { width: 65px; height: 65px; font-size: 32px; }
+    #joystick-area { width: 140px; height: 140px; }
+    #hp-bar, #mana-bar, #demonlord-hp-bar { width: 200px; height: 14px; }
+    #chat-container { width: 320px; }
+}
     </style>
 </head>
 <body>
