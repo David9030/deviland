@@ -1857,7 +1857,28 @@ function create() {
     
     // PEDIR ESQUELETOS CADA 10 SEGUNDOS
     setInterval(() => { if (socket && socket.id && juegoIniciado) socket.emit('solicitarEsqueletos'); }, 10000);
-}
+
+
+    // ============================================
+    // TECLAS PARA SKILLS (1, 2, 3, 4, 5)
+    // ============================================
+    this.input.keyboard.on('keydown-ONE', () => {
+        if (skillsEquipadas[0]) usarSkill(skillsEquipadas[0]);
+    });
+    this.input.keyboard.on('keydown-TWO', () => {
+        if (skillsEquipadas[1]) usarSkill(skillsEquipadas[1]);
+    });
+    this.input.keyboard.on('keydown-THREE', () => {
+        if (skillsEquipadas[2]) usarSkill(skillsEquipadas[2]);
+    });
+    this.input.keyboard.on('keydown-FOUR', () => {
+        if (skillsEquipadas[3]) usarSkill(skillsEquipadas[3]);
+    });
+    this.input.keyboard.on('keydown-FIVE', () => {
+        if (skillsEquipadas[4]) usarSkill(skillsEquipadas[4]);
+    });
+    
+}  // ← Esta es la llave que
 
 function addOtherPlayer(self, info) { 
     if (!info.class) return; 
