@@ -1118,8 +1118,56 @@ function renderizarBarraSkills() {
             
             div.appendChild(img); 
             div.appendChild(nameSpan); 
-            div.ondblclick = (e) => { e.stopPropagation(); usarSkill(skillId); }; 
-            div.onclick = (e) => { e.stopPropagation(); mostrarDetalleSkill(skill); }; 
+            
+            let pressTimer = null;
+            
+            // 👇 CLIC NORMAL = USAR HABILIDAD
+            div.onclick = (e) => {
+                e.stopPropagation();
+                usarSkill(skillId);
+            };
+            
+            // 👇 MANTENER PRESIONADO (MOUSE) = MOSTRAR DESCRIPCIÓN
+            div.onmousedown = (e) => {
+                e.stopPropagation();
+                pressTimer = setTimeout(() => {
+                    mostrarDetalleSkill(skill);
+                    pressTimer = null;
+                }, 1000);
+            };
+            
+            div.onmouseup = (e) => {
+                e.stopPropagation();
+                if (pressTimer) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                }
+            };
+            
+            div.onmouseleave = (e) => {
+                if (pressTimer) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                }
+            };
+            
+            // 👇 PARA DISPOSITIVOS TÁCTILES
+            div.ontouchstart = (e) => {
+                e.stopPropagation();
+                pressTimer = setTimeout(() => {
+                    mostrarDetalleSkill(skill);
+                    pressTimer = null;
+                }, 1000);
+            };
+            
+            div.ontouchend = (e) => {
+                e.stopPropagation();
+                if (pressTimer) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                }
+            };
+            
             div.setAttribute('draggable', 'true'); 
         } else { 
             const emptySpan = document.createElement('div'); 
