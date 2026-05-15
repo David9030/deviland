@@ -35,30 +35,23 @@
         
         /* UI Elements */
         #info { position: fixed; bottom: 5px; right: 5px; color: #666; font-size: 8px; background: #000; padding: 2px 5px; border: 1px solid #333; z-index: 1000; }
-        /* Chat a la izquierda abajo */
-/* Chat a la izquierda abajo */
-#chat-container { position: fixed; bottom: 15px; left: 15px; width: 260px; z-index: 1000; background: rgba(0,0,0,0.8); border-radius: 5px; }
-#chat-logs { background: #000; color: #aaa; overflow-y: auto; font-size: 10px; padding: 5px; border: 1px solid #444; height: 120px; font-family: monospace; }
-#chat-header { background: #111; border: 1px solid #444; border-bottom: none; padding: 5px 10px; cursor: pointer; display: flex; justify-content: space-between; color: #fff; font-size: 11px; border-radius: 5px 5px 0 0; }
-.chat-minimizado #chat-logs, .chat-minimizado #chat-input-container { display: none; }
-#chat-input-container { display: flex; margin-top: 5px; gap: 5px; padding: 5px; background: #111; border: 1px solid #444; border-top: none; border-radius: 0 0 5px 5px; }
-#chat-input { flex: 1; background: #000; border: 1px solid #444; color: #fff; padding: 5px; font-family: monospace; font-size: 11px; }
-#chat-send { background: #000; border: 1px solid #444; color: #fff; padding: 5px 10px; cursor: pointer; font-size: 11px; }
+        #chat-container { position: fixed; bottom: 15px; left: 15px; width: 260px; z-index: 1000; background: rgba(0,0,0,0.8); border-radius: 5px; }
+        #chat-logs { background: #000; color: #aaa; overflow-y: auto; font-size: 10px; padding: 5px; border: 1px solid #444; height: 120px; font-family: monospace; }
+        #chat-header { background: #111; border: 1px solid #444; border-bottom: none; padding: 5px 10px; cursor: pointer; display: flex; justify-content: space-between; color: #fff; font-size: 11px; border-radius: 5px 5px 0 0; }
+        .chat-minimizado #chat-logs, .chat-minimizado #chat-input-container { display: none; }
+        #chat-input-container { display: flex; margin-top: 5px; gap: 5px; padding: 5px; background: #111; border: 1px solid #444; border-top: none; border-radius: 0 0 5px 5px; }
+        #chat-input { flex: 1; background: #000; border: 1px solid #444; color: #fff; padding: 5px; font-family: monospace; font-size: 11px; }
+        #chat-send { background: #000; border: 1px solid #444; color: #fff; padding: 5px 10px; cursor: pointer; font-size: 11px; }
 
-/* Skills bar - CENTRO ABAJO (5 slots) */
-#skills-bar { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10000; background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 50px; }
-.skill-slot-small { width: 60px; height: 70px; }
+        #skills-bar { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10000; background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 50px; }
+        .skill-slot-small { width: 60px; height: 70px; }
 
-/* Botón de ataque - DERECHA ABAJO */
-#btn-attack { position: fixed; bottom: 15px; right: 15px; width: 60px; height: 60px; border-radius: 30px; background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff; font-size: 28px; cursor: pointer; z-index: 10000; display: flex; align-items: center; justify-content: center; }
+        #btn-attack { position: fixed; bottom: 15px; right: 15px; width: 60px; height: 60px; border-radius: 30px; background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff; font-size: 28px; cursor: pointer; z-index: 10000; display: flex; align-items: center; justify-content: center; }
 
-/* Joystick: solo en móvil, en PC lo ocultamos */
-#joystick-area { display: none; }
+        #joystick-area { display: none; }
         
-        /* Floating Elements */
         .floating-tabs { position: fixed; top: 55px; left: 5px; display: flex; gap: 5px; z-index: 10000; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 15px; }
         .floating-tab { background: rgba(0,0,0,0.7); border: 1px solid #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; color: #fff; }
-        
         
         /* Inventory UI */
         #inventario-ui {
@@ -67,13 +60,13 @@
             border: 3px solid #fff !important; padding: 15px !important;
             z-index: 999999 !important; width: 450px !important; display: none;
         }
-       .inventario-grid { display: grid; grid-template-columns: repeat(6, 60px); gap: 5px; background: #111; padding: 10px; }
-       .slot { background: #1a1a1a; border: 1px solid #444; width: 60px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; }
-       .slot-icon { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 18px; position: relative; overflow: hidden; }
-       .slot-icon img { width: 60px !important; height: 60px !important; object-fit: contain; }
-       .equipped-icon { position: absolute; top: -2px; right: -2px; font-size: 8px; color: #88ff88; background: #000; border-radius: 10px; padding: 0px 2px; }
-       .slot-cantidad { font-size: 7px; color: #fff; background: #000; padding: 1px 2px; position: absolute; bottom: 1px; right: 1px; border-radius: 3px; }
-       .slot-nombre { font-size: 6px; color: #888; margin-top: 1px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: none; }
+        .inventario-grid { display: grid; grid-template-columns: repeat(6, 60px); gap: 5px; background: #111; padding: 10px; }
+        .slot { background: #1a1a1a; border: 1px solid #444; width: 60px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+        .slot-icon { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 18px; position: relative; overflow: hidden; }
+        .slot-icon img { width: 60px !important; height: 60px !important; object-fit: contain; }
+        .equipped-icon { position: absolute; top: -2px; right: -2px; font-size: 8px; color: #88ff88; background: #000; border-radius: 10px; padding: 0px 2px; }
+        .slot-cantidad { font-size: 7px; color: #fff; background: #000; padding: 1px 2px; position: absolute; bottom: 1px; right: 1px; border-radius: 3px; }
+        .slot-nombre { font-size: 6px; color: #888; margin-top: 1px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: none; }
         
         #stats-panel { position: fixed; top: 50%; right: 5px; transform: translateY(-50%); background: rgba(0,0,0,0.9); border: 1px solid #fff; border-radius: 5px; padding: 8px; min-width: 150px; z-index: 1000; font-size: 8px; display: none; }
         #stats-panel.visible { display: block; }
@@ -89,86 +82,83 @@
         .context-menu-item { padding: 8px 15px; cursor: pointer; color: #fff; font-size: 12px; }
         .context-menu-item:hover { background: #333; }
 
-
-        /* ... todo el CSS que ya tenés ... */
-        
-        /* ========================================= */
-        /* NUEVO CSS PARA ORBES Y SKILLS CENTRADOS   */
-        /* ========================================= */
+        /* ORBES CUADRADOS */
         #stats-container {
-    position: fixed;
-    bottom: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 25px;
-    align-items: center;
-    z-index: 10000;
-}
-
-.orb-container {
-    position: relative;
-    width: 70px;
-    height: 200px;          /* ← más alto para que se note la bajada */
-    background: #1a0a0a;
-    border: 2px solid #8b4513;
-    border-radius: 5px;
-    overflow: hidden;
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
-}
-
-.orb-fill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    transition: transform 0.2s ease;
-    transform-origin: top;   /* ← CLAVE: ancla arriba */
-}
-
-#hp-fill-vertical {
-    background: linear-gradient(to bottom, #ff0000, #8b0000);
-}
-
-#mana-fill-vertical {
-    background: linear-gradient(to bottom, #0066ff, #00008b);
-}
-
-/* Sprite decorativo encima de la barra */
-.orb-sprite {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('ui/orb_glass.png');
-    background-size: cover;
-    background-repeat: no-repeat;
-    pointer-events: none;
-    z-index: 2;
-}
-
-.orb-text {
-    position: absolute;
-    width: 100%;
-    text-align: center;
-    bottom: -22px;
-    font-size: 11px;
-    color: white;
-    text-shadow: 1px 1px 0 black;
-    font-weight: bold;
-    z-index: 3;
-}
-#skills-bar {
-    position: static;
-    transform: none;
-    background: rgba(0,0,0,0.5);
-    padding: 8px 15px;
-    border-radius: 50px;
-    display: flex;
-    gap: 10px;
-}
+            position: fixed;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 25px;
+            align-items: center;
+            z-index: 10000;
+        }
+        .orb-container {
+            position: relative;
+            width: 70px;
+            height: 70px;
+            background: #1a0a0a;
+            border-radius: 0px;
+            overflow: hidden;
+            box-shadow: inset 0 0 5px #000;
+        }
+        .orb-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: red;
+            transition: transform 0.2s ease;
+            transform-origin: top;
+            transform: scaleY(1);
+        }
+        #mana-fill-vertical {
+            background-color: blue;
+        }
+        .orb-sprite {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('ui/orb_glass.png');
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            background-position: center;
+            pointer-events: none;
+        }
+        .orb-angel {
+            position: absolute;
+            top: 0;
+            left: -40px;
+            width: 100%;
+            height: 100%;
+            background-image: url('ui/orb_angel.png');
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            background-position: center;
+            pointer-events: none;
+            z-index: 25;
+        }
+        .orb-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            bottom: -20px;
+            font-size: 10px;
+            color: white;
+            text-shadow: 1px 1px 0 black;
+        }
+        #skills-bar {
+            position: static;
+            transform: none;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 15px;
+            border-radius: 50px;
+            display: flex;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -209,21 +199,21 @@
     </div>
     
     <div id="stats-container">
-    <div id="hp-orb" class="orb-container">
-        <div id="hp-fill-vertical" class="orb-fill"></div>
-        <div id="hp-orb-sprite" class="orb-sprite"></div>
-        <div id="hp-angel" class="orb-angel"></div>   <!-- ← AGREGAR ESTO -->
-        <div class="orb-text">❤️ <span id="hp-text-inline">500</span></div>
+        <div id="hp-orb" class="orb-container">
+            <div id="hp-fill-vertical" class="orb-fill"></div>
+            <div id="hp-orb-sprite" class="orb-sprite"></div>
+            <div id="hp-angel" class="orb-angel"></div>
+            <div class="orb-text">❤️ <span id="hp-text-inline">500</span></div>
+        </div>
+        <div id="skills-bar"></div>
+        <div id="mana-orb" class="orb-container">
+            <div id="mana-fill-vertical" class="orb-fill"></div>
+            <div id="mana-orb-sprite" class="orb-sprite"></div>
+            <div class="orb-text">💙 <span id="mana-text-inline">100</span></div>
+        </div>
     </div>
-    <div id="skills-bar"></div>
-    <div id="mana-orb" class="orb-container">
-        <div id="mana-fill-vertical" class="orb-fill"></div>
-        <div id="mana-orb-sprite" class="orb-sprite"></div>
-        <div class="orb-text">💙 <span id="mana-text-inline">100</span></div>
-    </div>
-</div>
-<div id="btn-attack">⚔️</div>
-<div id="joystick-area"></div>
+    <div id="btn-attack">⚔️</div>
+    <div id="joystick-area"></div>
     
     <!-- INVENTARIO UI -->
     <div id="inventario-ui">
@@ -272,7 +262,6 @@
     <div id="context-menu" class="context-menu">
         <div class="context-menu-item" onclick="invitarJugadorSeleccionado()">🎮 Invitar al equipo</div>
     </div>
-
 <script>
 // ============================================
 // VARIABLES GLOBALES
@@ -307,7 +296,7 @@ let previewTimeout = null;
 let ultimoAtaqueNormal = 0;
 const COOLDOWN_ATAQUE_NORMAL = 1000;
 let ultimoGuardadoPosicionTime = 0;
-const DATA_VERSION = 3; 
+const DATA_VERSION = 3;
 
 const SKILLS_DATA = {
     'levantar_muerto': { 
@@ -489,7 +478,6 @@ function cargarPartidaGuardada() {
         return null; 
     }
     
-    // Migrar si la partida es de una versión anterior
     if (!datos.version || datos.version < DATA_VERSION) {
         datos = migrarPartidaGuardada(datos);
         localStorage.setItem(SAVE_KEY, JSON.stringify(datos));
@@ -524,18 +512,16 @@ function forzarIconosCorrectos() {
         guardarPartida();
         console.log('✅ Iconos corregidos automáticamente');
     }
-} 
+}
 
 // ============================================
-// MIGRACIÓN DE DATOS (para partidas guardadas viejas)
+// MIGRACIÓN DE DATOS
 // ============================================
 function migrarPartidaGuardada(datos) {
     let migrado = false;
     
-    // Versión 1 → 2: Agregar escudo y corregir emojis
     if (!datos.version || datos.version < 2) {
         if (datos.inventarioSlots) {
-            // Corregir iconos
             datos.inventarioSlots.forEach(slot => {
                 if (slot) {
                     if (slot.icono === '⚔️') slot.icono = 'espada_img';
@@ -544,7 +530,6 @@ function migrarPartidaGuardada(datos) {
                 }
             });
             
-            // Agregar escudo si no existe
             const escudoExiste = datos.inventarioSlots.some(slot => slot && slot.nombre === 'Escudo Básico');
             if (!escudoExiste) {
                 const slotVacio = datos.inventarioSlots.findIndex(slot => slot === null);
@@ -565,7 +550,6 @@ function migrarPartidaGuardada(datos) {
         migrado = true;
     }
     
-    // Versión 2 → 3: Corregir espada que quedó con emoji (por si acaso)
     if (datos.version < 3) {
         if (datos.inventarioSlots) {
             datos.inventarioSlots.forEach(slot => {
@@ -622,29 +606,27 @@ function continuarPartida() {
     pClass = g.clase; 
     pClassName = g.className || g.clase; 
     equipamiento = g.equipamiento || { arma: null, escudo: null, armadura: null }; 
-   playerStats = g.playerStats || { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 }; 
-playerHP = g.playerHP || (classStats[pClassName]?.hp || 500); 
-playerMana = g.playerMana || (classStats[pClassName]?.mana || 100); 
-
-if (g.inventarioSlots && Array.isArray(g.inventarioSlots)) {
-    inventarioSlots = g.inventarioSlots;
+    playerStats = g.playerStats || { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 }; 
+    playerHP = g.playerHP || (classStats[pClassName]?.hp || 500); 
+    playerMana = g.playerMana || (classStats[pClassName]?.mana || 100); 
     
-    // 👇 FORZAR CORRECCIÓN DE ESPADA Y ESCUDO ACÁ
-    if (inventarioSlots[1] && inventarioSlots[1].icono === '⚔️') {
-        inventarioSlots[1].icono = 'espada_img';
-        console.log('🔧 Espada corregida en continuarPartida');
+    if (g.inventarioSlots && Array.isArray(g.inventarioSlots)) {
+        inventarioSlots = g.inventarioSlots;
+        if (inventarioSlots[1] && inventarioSlots[1].icono === '⚔️') {
+            inventarioSlots[1].icono = 'espada_img';
+            console.log('🔧 Espada corregida en continuarPartida');
+        }
+        if (inventarioSlots[3] && inventarioSlots[3].icono === '🛡️') {
+            inventarioSlots[3].icono = 'escudo_madera_img';
+            console.log('🔧 Escudo corregido en continuarPartida');
+        }
+    } else {
+        inicializarInventario();
     }
-    if (inventarioSlots[3] && inventarioSlots[3].icono === '🛡️') {
-        inventarioSlots[3].icono = 'escudo_madera_img';
-        console.log('🔧 Escudo corregido en continuarPartida');
-    }
-} else {
-    inicializarInventario();
-}
-
-if (pClassName === 'NECROMANCER') {
-    skillsEquipadas = g.skillsEquipadas || ['levantar_muerto', 'furia_necrotica', 'ataque_distancia'];
-} else if (pClassName === 'MAGO') {
+    
+    if (pClassName === 'NECROMANCER') {
+        skillsEquipadas = g.skillsEquipadas || ['levantar_muerto', 'furia_necrotica', 'ataque_distancia'];
+    } else if (pClassName === 'MAGO') {
         skillsEquipadas = g.skillsEquipadas || ['ataque_distancia'];
     } else {
         skillsEquipadas = g.skillsEquipadas || [];
@@ -653,7 +635,6 @@ if (pClassName === 'NECROMANCER') {
     document.getElementById('menu-ui').style.display = 'none'; 
     mostrarPantallaCarga(); 
     setTimeout(() => { iniciarJuegoConCarga(g); }, 500);
- 
 }
 
 function seleccionarClase(sprite, nombreClase) { 
@@ -704,7 +685,6 @@ function iniciarJuegoConCarga(g) {
         scene: { preload: preload, create: create, update: update } 
     }); 
     
-    // 👇 Esperar un poco a que el juego se inicialice
     setTimeout(() => {
         forzarIconosCorrectos();
     }, 500);
@@ -713,13 +693,10 @@ function iniciarJuegoConCarga(g) {
 function inicializarInventario() { 
     inventarioSlots = []; 
     for (let i = 0; i < 36; i++) inventarioSlots.push(null); 
-    
-    // Agregar items en el orden deseado
     agregarItemAlInventario('pocion_1', 'pocion', 'Poción de Vida', '❤️', 2);
     agregarItemAlInventarioEquipo('espada_1', 'espada', 'Espada Básica', 'espada_img', 1, { ataqueFisico: 15, velocidad: -15 });
     agregarItemAlInventarioEquipo('armadura_1', 'armadura', 'Armadura Básica', 'armadura_de_cuero_img', 1, { defensaFisica: 15, velocidad: -20 });
     agregarItemAlInventarioEquipo('escudo_1', 'escudo', 'Escudo Básico', 'escudo_madera_img', 1, { defensaFisica: 20, velocidad: -15 });
-    
     renderizarInventario(); 
 }
 
@@ -951,13 +928,19 @@ function actualizarStatsUI() {
     const expFill = document.getElementById('exp-fill');
     if (expFill) expFill.style.width = expPercent + '%'; 
     
-    const hpFillOld = document.getElementById('hp-fill');
-const manaFillOld = document.getElementById('mana-fill');
-if (hpFillOld) hpFillOld.style.width = (playerHP / playerMaxHP) * 100 + '%';
-if (manaFillOld) manaFillOld.style.width = (playerMana / playerMaxMana) * 100 + '%';
-    
-    document.getElementById('hp-text').innerHTML = `❤️ ${Math.floor(playerHP)}/${Math.floor(playerMaxHP)}`; 
-    document.getElementById('mana-text').innerHTML = `💙 ${Math.floor(playerMana)}/${Math.floor(playerMaxMana)}`; 
+    // ORBES de vida y maná (efecto "baja desde arriba")
+    const hpPercent = playerHP / playerMaxHP;
+    const hpFillVert = document.getElementById('hp-fill-vertical');
+    if (hpFillVert) hpFillVert.style.transform = `scaleY(${hpPercent})`;
+
+    const manaPercent = playerMana / playerMaxMana;
+    const manaFillVert = document.getElementById('mana-fill-vertical');
+    if (manaFillVert) manaFillVert.style.transform = `scaleY(${manaPercent})`;
+
+    const hpTextInline = document.getElementById('hp-text-inline');
+    if (hpTextInline) hpTextInline.innerText = Math.floor(playerHP);
+    const manaTextInline = document.getElementById('mana-text-inline');
+    if (manaTextInline) manaTextInline.innerText = Math.floor(playerMana);
     
     // Manejo de muerte
     const RESPAWN_TIME = 10000; 
@@ -969,41 +952,24 @@ if (manaFillOld) manaFillOld.style.width = (playerMana / playerMaxMana) * 100 + 
         mostrarMensaje(`💀 HAS MUERTO! Espera ${RESPAWN_TIME/1000} segundos`, 'error'); 
         if (socket && socket.emit) socket.emit('playerMurio', { id: socket.id }); 
         setTimeout(() => { 
-    if (player && !player.isAlive) { 
-        playerHP = playerMaxHP; 
-        playerMana = playerMaxMana; 
-        player.isAlive = true; 
-        player.attacking = false;      // ← IMPORTANTE: desactiva estado de ataque
-        if (player.body) {
-            player.body.enable = true;
-            player.body.setVelocity(0, 0);  // ← Reinicia velocidad
-        }
-        if (player.setVisible) player.setVisible(true); 
-        player.setPosition(512, 512); 
-        actualizarStatsUI(); 
-        mostrarMensaje(`✨ HAS REVIVIDO en el punto de inicio!`, 'exito'); 
-        if (socket && socket.emit) socket.emit('playerRespawn', { id: socket.id }); 
+            if (player && !player.isAlive) { 
+                playerHP = playerMaxHP; 
+                playerMana = playerMaxMana; 
+                player.isAlive = true; 
+                player.attacking = false;
+                if (player.body) {
+                    player.body.enable = true;
+                    player.body.setVelocity(0, 0);
+                }
+                if (player.setVisible) player.setVisible(true); 
+                player.setPosition(512, 512); 
+                actualizarStatsUI(); 
+                mostrarMensaje(`✨ HAS REVIVIDO en el punto de inicio!`, 'exito'); 
+                if (socket && socket.emit) socket.emit('playerRespawn', { id: socket.id }); 
+            } 
+        }, RESPAWN_TIME); 
     } 
-    }, RESPAWN_TIME); 
-    } 
-    
-    // 👇 AGREGAR ACÁ (ANTES DE LA LLAVE QUE CIERRA actualizarStatsUI)
-    // Actualizar orbes de vida y mana
-      // Actualizar barra de HP (de arriba a abajo)
-const hpPercent = playerHP / playerMaxHP;
-const hpFillVert = document.getElementById('hp-fill-vertical');
-if (hpFillVert) hpFillVert.style.transform = `scaleY(${hpPercent})`;
-
-// Actualizar barra de Mana (de arriba a abajo)
-const manaPercent = playerMana / playerMaxMana;
-const manaFillVert = document.getElementById('mana-fill-vertical');
-if (manaFillVert) manaFillVert.style.transform = `scaleY(${manaPercent})`;
-    const hpTextInline = document.getElementById('hp-text-inline');
-    if (hpTextInline) hpTextInline.innerText = Math.floor(playerHP);
-    const manaTextInline = document.getElementById('mana-text-inline');
-    if (manaTextInline) manaTextInline.innerText = Math.floor(playerMana);
-    
-}  // ← Esta llave cierra actualizarStatsUI
+}
 
 function mostrarPreviewStats(item, tipo) { 
     const statsOriginales = { 
@@ -1197,13 +1163,11 @@ function renderizarBarraSkills() {
             
             let pressTimer = null;
             
-            // 👇 CLIC NORMAL = USAR HABILIDAD
             div.onclick = (e) => {
                 e.stopPropagation();
                 usarSkill(skillId);
             };
             
-            // 👇 MANTENER PRESIONADO (MOUSE) = MOSTRAR DESCRIPCIÓN
             div.onmousedown = (e) => {
                 e.stopPropagation();
                 pressTimer = setTimeout(() => {
@@ -1227,7 +1191,6 @@ function renderizarBarraSkills() {
                 }
             };
             
-            // 👇 PARA DISPOSITIVOS TÁCTILES
             div.ontouchstart = (e) => {
                 e.stopPropagation();
                 pressTimer = setTimeout(() => {
@@ -1313,7 +1276,7 @@ function mostrarDetalleSkill(skill) {
                          <div style="font-size:7px; margin-bottom:3px;">${skill.descripcion}</div>
                          <div style="color:#ffaa66;">💰 Costo: ${skill.costo}</div>
                          <div style="font-size:7px; margin-top:5px; color:#aaa;">💡 Arrastra a la barra para equipar</div>
-                         <div style="font-size:7px; color:#88ff88; margin-top:3px;">⭐ Doble click en la barra para usar skill</div>`; 
+                         <div style="font-size:7px; color:#88ff88; margin-top:3px;">⭐ Mantén presionado para detalles</div>`; 
     preview.style.display = 'block'; 
     if (window.previewTimeout) clearTimeout(window.previewTimeout); 
     window.previewTimeout = setTimeout(() => { if (preview) preview.style.display = 'none'; }, 4000); 
@@ -1543,13 +1506,11 @@ function create() {
     socket = io();
     console.log('Socket conectado:', socket.id); 
     
-    // Inicializar grupos
     window.arbolesGrupo = this.add.group();
     window.minasGrupo = this.add.group();
     window.rocasGrupo = this.add.group();
     window.esqueletosGrupo = this.add.group();
     
-    // Configurar chat
     const chatInput = document.getElementById('chat-input'); 
     const chatSend = document.getElementById('chat-send'); 
     
@@ -1564,20 +1525,16 @@ function create() {
     if (chatSend) chatSend.addEventListener('click', enviarMensaje); 
     if (chatInput) chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') enviarMensaje(); }); 
     
-    // Configurar mundo
     this.physics.world.setBounds(0, 0, 3000, 3000); 
     this.cameras.main.setBounds(0, 0, 3000, 3000); 
     this.add.tileSprite(1500, 1500, 3000, 3000, 'suelo').setAlpha(0.6);
     
-    // Teclado
     keys = this.input.keyboard.addKeys('W,A,S,D,SPACE,SHIFT,R,I,T'); 
     otherPlayers = this.add.group();
     
-    // Música
     const musica = this.sound.add('musicaFondo', { loop: true, volume: 0.5 }); 
     musica.play(); 
     
-    // ANIMACIONES DE JUGADORES
     const dirs = ['Derecha', 'Arriba', 'Abajo', 'Izquierda'];
     ['barbaro', 'caballero', 'warrior'].forEach(k => { 
         dirs.forEach((d, i) => { 
@@ -1587,7 +1544,6 @@ function create() {
         }); 
     }); 
     
-    // ANIMACIONES DE ESQUELETOS
     const skeletonAnims = [ 
         { dir: 'Izquierda', walkStart: 0, walkCount: 4, atk1: 5, atk2: 4, dieStart: 6, dieCount: 2 }, 
         { dir: 'Arriba', walkStart: 16, walkCount: 4, atk1: 21, atk2: 20, dieStart: 22, dieCount: 2 }, 
@@ -1606,7 +1562,6 @@ function create() {
         this.anims.create({ key: `esqueleto_die_${anim.dir}`, frames: dieFrames, frameRate: 8 }); 
     }); 
     
-    // ANIMACIONES DE NECROMANCER
     const necroAnims = [ 
         { dir: 'Izquierda', walkStart: 0, atk1: 4, atk2: 5, dieStart: 6, dieCount: 2, walkCount: 4 }, 
         { dir: 'Arriba', walkStart: 16, atk1: 20, atk2: 21, dieStart: 22, dieCount: 2, walkCount: 4 }, 
@@ -1625,7 +1580,6 @@ function create() {
         this.anims.create({ key: `necromancer_sprite_die_${anim.dir}`, frames: dieFrames, frameRate: 8 }); 
     });
     
-    // ANIMACIONES DE MAGO
     const magoAnims = [ 
         { dir: 'Izquierda', walkStart: 0, atk1: 4, atk2: 5, dieStart: 6, dieCount: 2, walkCount: 4 }, 
         { dir: 'Arriba', walkStart: 16, atk1: 20, atk2: 21, dieStart: 22, dieCount: 2, walkCount: 4 }, 
@@ -1644,7 +1598,6 @@ function create() {
         this.anims.create({ key: `mago_sprite_die_${anim.dir}`, frames: dieFrames, frameRate: 8 }); 
     });
     
-    // ANIMACIONES DE DEMONLORD
     const DL_CONFIG = { fPB: 8, fPF: 16, filas: { idle: 0, walk: 2, tired: 4, reir: 6, ataque: 8 }, direcciones: [{ d: 'Derecha', r: 0, b: 0 }, { d: 'Arriba', r: 0, b: 1 }, { d: 'Abajo', r: 1, b: 0 }, { d: 'Izquierda', r: 1, b: 1 }] }; 
     DL_CONFIG.direcciones.forEach(conf => { 
         const off = (conf.r * DL_CONFIG.fPF) + (conf.b * DL_CONFIG.fPB); 
@@ -1654,7 +1607,6 @@ function create() {
         }); 
     }); 
     
-    // CREAR JUGADOR
     let escalaJugador = (pClassName === 'NECROMANCER' || pClassName === 'MAGO') ? 0.3 : 2;
     player = this.physics.add.sprite(512, 512, pClass).setScale(escalaJugador).setCollideWorldBounds(true); 
     player.lastDir = 'Abajo'; 
@@ -1662,11 +1614,9 @@ function create() {
     player.isAlive = true; 
     this.cameras.main.startFollow(player, true, 0.1, 0.1);
     
-    // CREAR DEMONLORD
     demonlord_sprite = this.physics.add.sprite(1500, 1500, 'demonlord').setScale(2.5).setDepth(1500); 
     demonlord_sprite.cDir = 'Abajo'; 
     
-    // CARGAR DATOS GUARDADOS
     const guardado = window.guardadoPendiente || null; 
     if (guardado) { 
         if (guardado.inventarioSlots) inventarioSlots = guardado.inventarioSlots; 
@@ -1685,16 +1635,13 @@ function create() {
         attackSpeedModifier = statsBase.attackSpeed || 1.0; 
     }
 
-    // 👇 **AGREGAR ACÁ**
     forzarIconosCorrectos();
-
     actualizarStatsUI(); 
     socket.emit('newPlayer', { class: pClass, name: pName, className: pClassName }); 
     socket.emit('solicitarInventarioCompleto');
     cargarSkillsPorClase(); 
     renderizarBarraSkills(); 
     
-    // BOTÓN DE ATAQUE
     const btnAttack = document.getElementById('btn-attack'); 
     
     const actualizarIconoAtaque = () => { 
@@ -1939,7 +1886,6 @@ function create() {
     this.input.on('pointerdown', (pointer) => { if (pointer.doubleClick) { zoomActivo = !zoomActivo; this.cameras.main.setZoom(zoomActivo ? ZOOM_CERCA : ZOOM_NORMAL); } });
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => { let nz = this.cameras.main.zoom; if (deltaY < 0) nz = Math.min(nz + 0.1, 2); else if (deltaY > 0) nz = Math.max(nz - 0.1, 0.5); this.cameras.main.setZoom(nz); });
     
-    // UPDATE LOOP PARA OTROS JUGADORES
     this.events.on('update', () => { 
         otherPlayers.getChildren().forEach(other => { 
             if (other.targetX !== undefined && other.targetY !== undefined) { 
@@ -1951,20 +1897,15 @@ function create() {
         if (player && player.active && btnAttack) actualizarIconoAtaque(); 
     }); 
     
-    // GUARDADO AUTOMÁTICO
     window.addEventListener('beforeunload', () => guardarPartida()); 
     setInterval(() => { if (player && player.active) guardarPartida(); }, 30000); 
     
-    // JOYSTICK
     iniciarJoystick(); 
     
-    // COOLDOWN
     if (summonCooldown > 0) { setInterval(() => { if (summonCooldown > 0) summonCooldown -= 1000; }, 1000); }
     
-    // PEDIR ESQUELETOS CADA 10 SEGUNDOS
     setInterval(() => { if (socket && socket.id && juegoIniciado) socket.emit('solicitarEsqueletos'); }, 10000);
-
-
+    
     // ============================================
     // TECLAS PARA SKILLS (1, 2, 3, 4, 5)
     // ============================================
@@ -1983,8 +1924,7 @@ function create() {
     this.input.keyboard.on('keydown-FIVE', () => {
         if (skillsEquipadas[4]) usarSkill(skillsEquipadas[4]);
     });
-    
-}  // ← Esta es la llave que
+}
 
 function addOtherPlayer(self, info) { 
     if (!info.class) return; 
@@ -2065,7 +2005,6 @@ function update() {
     } 
 }
 
-// Inicializar cuando el DOM cargue
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('menu-ui').style.display = 'flex';
     document.getElementById('class-ui').style.display = 'none';
