@@ -116,12 +116,14 @@
 
 .orb-fill {
     position: absolute;
-    top: 0;              /* anclado arriba */
+    top: 0;
     left: 0;
     width: 100%;
+    height: 100%;
     background-color: red;
-    transition: height 0.2s ease;
-    height: 100%;        /* JS lo cambiará */
+    transition: transform 0.2s ease;
+    transform-origin: top;    /* ← crece y decrece desde arriba */
+    transform: scaleY(1);
 }
 
 #mana-fill-vertical {
@@ -997,13 +999,13 @@ if (manaFillOld) manaFillOld.style.width = (playerMana / playerMaxMana) * 100 + 
     
     // 👇 AGREGAR ACÁ (ANTES DE LA LLAVE QUE CIERRA actualizarStatsUI)
     // Actualizar orbes de vida y mana
-      const hpPercent = playerHP / playerMaxHP;   // 1.0 = lleno, 0.5 = medio
+      const hpPercent = playerHP / playerMaxHP;
 const hpFill = document.getElementById('hp-fill-vertical');
-if (hpFill) hpFill.style.height = (hpPercent * 100) + '%';
+if (hpFill) hpFill.style.transform = `scaleY(${hpPercent})`;
 
 const manaPercent = playerMana / playerMaxMana;
 const manaFill = document.getElementById('mana-fill-vertical');
-if (manaFill) manaFill.style.height = (manaPercent * 100) + '%';
+if (manaFill) manaFill.style.transform = `scaleY(${manaPercent})`;
     const hpTextInline = document.getElementById('hp-text-inline');
     if (hpTextInline) hpTextInline.innerText = Math.floor(playerHP);
     const manaTextInline = document.getElementById('mana-text-inline');
