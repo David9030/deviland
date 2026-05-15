@@ -88,6 +88,70 @@
         .context-menu { position: fixed; background: #111; border: 1px solid #fff; border-radius: 5px; z-index: 20000; display: none; }
         .context-menu-item { padding: 8px 15px; cursor: pointer; color: #fff; font-size: 12px; }
         .context-menu-item:hover { background: #333; }
+
+
+        /* ... todo el CSS que ya tenés ... */
+        
+        /* ========================================= */
+        /* NUEVO CSS PARA ORBES Y SKILLS CENTRADOS   */
+        /* ========================================= */
+        #stats-container {
+            position: fixed;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            z-index: 10000;
+        }
+        .orb-container {
+            position: relative;
+            width: 50px;
+            height: 50px;
+            background: #1a0a0a;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: inset 0 0 5px #000;
+        }
+        .orb-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background-color: red;
+            transition: height 0.2s;
+            height: 100%;
+        }
+        #mana-fill-vertical { background-color: blue; }
+        .orb-sprite {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: contain;
+            pointer-events: none;
+        }
+        #hp-orb-sprite { background-image: url('ui/hp_orb_sprite.png'); }
+        #mana-orb-sprite { background-image: url('ui/mana_orb_sprite.png'); }
+        .orb-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            bottom: -20px;
+            font-size: 10px;
+            color: white;
+            text-shadow: 1px 1px 0 black;
+        }
+        #skills-bar {
+            position: static;
+            transform: none;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 15px;
+            border-radius: 50px;
+            display: flex;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -132,9 +196,21 @@
         <div class="floating-tab" onclick="toggleInventario()">🎒 INVENTARIO</div>
     </div>
     
-    <div id="btn-attack">⚔️</div>
+    <div id="stats-container">
+    <div id="hp-orb" class="orb-container">
+        <div id="hp-fill-vertical" class="orb-fill"></div>
+        <div id="hp-orb-sprite" class="orb-sprite"></div>
+        <div class="orb-text">❤️ <span id="hp-text-inline">500</span></div>
+    </div>
     <div id="skills-bar"></div>
-    <div id="joystick-area"></div>
+    <div id="mana-orb" class="orb-container">
+        <div id="mana-fill-vertical" class="orb-fill"></div>
+        <div id="mana-orb-sprite" class="orb-sprite"></div>
+        <div class="orb-text">💙 <span id="mana-text-inline">100</span></div>
+    </div>
+</div>
+<div id="btn-attack">⚔️</div>
+<div id="joystick-area"></div>
     
     <!-- INVENTARIO UI -->
     <div id="inventario-ui">
@@ -897,7 +973,23 @@ function actualizarStatsUI() {
     } 
     }, RESPAWN_TIME); 
     } 
-}
+    
+    // 👇 AGREGAR ACÁ (ANTES DE LA LLAVE QUE CIERRA actualizarStatsUI)
+    // Actualizar orbes de vida y mana
+    const hpPercent = playerHP / playerMaxHP;
+    const hpFillVert = document.getElementById('hp-fill-vertical');
+    if (hpFillVert) hpFillVert.style.height = (hpPercent * 100) + '%';
+
+    const manaPercent = playerMana / playerMaxMana;
+    const manaFillVert = document.getElementById('mana-fill-vertical');
+    if (manaFillVert) manaFillVert.style.height = (manaPercent * 100) + '%';
+
+    const hpTextInline = document.getElementById('hp-text-inline');
+    if (hpTextInline) hpTextInline.innerText = Math.floor(playerHP);
+    const manaTextInline = document.getElementById('mana-text-inline');
+    if (manaTextInline) manaTextInline.innerText = Math.floor(playerMana);
+    
+}  // ← Esta llave cierra actualizarStatsUI
 
 function mostrarPreviewStats(item, tipo) { 
     const statsOriginales = { 
