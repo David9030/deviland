@@ -122,10 +122,9 @@
     height: 100%;
     background-color: red;
     transition: transform 0.2s ease;
-    transform-origin: top;    /* ← crece y decrece desde arriba */
+    transform-origin: top;      /* ← ancla arriba */
     transform: scaleY(1);
 }
-
 #mana-fill-vertical {
     background-color: blue;
 }
@@ -145,7 +144,7 @@
 .orb-angel {
     position: absolute;
     top: 0;
-    left: -40;
+    left: -40px;
     width: 100%;
     height: 100%;
     background-image: url('ui/orb_angel.png');
@@ -199,11 +198,6 @@
             <button class="class-btn" onclick="seleccionarClase('necromancer_sprite', 'NECROMANCER')">💀 NECROMANCER</button>
         </div>
     </div>
-    
-    <div id="hp-bar"><div id="hp-fill"></div></div><div id="hp-text">❤️ 500/500</div>
-    <div id="mana-bar"><div id="mana-fill"></div></div><div id="mana-text">💙 100/100</div>
-    <div id="demonlord-hp-bar"><div id="demonlord-hp-fill"></div></div><div id="demonlord-hp-text">👹 DEMONLORD</div>
-    <div id="info"></div>
     
     <div id="chat-container">
         <div id="chat-header" onclick="toggleChat()"><span>💬 CHAT</span><span>▼</span></div>
@@ -1000,12 +994,12 @@ if (manaFillOld) manaFillOld.style.width = (playerMana / playerMaxMana) * 100 + 
     // 👇 AGREGAR ACÁ (ANTES DE LA LLAVE QUE CIERRA actualizarStatsUI)
     // Actualizar orbes de vida y mana
       const hpPercent = playerHP / playerMaxHP;
-const hpFill = document.getElementById('hp-fill-vertical');
-if (hpFill) hpFill.style.transform = `scaleY(${hpPercent})`;
+const hpFillVert = document.getElementById('hp-fill-vertical');
+if (hpFillVert) hpFillVert.style.transform = `scaleY(${hpPercent})`;
 
 const manaPercent = playerMana / playerMaxMana;
-const manaFill = document.getElementById('mana-fill-vertical');
-if (manaFill) manaFill.style.transform = `scaleY(${manaPercent})`;
+const manaFillVert = document.getElementById('mana-fill-vertical');
+if (manaFillVert) manaFillVert.style.transform = `scaleY(${manaPercent})`;
     const hpTextInline = document.getElementById('hp-text-inline');
     if (hpTextInline) hpTextInline.innerText = Math.floor(playerHP);
     const manaTextInline = document.getElementById('mana-text-inline');
