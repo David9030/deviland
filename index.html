@@ -959,10 +959,10 @@ function actualizarStatsUI() {
     const expFill = document.getElementById('exp-fill');
     if (expFill) expFill.style.width = expPercent + '%'; 
     
-    const hpFill = document.getElementById('hp-fill');
-    const manaFill = document.getElementById('mana-fill');
-    if (hpFill) hpFill.style.width = (playerHP / playerMaxHP) * 100 + '%'; 
-    if (manaFill) manaFill.style.width = (playerMana / playerMaxMana) * 100 + '%'; 
+    const hpFillOld = document.getElementById('hp-fill');
+const manaFillOld = document.getElementById('mana-fill');
+if (hpFillOld) hpFillOld.style.width = (playerHP / playerMaxHP) * 100 + '%';
+if (manaFillOld) manaFillOld.style.width = (playerMana / playerMaxMana) * 100 + '%';
     
     document.getElementById('hp-text').innerHTML = `❤️ ${Math.floor(playerHP)}/${Math.floor(playerMaxHP)}`; 
     document.getElementById('mana-text').innerHTML = `💙 ${Math.floor(playerMana)}/${Math.floor(playerMaxMana)}`; 
