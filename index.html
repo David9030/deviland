@@ -123,6 +123,19 @@
             height: 100%;
         }
         #mana-fill-vertical { background-color: blue; }
+        .orb-angel {
+    position: absolute;
+    top: 0;
+    left: -10px;
+    width: 100%;
+    height: 100%;
+    background-image: url('ui/orb_angel.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    z-index: 15;
+}
         .orb-sprite {
     position: absolute;
     top: 0;
@@ -201,6 +214,7 @@
     <div id="hp-orb" class="orb-container">
         <div id="hp-fill-vertical" class="orb-fill"></div>
         <div id="hp-orb-sprite" class="orb-sprite"></div>
+        <div id="hp-angel" class="orb-angel"></div>   <!-- ← AGREGAR ESTO -->
         <div class="orb-text">❤️ <span id="hp-text-inline">500</span></div>
     </div>
     <div id="skills-bar"></div>
