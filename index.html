@@ -109,20 +109,20 @@
     width: 70px;
     height: 70px;
     background: #1a0a0a;
-    border-radius: 0px !important;
+    border-radius: 50% !important;   /* ← círculo perfecto */
     overflow: hidden;
     box-shadow: inset 0 0 5px #000;
 }
 
 .orb-fill {
     position: absolute;
-    top: 0;
+    top: 0;           /* ← anclado arriba */
     left: 0;
     width: 100%;
     height: 100%;
     background-color: red;
-    transition: height 0.2s;   /* ← altura variable (arriba → abajo) */
-    /* height se controla desde JS */
+    transition: height 0.2s;
+    border-radius: 50%;    /* ← para que el relleno no se salga */
 }
 
 #mana-fill-vertical {
@@ -1000,12 +1000,12 @@ function actualizarStatsUI() {
     // 👇 AGREGAR ACÁ (ANTES DE LA LLAVE QUE CIERRA actualizarStatsUI)
     // Actualizar orbes de vida y mana
         const hpPercent = playerHP / playerMaxHP;
-    const hpFillVert = document.getElementById('hp-fill-vertical');
-    if (hpFillVert) hpFillVert.style.height = (hpPercent * 100) + '%';
+const hpFillVert = document.getElementById('hp-fill-vertical');
+if (hpFillVert) hpFillVert.style.height = (hpPercent * 100) + '%';
 
-    const manaPercent = playerMana / playerMaxMana;
-    const manaFillVert = document.getElementById('mana-fill-vertical');
-    if (manaFillVert) manaFillVert.style.height = (manaPercent * 100) + '%';
+const manaPercent = playerMana / playerMaxMana;
+const manaFillVert = document.getElementById('mana-fill-vertical');
+if (manaFillVert) manaFillVert.style.height = (manaPercent * 100) + '%';
     const hpTextInline = document.getElementById('hp-text-inline');
     if (hpTextInline) hpTextInline.innerText = Math.floor(playerHP);
     const manaTextInline = document.getElementById('mana-text-inline');
