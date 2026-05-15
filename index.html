@@ -999,14 +999,13 @@ function actualizarStatsUI() {
     
     // 👇 AGREGAR ACÁ (ANTES DE LA LLAVE QUE CIERRA actualizarStatsUI)
     // Actualizar orbes de vida y mana
-    const hpPercent = playerHP / playerMaxHP;
-const hpFill = document.getElementById('hp-fill-vertical');
-if (hpFill) hpFill.style.height = (hpPercent * 100) + '%';
+        const hpPercent = playerHP / playerMaxHP;
+    const hpFillVert = document.getElementById('hp-fill-vertical');
+    if (hpFillVert) hpFillVert.style.height = (hpPercent * 100) + '%';
 
-const manaPercent = playerMana / playerMaxMana;
-const manaFill = document.getElementById('mana-fill-vertical');
-if (manaFill) manaFill.style.height = (manaPercent * 100) + '%';
-
+    const manaPercent = playerMana / playerMaxMana;
+    const manaFillVert = document.getElementById('mana-fill-vertical');
+    if (manaFillVert) manaFillVert.style.height = (manaPercent * 100) + '%';
     const hpTextInline = document.getElementById('hp-text-inline');
     if (hpTextInline) hpTextInline.innerText = Math.floor(playerHP);
     const manaTextInline = document.getElementById('mana-text-inline');
