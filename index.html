@@ -109,37 +109,24 @@
     width: 70px;
     height: 70px;
     background: #1a0a0a;
-    border-radius: 50%;
-    overflow: visible !important;
+    border-radius: 0px !important;   /* ← cuadrado */
+    overflow: hidden;
     box-shadow: inset 0 0 5px #000;
 }
 
 .orb-fill {
     position: absolute;
-    bottom: 0;
+    top: 0;
     left: 0;
-    width: 100%;
-    background-color: red;
-    transition: height 0.2s;
+    width: 100%;          /* cambiará según la vida */
     height: 100%;
-    border-radius: 50%;
-    overflow: hidden;
+    background-color: red;
+    transition: width 0.2s;
+    /* sin border-radius */
 }
 
-#mana-fill-vertical { background-color: blue; }
-
-.orb-angel {
-    position: absolute;
-    top: -8px;
-    left: -42px;
-    width: 115%;
-    height: 115%;
-    background-image: url('ui/orb_angel.png');
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    pointer-events: none;
-    z-index: 100;
+#mana-fill-vertical {
+    background-color: blue;
 }
 
 .orb-sprite {
@@ -149,11 +136,25 @@
     width: 100%;
     height: 100%;
     background-image: url('ui/orb_glass.png');
-    background-size: cover;
+    background-size: cover;          /* cubre todo el cuadrado */
     background-repeat: no-repeat;
     background-position: center;
     pointer-events: none;
-    border-radius: 50%;        /* ← NUEVO: el sprite también redondeado */
+    /* sin border-radius */
+}
+
+.orb-angel {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    width: 110%;
+    height: 110%;
+    background-image: url('ui/orb_angel.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    z-index: 25;
 }
 
 .orb-text {
@@ -165,7 +166,6 @@
     color: white;
     text-shadow: 1px 1px 0 black;
 }
-
 #skills-bar {
     position: static;
     transform: none;
