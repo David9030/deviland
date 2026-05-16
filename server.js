@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
+const path = require('path');
 
 const CONFIG = {
     PORT: 3000,
@@ -19,6 +20,21 @@ const CONFIG = {
     ROCAS: { CANTIDAD_INICIAL: 20, MAX_POR_JUGADOR: 50, RESPAWN_TIME: 30000 }
 };
 
+// ============================================
+// SERVIDOR ESTÁTICO - CORREGIDO
+// ============================================
+app.use(express.static(__dirname));
+app.use('/ui', express.static(path.join(__dirname, 'ui')));
+app.use('/skills', express.static(path.join(__dirname, 'skills')));
+app.use('/fireball', express.static(path.join(__dirname, 'fireball')));
+
+// Redirigir nombres de imágenes
+app.get('/espada_img.png', (req, res) => res.sendFile(path.join(__dirname, 'espada.png')));
+app.get('/escudo_madera_img.png', (req, res) => res.sendFile(path.join(__dirname, 'escudo_madera.png')));
+app.get('/armadura_de_cuero_img.png', (req, res) => res.sendFile(path.join(__dirname, 'armadura_de_cuero.png')));
+
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
 let players = {};
 let ultimoAtaque = new Map();
 let demonlord = { id: 'demonlord', x: 1500, y: 1500, hp: CONFIG.DEMONLORD.MAX_HP, maxHp: CONFIG.DEMONLORD.MAX_HP, isAlive: true, dir: 'Abajo', attackCooldown: 0 };
@@ -35,9 +51,6 @@ let teams = {};
 let playerTeam = {};
 let invitacionesPendientes = {};
 
-// ============================================
-// FUNCIONES AUXILIARES
-// ============================================
 function getDistance(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
 
 function darExpAJugadorYEquipo(socketId, exp) {
@@ -60,9 +73,6 @@ function darExpAJugadorYEquipo(socketId, exp) {
     }
 }
 
-// ============================================
-// FUNCIÓN DE RESPAWN UNIFICADA
-// ============================================
 function revivirJugador(socketId) {
     const jugador = players[socketId];
     if (!jugador) {
@@ -78,11 +88,9 @@ function revivirJugador(socketId) {
     jugador.x = 512;
     jugador.y = 512;
     
-    // Notificar a todos los clientes
     io.emit('playerRespawn', { id: socketId, x: 512, y: 512 });
     io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${jugador.name} ha revivido!` });
     
-    // Reasignar esqueletos cercanos para que sigan al jugador
     let count = 0;
     esqueletos.forEach(esq => {
         if (esq.isAlive && !esq.isAlly) {
@@ -95,19 +103,12 @@ function revivirJugador(socketId) {
         }
     });
     
-    console.log(`  → Reasignados ${count} esqueletos para seguir a ${jugador.name}`);
-    
-    // Enviar lista actualizada de esqueletos al jugador
     setTimeout(() => {
         const esqueletosCercanos = esqueletos.filter(e => getDistance(jugador.x, jugador.y, e.x, e.y) < 1500);
         io.to(socketId).emit('esqueletosIniciales', esqueletosCercanos);
-        console.log(`  → Enviados ${esqueletosCercanos.length} esqueletos a ${jugador.name}`);
     }, 500);
 }
 
-// ============================================
-// FUNCIONES DE GENERACIÓN DE RECURSOS
-// ============================================
 function spawnItem(x, y, tipo) {
     const item = { id: 'item_' + nextItemId++, x: x, y: y, tipo: tipo, recogido: false, frame: 7 };
     items.push(item);
@@ -178,12 +179,11 @@ function respawnEsqueleto(esqueletoId) {
             };
             esqueletos.push(newEnemy);
             io.emit('esqueletoNew', { id: newEnemy.id, x: newEnemy.x, y: newEnemy.y });
-            console.log("🔄 Esqueleto respawneado después de 2 minutos:", newEnemy.id);
+            console.log("🔄 Esqueleto respawneado:", newEnemy.id);
         }
     }, 120000);
 }
 
-// Inicializar recursos
 setTimeout(() => { 
     generarArboles(); 
     generarMinas(); 
@@ -191,21 +191,11 @@ setTimeout(() => {
     generarEsqueletos(); 
 }, 2000);
 
-// ============================================
-// SERVIDOR ESTÁTICO
-// ============================================
-app.use(express.static(__dirname));
-app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
-
-// ============================================
-// SOCKET.IO CONEXIONES
-// ============================================
 io.on('connection', (socket) => {
     console.log('Cliente conectado:', socket.id);
     
     skillCooldowns[socket.id] = { furiaNecrotica: 0 };
     
-    // Enviar estado inicial
     socket.emit('arbolesIniciales', arboles);
     socket.emit('minasIniciales', minas);
     socket.emit('rocasIniciales', rocas);
@@ -213,9 +203,6 @@ io.on('connection', (socket) => {
     socket.emit('currentPlayers', players);
     socket.emit('demonlordState', { hp: demonlord.hp, isAlive: demonlord.isAlive, x: demonlord.x, y: demonlord.y, dir: demonlord.dir });
     
-    // ============================================
-    // NUEVO JUGADOR
-    // ============================================
     socket.on('newPlayer', (d) => {
         const baseStats = CONFIG.PLAYER.BASE_STATS[d.class] || CONFIG.PLAYER.BASE_STATS.warrior;
         let ataqueFisico = 15;
@@ -241,25 +228,25 @@ io.on('connection', (socket) => {
         
         inventariosJugadores[socket.id] = { items: [], equipamiento: {} };
         inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 });
-        inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nombre: 'Espada Básica', icono: '⚔️', cantidad: 1, slot: 1 });
+        inventariosJugadores[socket.id].items.push({ id: 'espada_1', tipo: 'espada', nombre: 'Espada Básica', icono: 'espada_img', cantidad: 1, slot: 1 });
+        inventariosJugadores[socket.id].items.push({ id: 'escudo_1', tipo: 'escudo', nombre: 'Escudo Básico', icono: 'escudo_madera_img', cantidad: 1, slot: 2 });
+        inventariosJugadores[socket.id].items.push({ id: 'armadura_1', tipo: 'armadura', nombre: 'Armadura Básica', icono: 'armadura_de_cuero_img', cantidad: 1, slot: 3 });
         
         socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
         socket.broadcast.emit('newPlayer', players[socket.id]);
         io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${d.name} (${d.className || d.class}) se ha unido` });
     });
     
-    // ============================================
-    // INVENTARIO
-    // ============================================
     socket.on('solicitarInventarioCompleto', () => {
-        console.log(`📦 Enviando inventario completo a ${socket.id}`);
         if (inventariosJugadores[socket.id]) {
             socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
         } else {
             inventariosJugadores[socket.id] = { 
                 items: [
                     { id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 },
-                    { id: 'espada_1', tipo: 'espada', nombre: 'Espada Básica', icono: '⚔️', cantidad: 1, slot: 1 },
+                    { id: 'espada_1', tipo: 'espada', nombre: 'Espada Básica', icono: 'espada_img', cantidad: 1, slot: 1 },
+                    { id: 'escudo_1', tipo: 'escudo', nombre: 'Escudo Básico', icono: 'escudo_madera_img', cantidad: 1, slot: 2 },
+                    { id: 'armadura_1', tipo: 'armadura', nombre: 'Armadura Básica', icono: 'armadura_de_cuero_img', cantidad: 1, slot: 3 },
                 ], 
                 equipamiento: {} 
             };
@@ -299,20 +286,6 @@ io.on('connection', (socket) => {
         socket.emit('mensaje', `❤️ +${curacion} HP`);
     });
     
-    socket.on('actualizarStats', (data) => {
-        const jugador = players[socket.id];
-        if (!jugador) return;
-        
-        if (data.fuerza !== undefined) jugador.stats.fuerza = data.fuerza;
-        if (data.inteligencia !== undefined) jugador.stats.inteligencia = data.inteligencia;
-        if (data.agilidad !== undefined) jugador.stats.agilidad = data.agilidad;
-        if (data.vitalidad !== undefined) jugador.stats.vitalidad = data.vitalidad;
-        if (data.sabiduria !== undefined) jugador.stats.sabiduria = data.sabiduria;
-    });
-    
-    // ============================================
-    // COMBATE Y ESQUELETOS
-    // ============================================
     socket.on('playerMovement', (data) => {
         let p = players[socket.id];
         if (p && p.isAlive) {
@@ -375,9 +348,6 @@ io.on('connection', (socket) => {
         } 
     });
     
-    // ============================================
-    // MUERTE Y RESPAWN DE JUGADOR (CORREGIDO)
-    // ============================================
     socket.on('playerMurio', (data) => {
         console.log(`💀 Jugador murió: ${data.id}`);
         const jugador = players[data.id];
@@ -386,7 +356,6 @@ io.on('connection', (socket) => {
             jugador.hp = 0;
             io.emit('playerDeath', { id: data.id, name: jugador.name });
             
-            // Desasignar esqueletos que lo seguían
             esqueletos.forEach(esq => {
                 if (esq.targetId === data.id) {
                     esq.targetId = null;
@@ -397,15 +366,12 @@ io.on('connection', (socket) => {
     });
     
     socket.on('playerRespawn', (data) => {
-        console.log(`🔥 playerRespawn recibido en servidor para ID: ${data.id}`);
+        console.log(`🔥 playerRespawn recibido para ID: ${data.id}`);
         if (data.id === socket.id) {
             revivirJugador(socket.id);
         }
     });
     
-    // ============================================
-    // DEMONLORD
-    // ============================================
     socket.on('demonlordHit', (data) => {
         if (!demonlord.isAlive) return;
         const jugador = players[socket.id];
@@ -457,9 +423,6 @@ io.on('connection', (socket) => {
         }
     });
     
-    // ============================================
-    // SKILLS Y ESQUELETOS ALIADOS
-    // ============================================
     socket.on('levantarEsqueleto', (data) => {
         const jugador = players[socket.id];
         if (!jugador || jugador.className !== 'NECROMANCER') {
@@ -582,12 +545,8 @@ io.on('connection', (socket) => {
         
         const esqueletosCercanos = esqueletos.filter(e => getDistance(jugador.x, jugador.y, e.x, e.y) < 1500);
         socket.emit('esqueletosIniciales', esqueletosCercanos);
-        console.log(`📦 Re-enviando ${esqueletosCercanos.length} esqueletos a ${socket.id}`);
     });
     
-    // ============================================
-    // CHAT Y EQUIPOS
-    // ============================================
     socket.on('chatMessage', (msg) => {
         if (!msg.startsWith('/')) {
             const jugador = players[socket.id];
@@ -703,9 +662,6 @@ io.on('connection', (socket) => {
         socket.emit('mensaje', `📨 Invitación enviada a ${invitado.name}`);
     });
     
-    // ============================================
-    // RECURSOS (ÁRBOLES, MINAS, ROCAS)
-    // ============================================
     socket.on('talarArbol', (data) => {
         let jugador = players[socket.id];
         if(!jugador || !jugador.isAlive) return;
@@ -788,9 +744,6 @@ io.on('connection', (socket) => {
         }, CONFIG.ROCAS.RESPAWN_TIME);
     });
     
-    // ============================================
-    // DESCONEXIÓN
-    // ============================================
     socket.on('disconnect', () => { 
         console.log('Cliente desconectado:', socket.id);
         
@@ -818,9 +771,7 @@ io.on('connection', (socket) => {
     });
 });
 
-// ============================================
 // MOVIMIENTO DE DEMONLORD
-// ============================================
 setInterval(() => {
     if (!demonlord.isAlive) return;
     
@@ -839,16 +790,6 @@ setInterval(() => {
     
     esqueletos.forEach(esqueleto => {
         if (esqueleto.isAlive && esqueleto.isAlly === true) {
-            const dist = getDistance(demonlord.x, demonlord.y, esqueleto.x, esqueleto.y);
-            if (dist < closestDistance) {
-                closestDistance = dist;
-                closestTarget = esqueleto;
-            }
-        }
-    });
-    
-    esqueletos.forEach(esqueleto => {
-        if (esqueleto.isAlive && esqueleto.isAlly === false) {
             const dist = getDistance(demonlord.x, demonlord.y, esqueleto.x, esqueleto.y);
             if (dist < closestDistance) {
                 closestDistance = dist;
@@ -912,9 +853,7 @@ setInterval(() => {
     if (demonlord.attackCooldown > 0) demonlord.attackCooldown -= 100;
 }, 100);
 
-// ============================================
 // MOVIMIENTO DE ESQUELETOS
-// ============================================
 setInterval(() => {
     esqueletos.forEach(esqueleto => {
         if (!esqueleto.isAlive) return;
@@ -1042,16 +981,12 @@ setInterval(() => {
     });
 }, 150);
 
-// Visuales del demonlord
 setInterval(() => {
     if (demonlord.isAlive && Math.random() < 0.3) {
         io.emit('demonlordAtkVisual', { dir: demonlord.dir, esFuerte: Math.random() < 0.3 });
     }
 }, 2000);
 
-// ============================================
-// INICIAR SERVIDOR
-// ============================================
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, '0.0.0.0', () => {
     console.log(`🔥 DEVILAND - Servidor en puerto ${PORT}`);

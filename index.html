@@ -187,7 +187,7 @@
     text-shadow: 1px 1px 0 black;
     z-index: 3;
 }
-        #skills-bar {
+               #skills-bar {
             position: static;
             transform: none;
             background: rgba(0,0,0,0.5);
@@ -195,6 +195,28 @@
             border-radius: 50px;
             display: flex;
             gap: 10px;
+        }
+
+        /* ========================================== */
+        /* OCULTAR TODO MIENTRAS CARGA */
+        /* ========================================== */
+        body.loading #stats-container,
+        body.loading #skills-bar,
+        body.loading #btn-attack,
+        body.loading .floating-tabs,
+        body.loading .orb-angel,
+        body.loading .orb-sprite,
+        body.loading .orb-fill,
+        body.loading .orb-text,
+        body.loading #demonlord-hp-bar,
+        body.loading #demonlord-hp-text,
+        body.loading #chat-container {
+            display: none !important;
+        }
+
+        body.loading .loading-overlay,
+        body.loading .menu-overlay {
+            display: flex !important;
         }
     </style>
 </head>
@@ -706,6 +728,7 @@ function seleccionarClase(sprite, nombreClase) {
 function iniciarJuego() { 
     juegoIniciado = true; 
     ocultarPantallaCarga(); 
+    document.body.classList.remove('loading');  // ← AGREGAR
     setInterval(() => regenerarMana(), 5000); 
     new Phaser.Game({ 
         type: Phaser.AUTO, 
@@ -720,6 +743,7 @@ function iniciarJuegoConCarga(g) {
     juegoIniciado = true; 
     window.guardadoPendiente = g; 
     ocultarPantallaCarga(); 
+    document.body.classList.remove('loading');  // ← AGREGAR
     setInterval(() => regenerarMana(), 5000); 
     new Phaser.Game({ 
         type: Phaser.AUTO, 
@@ -1561,8 +1585,16 @@ function preload() {
 
 // ============================================
 // PHASER: CREATE
-// ============================================
-function create() { 
+// ============================================ 
+   function create() { 
+    // Asegurar que la barra llegue a 100% antes de ocultar
+    actualizarBarraCarga(100);
+    
+    // Pequeño retraso para que se vea el 100%
+    setTimeout(() => {
+        ocultarPantallaCarga();
+        document.body.classList.remove('loading');  // ← AGREGAR ESTA LÍNEA
+    }, 500);
     currentScene = this; 
     socket = io();
     
@@ -2049,10 +2081,12 @@ function update() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    document.body.classList.add('loading');  // ← AGREGAR ESTA LÍNEA
     document.getElementById('menu-ui').style.display = 'flex';
     document.getElementById('class-ui').style.display = 'none';
     document.getElementById('loading-ui').style.display = 'none';
 });
+
 </script>
 </body>
 </html>
