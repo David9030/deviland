@@ -83,73 +83,84 @@
         #demonlord-hp-fill { width: 100%; height: 100%; background: #ff0000; transition: width 0.2s; }
         #demonlord-hp-text { position: fixed; top: 10px; left: 270px; color: #fff; font-size: 12px; z-index: 10000; display: none; text-shadow: 1px 1px 0 #000; }
 
-        #stats-container {
-            position: fixed;
-            bottom: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 25px;
-            align-items: center;
-            z-index: 10000;
-        }
-        .orb-container {
-            position: relative;
-            width: 70px;
-            height: 70px;
-            background: #1a0a0a;
-            border-radius: 0px;
-            overflow: hidden;
-            box-shadow: inset 0 0 5px #000;
-        }
-        .orb-fill {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: red;
-            transition: transform 0.2s ease;
-            transform-origin: bottom;
-            transform: scaleY(1);
-        }
-        #mana-fill-vertical {
-            background-color: blue;
-        }
-        .orb-sprite {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url('ui/orb_glass.png');
-            background-size: 100% 100%;
-            background-repeat: no-repeat;
-            background-position: center;
-            pointer-events: none;
-        }
-        .orb-angel {
-            position: absolute;
-            top: 0;
-            left: -40px;
-            width: 100%;
-            height: 100%;
-            background-image: url('ui/orb_angel.png');
-            background-size: 100% 100%;
-            background-repeat: no-repeat;
-            background-position: center;
-            pointer-events: none;
-            z-index: 25;
-        }
-        .orb-text {
-            position: absolute;
-            width: 100%;
-            text-align: center;
-            bottom: -20px;
-            font-size: 10px;
-            color: white;
-            text-shadow: 1px 1px 0 black;
-        }
+       #stats-container {
+    position: fixed;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 25px;
+    align-items: center;
+    z-index: 10000;
+}
+
+.orb-container {
+    position: relative;
+    width: 70px;
+    height: 70px;
+    border-radius: 0px;
+    overflow: hidden;  /* Esto es importante - corta lo que sobresale */
+}
+
+/* Capa de fondo de la barra (vacía) */
+.orb-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: red;
+    transition: transform 0.2s ease;
+    transform-origin: top;
+    transform: scaleY(1);
+    z-index: 1;
+}
+
+#mana-fill-vertical {
+    background-color: blue;
+}
+
+/* Capa del vidrio (orb_glass) - ENCIMA de la barra */
+.orb-sprite {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('ui/orb_glass.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    z-index: 3;  /* Encima de la barra */
+}
+
+/* Capa del ángel (orb_angel) - ARRIBA de todo, pero transparente */
+.orb-angel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('ui/orb_angel.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    z-index: 4;  /* Encima de todo */
+    opacity: 0.7;  /* Hacerlo un poco transparente para que se vea la barra */
+}
+
+.orb-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    bottom: -20px;
+    font-size: 10px;
+    color: white;
+    text-shadow: 1px 1px 0 black;
+    z-index: 5;
+}
         #skills-bar {
             position: static;
             transform: none;
