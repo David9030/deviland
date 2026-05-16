@@ -83,7 +83,7 @@
         #demonlord-hp-fill { width: 100%; height: 100%; background: #ff0000; transition: width 0.2s; }
         #demonlord-hp-text { position: fixed; top: 10px; left: 270px; color: #fff; font-size: 12px; z-index: 10000; display: none; text-shadow: 1px 1px 0 #000; }
 
-      #stats-container {
+     #stats-container {
     position: fixed;
     bottom: 15px;
     left: 50%;
@@ -136,21 +136,21 @@
     z-index: 2;
 }
 
-/* Ángel decorativo - ARRIBA de todo, abrazando */
+/* Ángel decorativo - POR FUERA de la esfera, abrazando */
 .orb-angel {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 115%;
-    height: 115%;
+    width: 140%;  /* Más grande para que abrace por fuera */
+    height: 140%;
     background-image: url('ui/orb_angel.png');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
     pointer-events: none;
     z-index: 10;
-    opacity: 0.85;
+    opacity: 0.9;
 }
 
 .orb-text {
