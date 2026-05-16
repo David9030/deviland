@@ -616,13 +616,16 @@ function mostrarPantallaCarga() {
     const ld = document.getElementById('loading-ui'); 
     ld.style.display = 'flex'; 
     const bar = document.getElementById('loading-bar'); 
-    bar.style.width = '0%'; 
-    let p = 0; 
-    const it = setInterval(() => { 
-        p += 10; 
-        bar.style.width = p + '%'; 
-        if (p >= 100) clearInterval(it); 
-    }, 50); 
+    const texto = document.querySelector('.loading-text');
+    bar.style.width = '0%';
+    texto.textContent = 'CARGANDO... 0%';
+}
+
+function actualizarBarraCarga(porcentaje) {
+    const bar = document.getElementById('loading-bar');
+    const texto = document.querySelector('.loading-text');
+    if (bar) bar.style.width = porcentaje + '%';
+    if (texto) texto.textContent = `CARGANDO... ${porcentaje}%`;
 }
 
 function ocultarPantallaCarga() { 
@@ -1520,6 +1523,17 @@ function crearTextoDmg(esc, x, y, txt, col, sz) {
 // PHASER: PRELOAD
 // ============================================
 function preload() { 
+    // Seguimiento de carga
+    this.load.on('progress', (value) => {
+        const porcentaje = Math.floor(value * 100);
+        actualizarBarraCarga(porcentaje);
+    });
+    
+    this.load.on('complete', () => {
+        console.log('Todos los assets cargados');
+        actualizarBarraCarga(100);
+    });
+    
     this.load.image('suelo', 'ground_stone1.png');
     this.load.spritesheet('mago_sprite', 'mago.png', { frameWidth: 255, frameHeight: 255 }); 
     this.load.spritesheet('necromancer_sprite', 'necromancer.png', { frameWidth: 255, frameHeight: 255 }); 
@@ -1533,9 +1547,9 @@ function preload() {
     this.load.spritesheet('esqueleto', 'esqueleto.png', { frameWidth: 255, frameHeight: 255 }); 
     
     for (let i = 0; i <= 26; i++) { 
-    const frameNum = i.toString().padStart(4, '0'); 
-    this.load.image(`fireball_${frameNum}`, `fireball/${frameNum}.png`); 
-}
+        const frameNum = i.toString().padStart(4, '0'); 
+        this.load.image(`fireball_${frameNum}`, `fireball/${frameNum}.png`); 
+    }
     
     this.load.audio('sonidoTalar', 'talar.mp3'); 
     this.load.audio('sonidoMina', 'mina.mp3'); 
