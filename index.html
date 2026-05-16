@@ -98,12 +98,12 @@
     position: relative;
     width: 70px;
     height: 70px;
-    border-radius: 50%;  /* Hace que el contenedor sea circular */
-    overflow: hidden;    /* TODO lo que sobresale se corta */
+    border-radius: 50%;  /* ← Esto hace que el círculo corte lo que sobresale */
+    overflow: hidden;    /* ← Esto evita que la barra se vea fuera */
     box-shadow: inset 0 0 5px #000;
 }
 
-/* Barra de vida - crece desde arriba hacia abajo */
+/* TU DIRECCIÓN ORIGINAL - transform-origin: bottom */
 .orb-fill {
     position: absolute;
     top: 0;
@@ -112,7 +112,7 @@
     height: 100%;
     background-color: red;
     transition: transform 0.2s ease;
-    transform-origin: top;
+    transform-origin: bottom;  /* ← TU DIRECCIÓN, no la cambié */
     transform: scaleY(1);
     z-index: 1;
 }
@@ -930,13 +930,14 @@ function actualizarStatsUI() {
     const expFill = document.getElementById('exp-fill');
     if (expFill) expFill.style.width = expPercent + '%'; 
     
-    const hpPercent = playerHP / playerMaxHP;
-    const hpFillVert = document.getElementById('hp-fill-vertical');
-    if (hpFillVert) hpFillVert.style.transform = `scaleY(${hpPercent})`;
+   // TU CÓDIGO ORIGINAL - NO LO CAMBIES
+const hpPercent = playerHP / playerMaxHP;
+const hpFillVert = document.getElementById('hp-fill-vertical');
+if (hpFillVert) hpFillVert.style.transform = `scaleY(${hpPercent})`;
 
-    const manaPercent = playerMana / playerMaxMana;
-    const manaFillVert = document.getElementById('mana-fill-vertical');
-    if (manaFillVert) manaFillVert.style.transform = `scaleY(${manaPercent})`;
+const manaPercent = playerMana / playerMaxMana;
+const manaFillVert = document.getElementById('mana-fill-vertical');
+if (manaFillVert) manaFillVert.style.transform = `scaleY(${manaPercent})`;
 
     const hpTextInline = document.getElementById('hp-text-inline');
     if (hpTextInline) hpTextInline.innerText = Math.floor(playerHP);
