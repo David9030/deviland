@@ -641,6 +641,7 @@ function mostrarPantallaCarga() {
     const texto = document.querySelector('.loading-text');
     if (bar) bar.style.width = '0%';
     if (texto) texto.textContent = 'CARGANDO... 0%';
+    console.log("📺 Mostrando pantalla de carga");
 }
 
 function actualizarBarraCarga(porcentaje) {
@@ -648,62 +649,16 @@ function actualizarBarraCarga(porcentaje) {
     const texto = document.querySelector('.loading-text');
     if (bar) bar.style.width = porcentaje + '%';
     if (texto) texto.textContent = `CARGANDO... ${porcentaje}%`;
+    console.log(`📊 Barra de carga: ${porcentaje}%`);
 }
 
 function ocultarPantallaCarga() { 
     document.getElementById('loading-ui').style.display = 'none'; 
-}
-
-function nuevoJuego() { 
-    borrarPartida(); 
-    equipamiento = { arma: null, escudo: null, armadura: null }; 
-    playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 }; 
-    skillsEquipadas = []; 
-    inventarioSlots = [];
-    document.getElementById('menu-ui').style.display = 'none'; 
-    document.getElementById('class-ui').style.display = 'flex'; 
-}
-
-function continuarPartida() { 
-    const g = cargarPartidaGuardada(); 
-    if (!g) { 
-        alert("No hay partida guardada.");
-        return; 
-    } 
-    pName = g.nombre; 
-    pClass = g.clase; 
-    pClassName = g.className || g.clase; 
-    equipamiento = g.equipamiento || { arma: null, escudo: null, armadura: null }; 
-    playerStats = g.playerStats || { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 }; 
-    playerHP = g.playerHP || (classStats[pClassName]?.hp || 500); 
-    playerMana = g.playerMana || (classStats[pClassName]?.mana || 100); 
-    
-    if (g.inventarioSlots && Array.isArray(g.inventarioSlots)) {
-        inventarioSlots = g.inventarioSlots;
-        if (inventarioSlots[1] && inventarioSlots[1].icono === '⚔️') {
-            inventarioSlots[1].icono = 'espada_img';
-        }
-        if (inventarioSlots[3] && inventarioSlots[3].icono === '🛡️') {
-            inventarioSlots[3].icono = 'escudo_madera_img';
-        }
-    } else {
-        inicializarInventario();
-    }
-    
-    if (pClassName === 'NECROMANCER') {
-        skillsEquipadas = g.skillsEquipadas || ['levantar_muerto', 'furia_necrotica', 'ataque_distancia'];
-    } else if (pClassName === 'MAGO') {
-        skillsEquipadas = g.skillsEquipadas || ['ataque_distancia'];
-    } else {
-        skillsEquipadas = g.skillsEquipadas || [];
-    } 
-    if (skillsEquipadas.length > 3) skillsEquipadas = skillsEquipadas.slice(0, 3); 
-    document.getElementById('menu-ui').style.display = 'none'; 
-    mostrarPantallaCarga(); 
-    setTimeout(() => { iniciarJuegoConCarga(g); }, 500);
+    console.log("✅ Pantalla de carga oculta");
 }
 
 function seleccionarClase(sprite, nombreClase) { 
+    console.log("🎯 seleccionarClase llamado para:", nombreClase);
     const n = document.getElementById('nombre-input').value.trim(); 
     if (n === "") { alert("Ingresa un nombre"); return; } 
     pName = n; 
@@ -722,13 +677,16 @@ function seleccionarClase(sprite, nombreClase) {
     } 
     document.getElementById('class-ui').style.display = 'none'; 
     mostrarPantallaCarga(); 
+    console.log("⏳ Llamando a iniciarJuego en 500ms");
     setTimeout(() => { iniciarJuego(); }, 500); 
 }
 
 function iniciarJuego() { 
+    console.log("🚀 iniciarJuego() llamado");
     juegoIniciado = true; 
     ocultarPantallaCarga(); 
-    document.body.classList.remove('loading');  // ← AGREGAR
+    document.body.classList.remove('loading');
+    console.log("🟢 Creando Phaser.Game...");
     setInterval(() => regenerarMana(), 5000); 
     new Phaser.Game({ 
         type: Phaser.AUTO, 
@@ -737,13 +695,16 @@ function iniciarJuego() {
         physics: { default: 'arcade' }, 
         scene: { preload: preload, create: create, update: update } 
     }); 
+    console.log("🔵 Phaser.Game creado");
 }
 
 function iniciarJuegoConCarga(g) { 
+    console.log("🚀 iniciarJuegoConCarga() llamado");
     juegoIniciado = true; 
     window.guardadoPendiente = g; 
     ocultarPantallaCarga(); 
-    document.body.classList.remove('loading');  // ← AGREGAR
+    document.body.classList.remove('loading');
+    console.log("🟢 Creando Phaser.Game con carga guardada...");
     setInterval(() => regenerarMana(), 5000); 
     new Phaser.Game({ 
         type: Phaser.AUTO, 
@@ -752,6 +713,7 @@ function iniciarJuegoConCarga(g) {
         physics: { default: 'arcade' }, 
         scene: { preload: preload, create: create, update: update } 
     }); 
+    console.log("🔵 Phaser.Game creado");
     
     setTimeout(() => {
         forzarIconosCorrectos();
