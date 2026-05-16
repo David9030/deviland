@@ -98,8 +98,8 @@
     position: relative;
     width: 70px;
     height: 70px;
-    border-radius: 50%;  /* ← Esto hace que el círculo corte lo que sobresale */
-    overflow: hidden;    /* ← Esto evita que la barra se vea fuera */
+    border-radius: 50%;
+    overflow: hidden;
     box-shadow: inset 0 0 5px #000;
 }
 
@@ -112,7 +112,7 @@
     height: 100%;
     background-color: red;
     transition: transform 0.2s ease;
-    transform-origin: bottom;  /* ← TU DIRECCIÓN, no la cambié */
+    transform-origin: bottom;
     transform: scaleY(1);
     z-index: 1;
 }
@@ -134,6 +134,23 @@
     background-position: center;
     pointer-events: none;
     z-index: 2;
+}
+
+/* Ángel decorativo - ARRIBA de todo, abrazando */
+.orb-angel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 115%;
+    height: 115%;
+    background-image: url('ui/orb_angel.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0.85;
 }
 
 .orb-text {
@@ -201,12 +218,14 @@
     <div id="hp-orb" class="orb-container">
         <div id="hp-fill-vertical" class="orb-fill"></div>
         <div id="hp-orb-sprite" class="orb-sprite"></div>
+        <div id="hp-angel" class="orb-angel"></div>  <!-- ← AGREGADO -->
         <div class="orb-text">❤️ <span id="hp-text-inline">500</span></div>
     </div>
     <div id="skills-bar"></div>
     <div id="mana-orb" class="orb-container">
         <div id="mana-fill-vertical" class="orb-fill"></div>
         <div id="mana-orb-sprite" class="orb-sprite"></div>
+        <div class="orb-angel"></div>  <!-- ← AGREGADO (opcional para maná) -->
         <div class="orb-text">💙 <span id="mana-text-inline">100</span></div>
     </div>
 </div>
