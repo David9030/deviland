@@ -94,6 +94,12 @@
     z-index: 10000;
 }
 
+/* Wrapper que contiene el círculo y el ángel por fuera */
+.orb-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
 .orb-container {
     position: relative;
     width: 70px;
@@ -101,6 +107,7 @@
     border-radius: 50%;
     overflow: hidden;
     box-shadow: inset 0 0 5px #000;
+    z-index: 1;
 }
 
 .orb-fill {
@@ -134,12 +141,12 @@
     z-index: 2;
 }
 
-/* Ángel por fuera, desplazado a la izquierda */
+/* Ángel FUERA del contenedor, decorando el borde */
 .orb-angel {
     position: absolute;
     top: 50%;
-    left: -30%;
-    transform: translateY(-50%);
+    left: 50%;
+    transform: translate(-50%, -50%);
     width: 100px;
     height: 100px;
     background-image: url('ui/orb_angel.png');
@@ -147,8 +154,8 @@
     background-repeat: no-repeat;
     background-position: center;
     pointer-events: none;
-    z-index: 10;
-    opacity: 0.9;
+    z-index: 0;  /* Por debajo o encima? Como prefieras */
+    opacity: 0.8;
 }
 
 .orb-text {
@@ -213,18 +220,24 @@
     </div>
     
     <div id="stats-container">
-    <div id="hp-orb" class="orb-container">
-        <div id="hp-fill-vertical" class="orb-fill"></div>
-        <div id="hp-orb-sprite" class="orb-sprite"></div>
-        <div id="hp-angel" class="orb-angel"></div>  <!-- ← AGREGADO -->
-        <div class="orb-text">❤️ <span id="hp-text-inline">500</span></div>
+    <div class="orb-wrapper">
+        <div id="hp-orb" class="orb-container">
+            <div id="hp-fill-vertical" class="orb-fill"></div>
+            <div id="hp-orb-sprite" class="orb-sprite"></div>
+            <div class="orb-text">❤️ <span id="hp-text-inline">500</span></div>
+        </div>
+        <div id="hp-angel" class="orb-angel"></div>
     </div>
+    
     <div id="skills-bar"></div>
-    <div id="mana-orb" class="orb-container">
-        <div id="mana-fill-vertical" class="orb-fill"></div>
-        <div id="mana-orb-sprite" class="orb-sprite"></div>
-        <div class="orb-angel"></div>  <!-- ← AGREGADO (opcional para maná) -->
-        <div class="orb-text">💙 <span id="mana-text-inline">100</span></div>
+    
+    <div class="orb-wrapper">
+        <div id="mana-orb" class="orb-container">
+            <div id="mana-fill-vertical" class="orb-fill"></div>
+            <div id="mana-orb-sprite" class="orb-sprite"></div>
+            <div class="orb-text">💙 <span id="mana-text-inline">100</span></div>
+        </div>
+        <div class="orb-angel"></div>
     </div>
 </div>
     <div id="btn-attack">⚔️</div>
