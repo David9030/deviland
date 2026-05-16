@@ -1551,10 +1551,11 @@ function preload() {
     this.load.on('progress', (value) => {
         const porcentaje = Math.floor(value * 100);
         actualizarBarraCarga(porcentaje);
+        console.log('Progress:', porcentaje);
     });
     
     this.load.on('complete', () => {
-        console.log('Todos los assets cargados');
+        console.log('All assets loaded');
         actualizarBarraCarga(100);
     });
     
