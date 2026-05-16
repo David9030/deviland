@@ -10,7 +10,6 @@
         * { user-select: none; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
         
-        /* Overlays */
         .loading-overlay, .menu-overlay, .class-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: #000; display: flex; align-items: center; justify-content: center; 
@@ -33,7 +32,6 @@
         .loading-bar { width: 0%; height: 100%; background: #fff; transition: width 0.3s; }
         .loading-text { font-size: 12px; }
         
-        /* UI Elements */
         #info { position: fixed; bottom: 5px; right: 5px; color: #666; font-size: 8px; background: #000; padding: 2px 5px; border: 1px solid #333; z-index: 1000; }
         #chat-container { position: fixed; bottom: 15px; left: 15px; width: 260px; z-index: 1000; background: rgba(0,0,0,0.8); border-radius: 5px; }
         #chat-logs { background: #000; color: #aaa; overflow-y: auto; font-size: 10px; padding: 5px; border: 1px solid #444; height: 120px; font-family: monospace; }
@@ -53,7 +51,6 @@
         .floating-tabs { position: fixed; top: 55px; left: 5px; display: flex; gap: 5px; z-index: 10000; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 15px; }
         .floating-tab { background: rgba(0,0,0,0.7); border: 1px solid #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; color: #fff; }
         
-        /* Inventory UI */
         #inventario-ui {
             position: fixed !important; top: 50% !important; left: 50% !important;
             transform: translate(-50%, -50%) !important; background: #000 !important;
@@ -82,7 +79,10 @@
         .context-menu-item { padding: 8px 15px; cursor: pointer; color: #fff; font-size: 12px; }
         .context-menu-item:hover { background: #333; }
 
-        /* ORBES CUADRADOS */
+        #demonlord-hp-bar { position: fixed; top: 10px; left: 10px; width: 250px; height: 25px; background: #333; border: 2px solid #fff; border-radius: 5px; z-index: 10000; display: none; overflow: hidden; }
+        #demonlord-hp-fill { width: 100%; height: 100%; background: #ff0000; transition: width 0.2s; }
+        #demonlord-hp-text { position: fixed; top: 10px; left: 270px; color: #fff; font-size: 12px; z-index: 10000; display: none; text-shadow: 1px 1px 0 #000; }
+
         #stats-container {
             position: fixed;
             bottom: 15px;
@@ -103,16 +103,16 @@
             box-shadow: inset 0 0 5px #000;
         }
         .orb-fill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: red;
-    transition: transform 0.2s ease;
-    transform-origin: bottom;   /* ← CAMBIADO de top a bottom */
-    transform: scaleY(1);
-}
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: red;
+            transition: transform 0.2s ease;
+            transform-origin: bottom;
+            transform: scaleY(1);
+        }
         #mana-fill-vertical {
             background-color: blue;
         }
@@ -185,6 +185,9 @@
         </div>
     </div>
     
+    <div id="demonlord-hp-bar"><div id="demonlord-hp-fill"></div></div>
+    <div id="demonlord-hp-text"></div>
+    
     <div id="chat-container">
         <div id="chat-header" onclick="toggleChat()"><span>💬 CHAT</span><span>▼</span></div>
         <div id="chat-logs"></div>
@@ -215,7 +218,6 @@
     <div id="btn-attack">⚔️</div>
     <div id="joystick-area"></div>
     
-    <!-- INVENTARIO UI -->
     <div id="inventario-ui">
         <div style="display: flex; flex-direction: row; gap: 15px; background: #000; padding: 15px; border: 2px solid #fff;">
             <div style="flex: 2;">
@@ -262,7 +264,9 @@
     <div id="context-menu" class="context-menu">
         <div class="context-menu-item" onclick="invitarJugadorSeleccionado()">🎮 Invitar al equipo</div>
     </div>
+
 <script>
+
 // ============================================
 // VARIABLES GLOBALES
 // ============================================
@@ -370,7 +374,7 @@ function actualizarDemonlordHPBar() {
     const fill = document.getElementById('demonlord-hp-fill');
     const text = document.getElementById('demonlord-hp-text');
     if (fill) fill.style.width = p + '%'; 
-    if (text) text.innerHTML = `👹 ${Math.floor(demonlordHP)}/${demonlordMaxHP}`; 
+    if (text) text.innerHTML = `👹 Demonlord ${Math.floor(demonlordHP)}/${demonlordMaxHP}`; 
 }
 
 function ganarExp(cantidad) { 
@@ -481,7 +485,6 @@ function cargarPartidaGuardada() {
     if (!datos.version || datos.version < DATA_VERSION) {
         datos = migrarPartidaGuardada(datos);
         localStorage.setItem(SAVE_KEY, JSON.stringify(datos));
-        console.log('📦 Partida migrada a versión', DATA_VERSION);
     }
     
     return datos;
@@ -510,13 +513,9 @@ function forzarIconosCorrectos() {
     if (cambio) {
         renderizarInventario();
         guardarPartida();
-        console.log('✅ Iconos corregidos automáticamente');
     }
 }
 
-// ============================================
-// MIGRACIÓN DE DATOS
-// ============================================
 function migrarPartidaGuardada(datos) {
     let migrado = false;
     
@@ -614,11 +613,9 @@ function continuarPartida() {
         inventarioSlots = g.inventarioSlots;
         if (inventarioSlots[1] && inventarioSlots[1].icono === '⚔️') {
             inventarioSlots[1].icono = 'espada_img';
-            console.log('🔧 Espada corregida en continuarPartida');
         }
         if (inventarioSlots[3] && inventarioSlots[3].icono === '🛡️') {
             inventarioSlots[3].icono = 'escudo_madera_img';
-            console.log('🔧 Escudo corregido en continuarPartida');
         }
     } else {
         inicializarInventario();
@@ -692,7 +689,7 @@ function iniciarJuegoConCarga(g) {
 
 function inicializarInventario() { 
     inventarioSlots = []; 
-    for (let i = 0; i < 36; i++) inventarioSlots.push(null); 
+    for (let i = 0; i <36; i++) inventarioSlots.push(null); 
     agregarItemAlInventario('pocion_1', 'pocion', 'Poción de Vida', '❤️', 2);
     agregarItemAlInventarioEquipo('espada_1', 'espada', 'Espada Básica', 'espada_img', 1, { ataqueFisico: 15, velocidad: -15 });
     agregarItemAlInventarioEquipo('armadura_1', 'armadura', 'Armadura Básica', 'armadura_de_cuero_img', 1, { defensaFisica: 15, velocidad: -20 });
@@ -749,9 +746,16 @@ function agregarItemAlInventario(id, tipo, nombre, icono, cantidad, mostrarMsg =
     return false; 
 }
 
-// ============================================
-// FUNCIONES DE INVENTARIO Y RENDERIZADO
-// ============================================
+function getImagenItem(icono) {
+    const mapNombres = {
+        'espada_img': 'espada',
+        'escudo_madera_img': 'escudo_madera',
+        'armadura_de_cuero_img': 'armadura_de_cuero'
+    };
+    const nombreArchivo = mapNombres[icono] || icono.replace('_img', '');
+    return `/${nombreArchivo}.png`;
+}
+
 function crearSlotElement(slot, index, origen) { 
     const d = document.createElement('div'); 
     d.className = 'slot'; 
@@ -762,10 +766,13 @@ function crearSlotElement(slot, index, origen) {
         const i = document.createElement('div'); 
         i.className = 'slot-icon'; 
         
-        if (slot.icono && (slot.icono.includes('_img') || slot.icono === 'pocion_img' || slot.icono === 'espada_img')) { 
+        if (slot.icono && (slot.icono.includes('_img') || slot.icono === 'pocion_img')) { 
             const img = document.createElement('img'); 
-            let nombreArchivo = slot.icono.replace('_img', ''); 
-            img.src = `/${nombreArchivo}.png`;
+            img.src = getImagenItem(slot.icono);
+            img.onerror = function() { 
+                this.style.display = 'none'; 
+                this.parentElement.textContent = '🗡️';
+            };
             i.appendChild(img); 
         } else { 
             i.textContent = slot.icono; 
@@ -928,7 +935,6 @@ function actualizarStatsUI() {
     const expFill = document.getElementById('exp-fill');
     if (expFill) expFill.style.width = expPercent + '%'; 
     
-    // ORBES de vida y maná (efecto "baja desde arriba")
     const hpPercent = playerHP / playerMaxHP;
     const hpFillVert = document.getElementById('hp-fill-vertical');
     if (hpFillVert) hpFillVert.style.transform = `scaleY(${hpPercent})`;
@@ -942,7 +948,6 @@ function actualizarStatsUI() {
     const manaTextInline = document.getElementById('mana-text-inline');
     if (manaTextInline) manaTextInline.innerText = Math.floor(playerMana);
     
-    // Manejo de muerte
     const RESPAWN_TIME = 10000; 
     if (playerHP <= 0 && player && player.isAlive === true && juegoIniciado) { 
         playerHP = 0; 
@@ -1065,9 +1070,6 @@ function mostrarPreviewStats(item, tipo) {
     }, 2500); 
 }
 
-// ============================================
-// SKILLS
-// ============================================
 function cargarSkillsPorClase() { 
     skillsDisponibles = []; 
     Object.keys(SKILLS_DATA).forEach(key => { 
@@ -1504,7 +1506,6 @@ function preload() {
 function create() { 
     currentScene = this; 
     socket = io();
-    console.log('Socket conectado:', socket.id); 
     
     window.arbolesGrupo = this.add.group();
     window.minasGrupo = this.add.group();
@@ -1620,7 +1621,7 @@ function create() {
     const guardado = window.guardadoPendiente || null; 
     if (guardado) { 
         if (guardado.inventarioSlots) inventarioSlots = guardado.inventarioSlots; 
-        else { inventarioSlots = []; for (let i = 0; i < 36; i++) inventarioSlots.push(null); }
+        else { inventarioSlots = []; for (let i = 0; i <36; i++) inventarioSlots.push(null); }
         equipamiento = guardado.equipamiento || { arma: null, escudo: null, armadura: null }; 
         playerStats = guardado.playerStats || { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 }; 
         if (guardado.ultimaPosicion) player.setPosition(guardado.ultimaPosicion.x, guardado.ultimaPosicion.y); 
@@ -1718,9 +1719,7 @@ function create() {
     
     btnAttack.addEventListener('click', () => { if (window.simularAtaque) window.simularAtaque(); });
     
-    // ============================================
     // SOCKET EVENTS
-    // ============================================
     socket.on('currentPlayers', (ps) => { 
         Object.keys(ps).forEach(id => { if (id !== socket.id) addOtherPlayer(this, ps[id]); }); 
     }); 
@@ -1906,24 +1905,12 @@ function create() {
     
     setInterval(() => { if (socket && socket.id && juegoIniciado) socket.emit('solicitarEsqueletos'); }, 10000);
     
-    // ============================================
-    // TECLAS PARA SKILLS (1, 2, 3, 4, 5)
-    // ============================================
-    this.input.keyboard.on('keydown-ONE', () => {
-        if (skillsEquipadas[0]) usarSkill(skillsEquipadas[0]);
-    });
-    this.input.keyboard.on('keydown-TWO', () => {
-        if (skillsEquipadas[1]) usarSkill(skillsEquipadas[1]);
-    });
-    this.input.keyboard.on('keydown-THREE', () => {
-        if (skillsEquipadas[2]) usarSkill(skillsEquipadas[2]);
-    });
-    this.input.keyboard.on('keydown-FOUR', () => {
-        if (skillsEquipadas[3]) usarSkill(skillsEquipadas[3]);
-    });
-    this.input.keyboard.on('keydown-FIVE', () => {
-        if (skillsEquipadas[4]) usarSkill(skillsEquipadas[4]);
-    });
+    // TECLAS PARA SKILLS
+    this.input.keyboard.on('keydown-ONE', () => { if (skillsEquipadas[0]) usarSkill(skillsEquipadas[0]); });
+    this.input.keyboard.on('keydown-TWO', () => { if (skillsEquipadas[1]) usarSkill(skillsEquipadas[1]); });
+    this.input.keyboard.on('keydown-THREE', () => { if (skillsEquipadas[2]) usarSkill(skillsEquipadas[2]); });
+    this.input.keyboard.on('keydown-FOUR', () => { if (skillsEquipadas[3]) usarSkill(skillsEquipadas[3]); });
+    this.input.keyboard.on('keydown-FIVE', () => { if (skillsEquipadas[4]) usarSkill(skillsEquipadas[4]); });
 }
 
 function addOtherPlayer(self, info) { 
@@ -1954,9 +1941,6 @@ function addOtherPlayer(self, info) {
     otherPlayers.add(o); 
 }
 
-// ============================================
-// PHASER: UPDATE
-// ============================================
 function update() { 
     if (!player || player.attacking) return; 
     if (!player.isAlive) return; 
