@@ -83,7 +83,7 @@
         #demonlord-hp-fill { width: 100%; height: 100%; background: #ff0000; transition: width 0.2s; }
         #demonlord-hp-text { position: fixed; top: 10px; left: 270px; color: #fff; font-size: 12px; z-index: 10000; display: none; text-shadow: 1px 1px 0 #000; }
 
-     #stats-container {
+    #stats-container {
     position: fixed;
     bottom: 15px;
     left: 50%;
@@ -143,12 +143,12 @@
     z-index: 2;
 }
 
-/* Ángel decorativo - FUERA del círculo, abrazando el contorno */
-.orb-angel {
+/* Ángel del HP - hacia la IZQUIERDA */
+#hp-angel {
     position: absolute;
     top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    left: -30px;
+    transform: translateY(-50%);
     width: 100px;
     height: 100px;
     background-image: url('ui/orb_angel.png');
@@ -160,9 +160,21 @@
     opacity: 0.85;
 }
 
-/* Ángel del maná - INVERTIDO horizontalmente */
-.orb-angel-invertido {
-    transform: translate(-50%, -50%) scaleX(-1);
+/* Ángel del maná - hacia la DERECHA e INVERTIDO */
+#mana-angel {
+    position: absolute;
+    top: 50%;
+    right: -30px;
+    transform: translateY(-50%) scaleX(-1);
+    width: 100px;
+    height: 100px;
+    background-image: url('ui/orb_angel.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.85;
 }
 
 .orb-text {
