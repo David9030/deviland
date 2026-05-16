@@ -639,8 +639,8 @@ function mostrarPantallaCarga() {
     ld.style.display = 'flex'; 
     const bar = document.getElementById('loading-bar'); 
     const texto = document.querySelector('.loading-text');
-    bar.style.width = '0%';
-    texto.textContent = 'CARGANDO... 0%';
+    if (bar) bar.style.width = '0%';
+    if (texto) texto.textContent = 'CARGANDO... 0%';
 }
 
 function actualizarBarraCarga(porcentaje) {
