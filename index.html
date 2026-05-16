@@ -1417,18 +1417,18 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
     proyectil.startY = origenY; 
     proyectiles.push(proyectil); 
     
-    let frameIndex = 1; 
-    const animInterval = setInterval(() => { 
-        if (!proyectil || !proyectil.active) { 
-            clearInterval(animInterval); 
-            return; 
-        } 
-        frameIndex++; 
-        if (frameIndex > 216) frameIndex = 1; 
-        const frameNum = frameIndex.toString().padStart(4, '0'); 
-        proyectil.setTexture(`fireball_${frameNum}`); 
-        proyectil.setRotation(angle - Math.PI / 2); 
-    }, 30); 
+    let frameIndex = 0;  // Empieza en 0 (0000.png)
+const animInterval = setInterval(() => { 
+    if (!proyectil || !proyectil.active) { 
+        clearInterval(animInterval); 
+        return; 
+    } 
+    frameIndex++; 
+    if (frameIndex > 26) frameIndex = 0;  // Vuelve a 0 después de 26
+    const frameNum = frameIndex.toString().padStart(4, '0'); 
+    proyectil.setTexture(`fireball_${frameNum}`); 
+    proyectil.setRotation(angle - Math.PI / 2); 
+}, 50);
     
     if (currentScene && window.esqueletosGrupo) {
         currentScene.physics.add.overlap(proyectil, window.esqueletosGrupo, (p, esqueleto) => { 
@@ -1532,10 +1532,10 @@ function preload() {
     this.load.spritesheet('demonlord', 'demonlord.png', { frameWidth: 128, frameHeight: 128 }); 
     this.load.spritesheet('esqueleto', 'esqueleto.png', { frameWidth: 255, frameHeight: 255 }); 
     
-    for (let i = 1; i <= 216; i++) { 
-        const frameNum = i.toString().padStart(4, '0'); 
-        this.load.image(`fireball_${frameNum}`, `fireball/${frameNum}.png`); 
-    } 
+    for (let i = 0; i <= 26; i++) { 
+    const frameNum = i.toString().padStart(4, '0'); 
+    this.load.image(`fireball_${frameNum}`, `fireball/${frameNum}.png`); 
+}
     
     this.load.audio('sonidoTalar', 'talar.mp3'); 
     this.load.audio('sonidoMina', 'mina.mp3'); 
