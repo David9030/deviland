@@ -83,7 +83,7 @@
         #demonlord-hp-fill { width: 100%; height: 100%; background: #ff0000; transition: width 0.2s; }
         #demonlord-hp-text { position: fixed; top: 10px; left: 270px; color: #fff; font-size: 12px; z-index: 10000; display: none; text-shadow: 1px 1px 0 #000; }
 
-       #stats-container {
+      #stats-container {
     position: fixed;
     bottom: 15px;
     left: 50%;
@@ -98,11 +98,12 @@
     position: relative;
     width: 70px;
     height: 70px;
-    border-radius: 0px;
-    overflow: hidden;  /* Esto es importante - corta lo que sobresale */
+    border-radius: 50%;  /* Hace que el contenedor sea circular */
+    overflow: hidden;    /* TODO lo que sobresale se corta */
+    box-shadow: inset 0 0 5px #000;
 }
 
-/* Capa de fondo de la barra (vacía) */
+/* Barra de vida - crece desde arriba hacia abajo */
 .orb-fill {
     position: absolute;
     top: 0;
@@ -120,7 +121,7 @@
     background-color: blue;
 }
 
-/* Capa del vidrio (orb_glass) - ENCIMA de la barra */
+/* Marco de vidrio - ENCIMA de la barra */
 .orb-sprite {
     position: absolute;
     top: 0;
@@ -132,23 +133,7 @@
     background-repeat: no-repeat;
     background-position: center;
     pointer-events: none;
-    z-index: 3;  /* Encima de la barra */
-}
-
-/* Capa del ángel (orb_angel) - ARRIBA de todo, pero transparente */
-.orb-angel {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('ui/orb_angel.png');
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
-    background-position: center;
-    pointer-events: none;
-    z-index: 4;  /* Encima de todo */
-    opacity: 0.7;  /* Hacerlo un poco transparente para que se vea la barra */
+    z-index: 2;
 }
 
 .orb-text {
@@ -159,7 +144,7 @@
     font-size: 10px;
     color: white;
     text-shadow: 1px 1px 0 black;
-    z-index: 5;
+    z-index: 3;
 }
         #skills-bar {
             position: static;
@@ -213,19 +198,18 @@
     </div>
     
     <div id="stats-container">
-        <div id="hp-orb" class="orb-container">
-            <div id="hp-fill-vertical" class="orb-fill"></div>
-            <div id="hp-orb-sprite" class="orb-sprite"></div>
-            <div id="hp-angel" class="orb-angel"></div>
-            <div class="orb-text">❤️ <span id="hp-text-inline">500</span></div>
-        </div>
-        <div id="skills-bar"></div>
-        <div id="mana-orb" class="orb-container">
-            <div id="mana-fill-vertical" class="orb-fill"></div>
-            <div id="mana-orb-sprite" class="orb-sprite"></div>
-            <div class="orb-text">💙 <span id="mana-text-inline">100</span></div>
-        </div>
+    <div id="hp-orb" class="orb-container">
+        <div id="hp-fill-vertical" class="orb-fill"></div>
+        <div id="hp-orb-sprite" class="orb-sprite"></div>
+        <div class="orb-text">❤️ <span id="hp-text-inline">500</span></div>
     </div>
+    <div id="skills-bar"></div>
+    <div id="mana-orb" class="orb-container">
+        <div id="mana-fill-vertical" class="orb-fill"></div>
+        <div id="mana-orb-sprite" class="orb-sprite"></div>
+        <div class="orb-text">💙 <span id="mana-text-inline">100</span></div>
+    </div>
+</div>
     <div id="btn-attack">⚔️</div>
     <div id="joystick-area"></div>
     
