@@ -110,6 +110,7 @@
     z-index: 1;
 }
 
+/* TU DIRECCIÓN ORIGINAL - transform-origin: bottom */
 .orb-fill {
     position: absolute;
     top: 0;
@@ -127,6 +128,7 @@
     background-color: blue;
 }
 
+/* Marco de vidrio - ENCIMA de la barra */
 .orb-sprite {
     position: absolute;
     top: 0;
@@ -141,7 +143,7 @@
     z-index: 2;
 }
 
-/* Ángel FUERA del contenedor, decorando el borde */
+/* Ángel decorativo - FUERA del círculo, abrazando el contorno */
 .orb-angel {
     position: absolute;
     top: 50%;
@@ -154,8 +156,13 @@
     background-repeat: no-repeat;
     background-position: center;
     pointer-events: none;
-    z-index: 0;  /* Por debajo o encima? Como prefieras */
-    opacity: 0.8;
+    z-index: 0;
+    opacity: 0.85;
+}
+
+/* Ángel del maná - INVERTIDO horizontalmente */
+.orb-angel-invertido {
+    transform: translate(-50%, -50%) scaleX(-1);
 }
 
 .orb-text {
@@ -237,7 +244,7 @@
             <div id="mana-orb-sprite" class="orb-sprite"></div>
             <div class="orb-text">💙 <span id="mana-text-inline">100</span></div>
         </div>
-        <div class="orb-angel"></div>
+        <div class="orb-angel orb-angel-invertido"></div>  <!-- ← SOLO AGREGAR LA CLASE -->
     </div>
 </div>
     <div id="btn-attack">⚔️</div>
