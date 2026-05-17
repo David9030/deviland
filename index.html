@@ -337,7 +337,6 @@ let skillsEquipadas = [];
 let MAX_SKILLS = 5;
 let inventarioSlots = [];
 let equipamiento = { arma: null, escudo: null, armadura: null };
-let playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 };
 let previewTimeout = null;
 let ultimoAtaqueNormal = 0;
 const COOLDOWN_ATAQUE_NORMAL = 1000;
@@ -426,14 +425,15 @@ function crearMonedaSuelo(x, y, cantidad = 1) {
 
 function recogerMoneda(moneda) {
     if (!moneda || !moneda.active) return;
+    if (moneda.recogida) return;
+    moneda.recogida = true;
     
-    // Sumar oro al jugador (usando playerStats.oro)
-    if (!playerStats.oro) playerStats.oro = 0;
-    playerStats.oro += moneda.cantidad;
+    // Agregar oro al inventario
+    agregarItemAlInventario('oro', 'moneda', 'Oro', '💰', moneda.cantidad, true);
     
     // Mostrar mensaje
-    mostrarMensaje(`💰 +${moneda.cantidad} ORO (Total: ${playerStats.oro})`, 'exito');
-
+    mostrarMensaje(`💰 +${moneda.cantidad} ORO`, 'exito');
+    
     // REPRODUCIR SONIDO DE MONEDA
     if (currentScene && currentScene.sound) {
         currentScene.sound.play('sonidoMoneda', { volume: 0.5 });
@@ -450,13 +450,12 @@ function recogerMoneda(moneda) {
         duration: 200,
         onComplete: () => {
             moneda.destroy();
-            // Remover del array
             const index = monedasSuelo.indexOf(moneda);
             if (index !== -1) monedasSuelo.splice(index, 1);
         }
     });
     
-    // Actualizar UI (mostrar oro en alguna parte)
+    // Actualizar UI
     actualizarStatsUI();
     
     // Guardar partida
@@ -1092,20 +1091,29 @@ function actualizarStatsUI() {
     const manaFillVert = document.getElementById('mana-fill-vertical');
     if (manaFillVert) manaFillVert.style.transform = `scaleY(${manaPercent})`;
 
- // ==========================================
-    // MOSTRAR ORO
     // ==========================================
+    // MOSTRAR ORO (desde inventario)
+    // ==========================================
+    let cantidadOro = 0;
+    for (let i = 0; i < inventarioSlots.length; i++) {
+        const slot = inventarioSlots[i];
+        if (slot && slot.id === 'oro') {
+            cantidadOro = slot.cantidad;
+            break;
+        }
+    }
+    
     let oroElement = document.getElementById('stat-oro');
     if (!oroElement) {
         const statsPanel = document.getElementById('stats-panel-inline');
         if (statsPanel) {
             const oroRow = document.createElement('div');
             oroRow.className = 'stat-row';
-            oroRow.innerHTML = `💰 ORO:<span id="stat-oro" class="stat-value">${playerStats.oro || 0}</span>`;
+            oroRow.innerHTML = `💰 ORO:<span id="stat-oro" class="stat-value">${cantidadOro}</span>`;
             statsPanel.insertBefore(oroRow, statsPanel.firstChild);
         }
     } else {
-        oroElement.textContent = playerStats.oro || 0;
+        oroElement.textContent = cantidadOro;
     }
 
     const hpTextInline = document.getElementById('hp-text-inline');
