@@ -387,7 +387,7 @@ function crearMonedaSuelo(x, y, cantidad = 1) {
     moneda.cantidad = cantidad;
     moneda.id = 'moneda_' + Date.now() + '_' + Math.random();
     
-    // Animación de caída (idle)
+    // Animación que se detiene en el último frame
     let frameIndex = 0;
     const animInterval = setInterval(() => {
         if (!moneda || !moneda.active) {
@@ -395,10 +395,13 @@ function crearMonedaSuelo(x, y, cantidad = 1) {
             return;
         }
         frameIndex++;
-        if (frameIndex > 7) frameIndex = 0;
-        const frameNum = frameIndex.toString().padStart(4, '0');
-        moneda.setTexture(`gold_${frameNum}`);
-    }, 100);  // Velocidad de la animación
+        if (frameIndex <= 7) {
+            const frameNum = frameIndex.toString().padStart(4, '0');
+            moneda.setTexture(`gold_${frameNum}`);
+        } else {
+            clearInterval(animInterval);  // Detener animación al llegar al frame 7
+        }
+    }, 100);
     
     moneda.animInterval = animInterval;
     
