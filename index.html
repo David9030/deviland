@@ -48,7 +48,7 @@
 
         #joystick-area { display: none; }
         
-        .floating-tabs { position: fixed; top: 55px; left: 5px; display: flex; gap: 5px; z-index: 10000; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 15px; }
+        .floating-tabs { position: fixed; top: 10px; left: 5px; display: flex; gap: 5px; z-index: 10000; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 15px; }
         .floating-tab { background: rgba(0,0,0,0.7); border: 1px solid #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; color: #fff; }
         
         #inventario-ui {
@@ -894,23 +894,39 @@ function crearSlotElement(slot, index, origen) {
     } 
     
     d.setAttribute('draggable', 'true'); 
-    d.addEventListener('dragstart', (e) => { 
-        if (!slot) { e.preventDefault(); return false; } 
-        e.dataTransfer.setData('text/plain', JSON.stringify({ origen: origen, index: index })); 
-        e.target.closest('.slot').style.opacity = '0.5'; 
-    }); 
-    d.addEventListener('dragend', (e) => { 
-        if (e.target.closest('.slot')) e.target.closest('.slot').style.opacity = '1'; 
-    }); 
-    d.addEventListener('dragover', (e) => { 
-        e.preventDefault(); 
-        e.target.closest('.slot')?.classList.add('drag-over'); 
-    }); 
-    d.addEventListener('dragleave', (e) => { 
-        e.target.closest('.slot')?.classList.remove('drag-over'); 
-    }); 
-    return d; 
-}
+d.addEventListener('dragstart', (e) => { 
+    if (!slot) { e.preventDefault(); return false; } 
+    e.dataTransfer.setData('text/plain', JSON.stringify({ origen: origen, index: index })); 
+    e.target.closest('.slot').style.opacity = '0.5'; 
+}); 
+d.addEventListener('dragend', (e) => { 
+    if (e.target.closest('.slot')) e.target.closest('.slot').style.opacity = '1'; 
+}); 
+d.addEventListener('dragover', (e) => { 
+    e.preventDefault(); 
+    e.target.closest('.slot')?.classList.add('drag-over'); 
+}); 
+d.addEventListener('dragleave', (e) => { 
+    e.target.closest('.slot')?.classList.remove('drag-over'); 
+}); 
+d.addEventListener('drop', (e) => { 
+    e.preventDefault(); 
+    e.target.closest('.slot')?.classList.remove('drag-over'); 
+    try { 
+        const data = JSON.parse(e.dataTransfer.getData('text/plain')); 
+        if (data.origen === 'inventario' && data.index !== undefined && data.index !== index) { 
+            const temp = inventarioSlots[index]; 
+            inventarioSlots[index] = inventarioSlots[data.index]; 
+            inventarioSlots[data.index] = temp; 
+            if (inventarioSlots[index]) inventarioSlots[index].slotIndex = index; 
+            if (inventarioSlots[data.index]) inventarioSlots[data.index].slotIndex = data.index; 
+            renderizarInventario(); 
+            guardarPartida(); 
+            mostrarMensaje(`📦 Item reordenado`, 'exito'); 
+        } 
+    } catch(err) { console.error('Drop error:', err); } 
+}); 
+return d; 
 
 function renderizarInventario() { 
     const g = document.getElementById('inventario-grid'); 
