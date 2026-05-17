@@ -380,12 +380,12 @@ const classStats = {
 function crearMonedaSuelo(x, y, cantidad = 1) {
     if (!currentScene) return;
     
-    // Crear sprite con el primer frame
     const moneda = currentScene.add.sprite(x, y, 'gold_0000');
     moneda.setScale(0.8);
     moneda.setDepth(y);
     moneda.cantidad = cantidad;
     moneda.id = 'moneda_' + Date.now() + '_' + Math.random();
+    moneda.recogida = false;
     
     // Animación que se detiene en el último frame
     let frameIndex = 0;
@@ -399,16 +399,25 @@ function crearMonedaSuelo(x, y, cantidad = 1) {
             const frameNum = frameIndex.toString().padStart(4, '0');
             moneda.setTexture(`gold_${frameNum}`);
         } else {
-            clearInterval(animInterval);  // Detener animación al llegar al frame 7
+            clearInterval(animInterval);
         }
     }, 100);
     
     moneda.animInterval = animInterval;
     
-    // Hacer interactiva
-    moneda.setInteractive();
+    // Hacer interactiva - SOLO RECOGE SI ESTÁ CERCA
+    moneda.setInteractive({ useHandCursor: true });
     moneda.on('pointerdown', () => {
-        recogerMoneda(moneda);
+        if (!player || !player.isAlive) return;
+        if (moneda.recogida) return;
+        
+        // Verificar distancia ANTES de recoger
+        const dist = Phaser.Math.Distance.Between(player.x, player.y, moneda.x, moneda.y);
+        if (dist < 60) {
+            recogerMoneda(moneda);
+        } else {
+            mostrarMensaje(`❌ Debes acercarte más para recoger el oro`, 'error');
+        }
     });
     
     monedasSuelo.push(moneda);
