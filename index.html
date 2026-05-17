@@ -321,6 +321,7 @@ let playerMana = 100;
 let playerMaxMana = 100;
 let demonlordHP = 5000;
 let demonlordMaxHP = 5000;
+let monedasSuelo = [];
 let juegoIniciado = false;
 let ultimoEnvioMovimiento = 0;
 const INTERVALO_ENVIO = 50;
@@ -375,6 +376,76 @@ const classStats = {
 // ============================================
 // FUNCIONES AUXILIARES
 // ============================================
+
+function crearMonedaSuelo(x, y, cantidad = 1) {
+    if (!currentScene) return;
+    
+    // Crear sprite con el primer frame
+    const moneda = currentScene.add.sprite(x, y, 'gold_0000');
+    moneda.setScale(0.8);
+    moneda.setDepth(y);
+    moneda.cantidad = cantidad;
+    moneda.id = 'moneda_' + Date.now() + '_' + Math.random();
+    
+    // Animación de caída (idle)
+    let frameIndex = 0;
+    const animInterval = setInterval(() => {
+        if (!moneda || !moneda.active) {
+            clearInterval(animInterval);
+            return;
+        }
+        frameIndex++;
+        if (frameIndex > 7) frameIndex = 0;
+        const frameNum = frameIndex.toString().padStart(4, '0');
+        moneda.setTexture(`gold_${frameNum}`);
+    }, 100);  // Velocidad de la animación
+    
+    moneda.animInterval = animInterval;
+    
+    // Hacer interactiva
+    moneda.setInteractive();
+    moneda.on('pointerdown', () => {
+        recogerMoneda(moneda);
+    });
+    
+    monedasSuelo.push(moneda);
+    return moneda;
+}
+
+function recogerMoneda(moneda) {
+    if (!moneda || !moneda.active) return;
+    
+    // Sumar oro al jugador (usando playerStats.oro)
+    if (!playerStats.oro) playerStats.oro = 0;
+    playerStats.oro += moneda.cantidad;
+    
+    // Mostrar mensaje
+    mostrarMensaje(`💰 +${moneda.cantidad} ORO (Total: ${playerStats.oro})`, 'exito');
+    
+    // Detener animación
+    if (moneda.animInterval) clearInterval(moneda.animInterval);
+    
+    // Efecto de desaparición
+    currentScene.tweens.add({
+        targets: moneda,
+        scale: 0,
+        alpha: 0,
+        duration: 200,
+        onComplete: () => {
+            moneda.destroy();
+            // Remover del array
+            const index = monedasSuelo.indexOf(moneda);
+            if (index !== -1) monedasSuelo.splice(index, 1);
+        }
+    });
+    
+    // Actualizar UI (mostrar oro en alguna parte)
+    actualizarStatsUI();
+    
+    // Guardar partida
+    guardarPartida();
+}
+
 function toggleChat() { 
     document.getElementById('chat-container').classList.toggle('chat-minimizado'); 
 }
@@ -1004,6 +1075,22 @@ function actualizarStatsUI() {
     const manaFillVert = document.getElementById('mana-fill-vertical');
     if (manaFillVert) manaFillVert.style.transform = `scaleY(${manaPercent})`;
 
+ // ==========================================
+    // MOSTRAR ORO
+    // ==========================================
+    let oroElement = document.getElementById('stat-oro');
+    if (!oroElement) {
+        const statsPanel = document.getElementById('stats-panel-inline');
+        if (statsPanel) {
+            const oroRow = document.createElement('div');
+            oroRow.className = 'stat-row';
+            oroRow.innerHTML = `💰 ORO:<span id="stat-oro" class="stat-value">${playerStats.oro || 0}</span>`;
+            statsPanel.insertBefore(oroRow, statsPanel.firstChild);
+        }
+    } else {
+        oroElement.textContent = playerStats.oro || 0;
+    }
+
     const hpTextInline = document.getElementById('hp-text-inline');
     if (hpTextInline) hpTextInline.innerText = Math.floor(playerHP);
     const manaTextInline = document.getElementById('mana-text-inline');
@@ -1568,6 +1655,10 @@ function preload() {
     this.load.audio('musicaFondo', 'musica1.mp3'); 
     this.load.audio('esqueletoMuere', 'esqueleto_muere.mp3'); 
     this.load.audio('esqueletoLevanta', 'esqueleto_levanta.mp3'); 
+// Cargar animación de oro (gold drop) - 8 frames (0000.png a 0007.png)
+for (let i = 0; i <= 7; i++) { 
+    const frameNum = i.toString().padStart(4, '0'); 
+    this.load.image(`gold_${frameNum}`, `gold/${frameNum}.png`); 
 }
 
 // ============================================
@@ -1892,7 +1983,7 @@ function create() {
     
     socket.on('demonlordAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); crearTextoDmg(this, player.x, player.y, data.damage, "#fff", "20px"); this.cameras.main.shake(150, 0.005); mostrarMensaje(`💀 -${data.damage}`, 'combate'); } });
     
-    socket.on('demonlordDeath', (data) => { demonlord_sprite.setVisible(false); crearTextoDmg(this, data.x, data.y, "VENCIDO", "#fff", "22px"); mostrarMensaje(`🏆 Demonlord derrotado! +500 EXP`, 'exito'); ganarExp(500); });
+    socket.on('demonlordDeath', (data) => { demonlord_sprite.setVisible(false); crearTextoDmg(this, data.x, data.y, "VENCIDO", "#fff", "22px"); mostrarMensaje(`🏆 Demonlord derrotado! +500 EXP`, 'exito'); ganarExp(500); for (let i = 0; i < 8; i++) { const offsetX = (Math.random() - 0.5) * 100; const offsetY = (Math.random() - 0.5) * 100; crearMonedaSuelo(data.x + offsetX, data.y + offsetY, Math.floor(Math.random() * 20) + 10); } });
     
     socket.on('demonlordRespawn', (data) => { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.setVisible(true); demonlord_sprite.clearTint(); demonlordHP = 5000; actualizarDemonlordHPBar(); crearTextoDmg(this, data.x, data.y, "RENACE", "#fff", "22px"); });
     
@@ -1919,7 +2010,7 @@ function create() {
     
     socket.on('esqueletoAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); crearTextoDmg(this, player.x, player.y, data.damage, "#fff", "20px"); this.cameras.main.shake(150, 0.005); mostrarMensaje(`💀 Esqueleto te golpeó por ${data.damage}`, 'combate'); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play(`esqueleto_atk_${data.dir}`, true); setTimeout(() => { if (esq.active) esq.play(`esqueleto_idle_${data.dir}`, true); }, 300); } }); } });
     
-    socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) currentScene.sound.play('esqueletoMuere', { volume: 0.6 }); if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play('esqueleto_die_Abajo'); esq.once('animationcomplete', () => { if (esq && esq.active) { esq.stop(); esq.setFrame(55); esq.body.enable = false; esq.setVisible(true); setTimeout(() => { if (esq && esq.active) esq.destroy(); }, 60000); } }); if (data.exp > 0) ganarExp(data.exp); return; } }); } });
+    socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) currentScene.sound.play('esqueletoMuere', { volume: 0.6 }); crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5); if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play('esqueleto_die_Abajo'); esq.once('animationcomplete', () => { if (esq && esq.active) { esq.stop(); esq.setFrame(55); esq.body.enable = false; esq.setVisible(true); setTimeout(() => { if (esq && esq.active) esq.destroy(); }, 60000); } }); if (data.exp > 0) ganarExp(data.exp); return; } }); } });
     
     socket.on('esqueletoDestroy', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) esq.destroy(); }); } });
     
