@@ -83,110 +83,106 @@
         #demonlord-hp-fill { width: 100%; height: 100%; background: #ff0000; transition: width 0.2s; }
         #demonlord-hp-text { position: fixed; top: 10px; left: 270px; color: #fff; font-size: 12px; z-index: 10000; display: none; text-shadow: 1px 1px 0 #000; }
 
-    #stats-container {
-    position: fixed;
-    bottom: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 25px;
-    align-items: center;
-    z-index: 10000;
-}
+        #stats-container {
+            position: fixed;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 25px;
+            align-items: center;
+            z-index: 10000;
+        }
 
-/* Wrapper que contiene el círculo y el ángel por fuera */
-.orb-wrapper {
-    position: relative;
-    display: inline-block;
-}
+        .orb-wrapper {
+            position: relative;
+            display: inline-block;
+        }
 
-.orb-container {
-    position: relative;
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    overflow: hidden;
-    box-shadow: inset 0 0 5px #000;
-    z-index: 1;
-}
+        .orb-container {
+            position: relative;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: inset 0 0 5px #000;
+            z-index: 1;
+        }
 
-/* TU DIRECCIÓN ORIGINAL - transform-origin: bottom */
-.orb-fill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: red;
-    transition: transform 0.2s ease;
-    transform-origin: bottom;
-    transform: scaleY(1);
-    z-index: 1;
-}
+        .orb-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: red;
+            transition: transform 0.2s ease;
+            transform-origin: bottom;
+            transform: scaleY(1);
+            z-index: 1;
+        }
 
-#mana-fill-vertical {
-    background-color: blue;
-}
+        #mana-fill-vertical {
+            background-color: blue;
+        }
 
-/* Marco de vidrio - ENCIMA de la barra */
-.orb-sprite {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('ui/orb_glass.png');
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
-    background-position: center;
-    pointer-events: none;
-    z-index: 2;
-}
+        .orb-sprite {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('ui/orb_glass.png');
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            background-position: center;
+            pointer-events: none;
+            z-index: 2;
+        }
 
-/* Ángel del HP - hacia la IZQUIERDA */
-#hp-angel {
-    position: absolute;
-    top: 50%;
-    left: -55px;
-    transform: translateY(-50%);
-    width: 100px;
-    height: 100px;
-    background-image: url('ui/orb_angel.png');
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    pointer-events: none;
-    z-index: 100;
-    opacity: 0.85;
-}
+        #hp-angel {
+            position: absolute;
+            top: 50%;
+            left: -55px;
+            transform: translateY(-50%);
+            width: 100px;
+            height: 100px;
+            background-image: url('ui/orb_angel.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.85;
+        }
 
-/* Ángel del maná - hacia la DERECHA e INVERTIDO */
-#mana-angel {
-    position: absolute;
-    top: 50%;
-    right: -55px;
-    transform: translateY(-50%) scaleX(-1);
-    width: 100px;
-    height: 100px;
-    background-image: url('ui/orb_angel.png');
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    pointer-events: none;
-    z-index: 100;
-    opacity: 0.85;
-}
+        #mana-angel {
+            position: absolute;
+            top: 50%;
+            right: -55px;
+            transform: translateY(-50%) scaleX(-1);
+            width: 100px;
+            height: 100px;
+            background-image: url('ui/orb_angel.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.85;
+        }
 
-.orb-text {
-    position: absolute;
-    width: 100%;
-    text-align: center;
-    bottom: -20px;
-    font-size: 10px;
-    color: white;
-    text-shadow: 1px 1px 0 black;
-    z-index: 3;
-}
+        .orb-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            bottom: -20px;
+            font-size: 10px;
+            color: white;
+            text-shadow: 1px 1px 0 black;
+            z-index: 3;
+        }
+
         #skills-bar {
             position: static;
             transform: none;
@@ -199,7 +195,6 @@
     </style>
 </head>
 <body>
-    <!-- VERSION 391de49 - FUNCIONAL -->
     <div id="menu-ui" class="menu-overlay">
         <div class="menu-box">
             <h1>DEVILAND</h1>
@@ -240,26 +235,27 @@
     </div>
     
     <div id="stats-container">
-    <div class="orb-wrapper">
-        <div id="hp-orb" class="orb-container">
-            <div id="hp-fill-vertical" class="orb-fill"></div>
-            <div id="hp-orb-sprite" class="orb-sprite"></div>
-            <div class="orb-text">❤️ <span id="hp-text-inline">500</span></div>
+        <div class="orb-wrapper">
+            <div id="hp-orb" class="orb-container">
+                <div id="hp-fill-vertical" class="orb-fill"></div>
+                <div id="hp-orb-sprite" class="orb-sprite"></div>
+                <div class="orb-text">❤️ <span id="hp-text-inline">500</span></div>
+            </div>
+            <div id="hp-angel" class="orb-angel"></div>
         </div>
-        <div id="hp-angel" class="orb-angel"></div>
+        
+        <div id="skills-bar"></div>
+        
+        <div class="orb-wrapper">
+            <div id="mana-orb" class="orb-container">
+                <div id="mana-fill-vertical" class="orb-fill"></div>
+                <div id="mana-orb-sprite" class="orb-sprite"></div>
+                <div class="orb-text">💙 <span id="mana-text-inline">100</span></div>
+            </div>
+            <div id="mana-angel" class="orb-angel"></div>
+        </div>
     </div>
     
-    <div id="skills-bar"></div>
-    
-    <div class="orb-wrapper">
-        <div id="mana-orb" class="orb-container">
-            <div id="mana-fill-vertical" class="orb-fill"></div>
-            <div id="mana-orb-sprite" class="orb-sprite"></div>
-            <div class="orb-text">💙 <span id="mana-text-inline">100</span></div>
-        </div>
-        <div id="mana-angel" class="orb-angel"></div>
-    </div>
-</div>
     <div id="btn-attack">⚔️</div>
     <div id="joystick-area"></div>
     
@@ -350,26 +346,26 @@ const DATA_VERSION = 3;
 const SKILLS_DATA = {
     'levantar_muerto': { 
         id: 'levantar_muerto', nombre: 'Levantar Muerto', 
-        descripcion: 'Levanta un esqueleto aliado de un cadáver cercano', 
+        descripcion: 'Levanta un esqueleto aliado de un cadaver cercano', 
         costo: '200 de vida', icono: 'skills/levantar_muerto.png', 
         soloNecromancer: true, clase: 'NECROMANCER' 
     },
     'furia_necrotica': { 
-        id: 'furia_necrotica', nombre: 'Furia Necrótica', 
+        id: 'furia_necrotica', nombre: 'Furia Necrotica', 
         descripcion: 'Potencia esqueletos aliados: +7% daño por esqueleto, 10 segundos', 
-        costo: '10 maná por esqueleto', icono: 'skills/furia_necrotica.png', 
+        costo: '10 mana por esqueleto', icono: 'skills/furia_necrotica.png', 
         soloNecromancer: true, clase: 'NECROMANCER' 
     },
     'ataque_distancia': { 
         id: 'ataque_distancia', nombre: 'Bola de Sombra', 
         descripcion: 'Dispara un proyectil a distancia', 
-        costo: '10 maná', icono: 'skills/ataque_distancia.png', 
+        costo: '10 mana', icono: 'skills/ataque_distancia.png', 
         soloNecromancer: true 
     }
 };
 
 const classStats = {
-    'BÁRBARO': { hp: 800, mana: 50, ataqueFisico: 80, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 120, attackSpeed: 0.7 },
+    'BARBARO': { hp: 800, mana: 50, ataqueFisico: 80, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 120, attackSpeed: 0.7 },
     'WARRIOR': { hp: 500, mana: 60, ataqueFisico: 50, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 150, attackSpeed: 1.0 },
     'CABALLERO': { hp: 500, mana: 60, ataqueFisico: 50, ataqueMagico: 0, defensaFisica: 100, defensaMagica: 0, velocidad: 130, attackSpeed: 0.9 },
     'MAGO': { hp: 300, mana: 150, ataqueFisico: 15, ataqueMagico: 50, defensaFisica: 0, defensaMagica: 40, velocidad: 180, attackSpeed: 1.0 },
@@ -607,7 +603,7 @@ function migrarPartidaGuardada(datos) {
     }
     
     if (migrado && typeof mostrarMensaje === 'function') {
-        mostrarMensaje(`🎁 Se agregaron nuevos items a tu inventario (actualización)`, 'exito');
+        mostrarMensaje(`🎁 Se agregaron nuevos items a tu inventario (actualizacion)`, 'exito');
     }
     
     return datos;
@@ -617,13 +613,16 @@ function mostrarPantallaCarga() {
     const ld = document.getElementById('loading-ui'); 
     ld.style.display = 'flex'; 
     const bar = document.getElementById('loading-bar'); 
-    bar.style.width = '0%'; 
-    let p = 0; 
-    const it = setInterval(() => { 
-        p += 10; 
-        bar.style.width = p + '%'; 
-        if (p >= 100) clearInterval(it); 
-    }, 50); 
+    const texto = document.querySelector('.loading-text');
+    if (bar) bar.style.width = '0%';
+    if (texto) texto.textContent = 'CARGANDO... 0%';
+}
+
+function actualizarBarraCarga(porcentaje) {
+    const bar = document.getElementById('loading-bar');
+    const texto = document.querySelector('.loading-text');
+    if (bar) bar.style.width = porcentaje + '%';
+    if (texto) texto.textContent = `CARGANDO... ${porcentaje}%`;
 }
 
 function ocultarPantallaCarga() { 
@@ -734,11 +733,11 @@ function iniciarJuegoConCarga(g) {
 
 function inicializarInventario() { 
     inventarioSlots = []; 
-    for (let i = 0; i <36; i++) inventarioSlots.push(null); 
-    agregarItemAlInventario('pocion_1', 'pocion', 'Poción de Vida', '❤️', 2);
-    agregarItemAlInventarioEquipo('espada_1', 'espada', 'Espada Básica', 'espada_img', 1, { ataqueFisico: 15, velocidad: -15 });
-    agregarItemAlInventarioEquipo('armadura_1', 'armadura', 'Armadura Básica', 'armadura_de_cuero_img', 1, { defensaFisica: 15, velocidad: -20 });
-    agregarItemAlInventarioEquipo('escudo_1', 'escudo', 'Escudo Básico', 'escudo_madera_img', 1, { defensaFisica: 20, velocidad: -15 });
+    for (let i = 0; i < 36; i++) inventarioSlots.push(null); 
+    agregarItemAlInventario('pocion_1', 'pocion', 'Pocion de Vida', '❤️', 2);
+    agregarItemAlInventarioEquipo('espada_1', 'espada', 'Espada Basica', 'espada_img', 1, { ataqueFisico: 15, velocidad: -15 });
+    agregarItemAlInventarioEquipo('armadura_1', 'armadura', 'Armadura Basica', 'armadura_de_cuero_img', 1, { defensaFisica: 15, velocidad: -20 });
+    agregarItemAlInventarioEquipo('escudo_1', 'escudo', 'Escudo Basico', 'escudo_madera_img', 1, { defensaFisica: 20, velocidad: -15 });
     renderizarInventario(); 
 }
 
@@ -869,7 +868,7 @@ function crearSlotElement(slot, index, origen) {
                     guardarPartida(); 
                     if (socket) socket.emit('usarPocion', { curacion: curacion }); 
                 } else { 
-                    mostrarMensaje(`❌ Vida al máximo`, 'error'); 
+                    mostrarMensaje(`❌ Vida al maximo`, 'error'); 
                 } 
             } else if (slot.tipo === 'espada') { 
                 if (equipamiento.arma === slot.id) desequiparItem('arma'); 
@@ -894,39 +893,40 @@ function crearSlotElement(slot, index, origen) {
     } 
     
     d.setAttribute('draggable', 'true'); 
-d.addEventListener('dragstart', (e) => { 
-    if (!slot) { e.preventDefault(); return false; } 
-    e.dataTransfer.setData('text/plain', JSON.stringify({ origen: origen, index: index })); 
-    e.target.closest('.slot').style.opacity = '0.5'; 
-}); 
-d.addEventListener('dragend', (e) => { 
-    if (e.target.closest('.slot')) e.target.closest('.slot').style.opacity = '1'; 
-}); 
-d.addEventListener('dragover', (e) => { 
-    e.preventDefault(); 
-    e.target.closest('.slot')?.classList.add('drag-over'); 
-}); 
-d.addEventListener('dragleave', (e) => { 
-    e.target.closest('.slot')?.classList.remove('drag-over'); 
-}); 
-d.addEventListener('drop', (e) => { 
-    e.preventDefault(); 
-    e.target.closest('.slot')?.classList.remove('drag-over'); 
-    try { 
-        const data = JSON.parse(e.dataTransfer.getData('text/plain')); 
-        if (data.origen === 'inventario' && data.index !== undefined && data.index !== index) { 
-            const temp = inventarioSlots[index]; 
-            inventarioSlots[index] = inventarioSlots[data.index]; 
-            inventarioSlots[data.index] = temp; 
-            if (inventarioSlots[index]) inventarioSlots[index].slotIndex = index; 
-            if (inventarioSlots[data.index]) inventarioSlots[data.index].slotIndex = data.index; 
-            renderizarInventario(); 
-            guardarPartida(); 
-            mostrarMensaje(`📦 Item reordenado`, 'exito'); 
-        } 
-    } catch(err) { console.error('Drop error:', err); } 
-}); 
-return d; 
+    d.addEventListener('dragstart', (e) => { 
+        if (!slot) { e.preventDefault(); return false; } 
+        e.dataTransfer.setData('text/plain', JSON.stringify({ origen: origen, index: index })); 
+        e.target.closest('.slot').style.opacity = '0.5'; 
+    }); 
+    d.addEventListener('dragend', (e) => { 
+        if (e.target.closest('.slot')) e.target.closest('.slot').style.opacity = '1'; 
+    }); 
+    d.addEventListener('dragover', (e) => { 
+        e.preventDefault(); 
+        e.target.closest('.slot')?.classList.add('drag-over'); 
+    }); 
+    d.addEventListener('dragleave', (e) => { 
+        e.target.closest('.slot')?.classList.remove('drag-over'); 
+    }); 
+    d.addEventListener('drop', (e) => { 
+        e.preventDefault(); 
+        e.target.closest('.slot')?.classList.remove('drag-over'); 
+        try { 
+            const data = JSON.parse(e.dataTransfer.getData('text/plain')); 
+            if (data.origen === 'inventario' && data.index !== undefined && data.index !== index) { 
+                const temp = inventarioSlots[index]; 
+                inventarioSlots[index] = inventarioSlots[data.index]; 
+                inventarioSlots[data.index] = temp; 
+                if (inventarioSlots[index]) inventarioSlots[index].slotIndex = index; 
+                if (inventarioSlots[data.index]) inventarioSlots[data.index].slotIndex = data.index; 
+                renderizarInventario(); 
+                guardarPartida(); 
+                mostrarMensaje(`📦 Item reordenado`, 'exito'); 
+            } 
+        } catch(err) { console.error('Drop error:', err); } 
+    }); 
+    return d; 
+}
 
 function renderizarInventario() { 
     const g = document.getElementById('inventario-grid'); 
@@ -996,14 +996,13 @@ function actualizarStatsUI() {
     const expFill = document.getElementById('exp-fill');
     if (expFill) expFill.style.width = expPercent + '%'; 
     
-   // TU CÓDIGO ORIGINAL - NO LO CAMBIES
-const hpPercent = playerHP / playerMaxHP;
-const hpFillVert = document.getElementById('hp-fill-vertical');
-if (hpFillVert) hpFillVert.style.transform = `scaleY(${hpPercent})`;
+    const hpPercent = playerHP / playerMaxHP;
+    const hpFillVert = document.getElementById('hp-fill-vertical');
+    if (hpFillVert) hpFillVert.style.transform = `scaleY(${hpPercent})`;
 
-const manaPercent = playerMana / playerMaxMana;
-const manaFillVert = document.getElementById('mana-fill-vertical');
-if (manaFillVert) manaFillVert.style.transform = `scaleY(${manaPercent})`;
+    const manaPercent = playerMana / playerMaxMana;
+    const manaFillVert = document.getElementById('mana-fill-vertical');
+    if (manaFillVert) manaFillVert.style.transform = `scaleY(${manaPercent})`;
 
     const hpTextInline = document.getElementById('hp-text-inline');
     if (hpTextInline) hpTextInline.innerText = Math.floor(playerHP);
@@ -1280,7 +1279,7 @@ function renderizarBarraSkills() {
             const textSpan = document.createElement('div'); 
             textSpan.className = 'skill-name-small'; 
             textSpan.style.opacity = '0.5'; 
-            textSpan.textContent = 'Vacío'; 
+            textSpan.textContent = 'Vacio'; 
             div.appendChild(emptySpan); 
             div.appendChild(textSpan); 
             div.setAttribute('draggable', 'false'); 
@@ -1317,7 +1316,7 @@ function renderizarBarraSkills() {
                                 skillsEquipadas[i] = data.skillId; 
                                 localStorage.setItem(SAVE_KEY + '_skills', JSON.stringify(skillsEquipadas)); 
                                 renderizarBarraSkills(); 
-                                mostrarMensaje(`✅ ${SKILLS_DATA[data.skillId].nombre} equipado (reemplazó a ${SKILLS_DATA[skillToRemove].nombre})`, 'exito'); 
+                                mostrarMensaje(`✅ ${SKILLS_DATA[data.skillId].nombre} equipado (reemplazo a ${SKILLS_DATA[skillToRemove].nombre})`, 'exito'); 
                             } 
                         } else { 
                             skillsEquipadas.push(data.skillId); 
@@ -1340,7 +1339,7 @@ function mostrarDetalleSkill(skill) {
                          <div style="font-size:7px; margin-bottom:3px;">${skill.descripcion}</div>
                          <div style="color:#ffaa66;">💰 Costo: ${skill.costo}</div>
                          <div style="font-size:7px; margin-top:5px; color:#aaa;">💡 Arrastra a la barra para equipar</div>
-                         <div style="font-size:7px; color:#88ff88; margin-top:3px;">⭐ Mantén presionado para detalles</div>`; 
+                         <div style="font-size:7px; color:#88ff88; margin-top:3px;">⭐ Manten presionado para detalles</div>`; 
     preview.style.display = 'block'; 
     if (window.previewTimeout) clearTimeout(window.previewTimeout); 
     window.previewTimeout = setTimeout(() => { if (preview) preview.style.display = 'none'; }, 4000); 
@@ -1373,7 +1372,7 @@ function usarSkill(skillId) {
         if (ultimoEsqueletoClickeado) { 
             levantarEsqueleto(ultimoEsqueletoClickeado); 
         } else { 
-            mostrarMensaje(`❌ Selecciona un cadáver primero (click en esqueleto muerto)`, 'error'); 
+            mostrarMensaje(`❌ Selecciona un cadaver primero (click en esqueleto muerto)`, 'error'); 
         } 
     } else if (skillId === 'furia_necrotica') { 
         if (socket) socket.emit('furiaNecrotica'); 
@@ -1384,13 +1383,13 @@ function usarSkill(skillId) {
             return; 
         } 
         if (playerMana < 10) { 
-            mostrarMensaje(`❌ Maná insuficiente (10)`, 'error'); 
+            mostrarMensaje(`❌ Mana insuficiente (10)`, 'error'); 
             return; 
         } 
         playerMana -= 10; 
         actualizarStatsUI(); 
         ultimoAtaqueDistancia = ahora; 
-        mostrarMensaje(`💀 Bola de sombra! -10 maná`, 'exito'); 
+        mostrarMensaje(`💀 Bola de sombra! -10 mana`, 'exito'); 
         let dir = player.lastDir; 
         let targetX = player.x; 
         let targetY = player.y; 
@@ -1434,18 +1433,18 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
     proyectil.startY = origenY; 
     proyectiles.push(proyectil); 
     
-    let frameIndex = 0;  // Empieza en 0 (0000.png)
-const animInterval = setInterval(() => { 
-    if (!proyectil || !proyectil.active) { 
-        clearInterval(animInterval); 
-        return; 
-    } 
-    frameIndex++; 
-    if (frameIndex > 26) frameIndex = 0;  // Vuelve a 0 después de 26
-    const frameNum = frameIndex.toString().padStart(4, '0'); 
-    proyectil.setTexture(`fireball_${frameNum}`); 
-    proyectil.setRotation(angle - Math.PI / 2); 
-}, 50);
+    let frameIndex = 0;
+    const animInterval = setInterval(() => { 
+        if (!proyectil || !proyectil.active) { 
+            clearInterval(animInterval); 
+            return; 
+        } 
+        frameIndex++; 
+        if (frameIndex > 26) frameIndex = 0;
+        const frameNum = frameIndex.toString().padStart(4, '0'); 
+        proyectil.setTexture(`fireball_${frameNum}`); 
+        proyectil.setRotation(angle - Math.PI / 2); 
+    }, 50);
     
     if (currentScene && window.esqueletosGrupo) {
         currentScene.physics.add.overlap(proyectil, window.esqueletosGrupo, (p, esqueleto) => { 
@@ -1537,6 +1536,15 @@ function crearTextoDmg(esc, x, y, txt, col, sz) {
 // PHASER: PRELOAD
 // ============================================
 function preload() { 
+    this.load.on('progress', (value) => {
+        const porcentaje = Math.floor(value * 100);
+        actualizarBarraCarga(porcentaje);
+    });
+    
+    this.load.on('complete', () => {
+        actualizarBarraCarga(100);
+    });
+    
     this.load.image('suelo', 'ground_stone1.png');
     this.load.spritesheet('mago_sprite', 'mago.png', { frameWidth: 255, frameHeight: 255 }); 
     this.load.spritesheet('necromancer_sprite', 'necromancer.png', { frameWidth: 255, frameHeight: 255 }); 
@@ -1550,9 +1558,9 @@ function preload() {
     this.load.spritesheet('esqueleto', 'esqueleto.png', { frameWidth: 255, frameHeight: 255 }); 
     
     for (let i = 0; i <= 26; i++) { 
-    const frameNum = i.toString().padStart(4, '0'); 
-    this.load.image(`fireball_${frameNum}`, `fireball/${frameNum}.png`); 
-}
+        const frameNum = i.toString().padStart(4, '0'); 
+        this.load.image(`fireball_${frameNum}`, `fireball/${frameNum}.png`); 
+    }
     
     this.load.audio('sonidoTalar', 'talar.mp3'); 
     this.load.audio('sonidoMina', 'mina.mp3'); 
@@ -1564,8 +1572,14 @@ function preload() {
 
 // ============================================
 // PHASER: CREATE
-// ============================================
+// ============================================ 
 function create() { 
+    actualizarBarraCarga(100);
+    
+    setTimeout(() => {
+        ocultarPantallaCarga();
+    }, 500);
+    
     currentScene = this; 
     socket = io();
     
@@ -1683,7 +1697,7 @@ function create() {
     const guardado = window.guardadoPendiente || null; 
     if (guardado) { 
         if (guardado.inventarioSlots) inventarioSlots = guardado.inventarioSlots; 
-        else { inventarioSlots = []; for (let i = 0; i <36; i++) inventarioSlots.push(null); }
+        else { inventarioSlots = []; for (let i = 0; i < 36; i++) inventarioSlots.push(null); }
         equipamiento = guardado.equipamiento || { arma: null, escudo: null, armadura: null }; 
         playerStats = guardado.playerStats || { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 }; 
         if (guardado.ultimaPosicion) player.setPosition(guardado.ultimaPosicion.x, guardado.ultimaPosicion.y); 
@@ -1761,7 +1775,7 @@ function create() {
                     else if (arbol && aC) { socket.emit('talarArbol', { x: player.x, y: player.y }); if (currentScene) currentScene.sound.play('sonidoTalar', { volume: 0.7 }); } 
                     else if (demonlord_sprite && demonlord_sprite.visible && Phaser.Math.Distance.Between(player.x, player.y, demonlord_sprite.x, demonlord_sprite.y) < 135) { 
                         socket.emit('demonlordHit', { damageBonus: damageBonus, esCritico: esCritico }); 
-                        if (currentScene) { if (esCritico) crearTextoDmg(currentScene, demonlord_sprite.x, demonlord_sprite.y, "CRÍTICO!", "#ff4444", "18px"); else crearTextoDmg(currentScene, demonlord_sprite.x, demonlord_sprite.y, "⚔️", "#fff", "16px"); } 
+                        if (currentScene) { if (esCritico) crearTextoDmg(currentScene, demonlord_sprite.x, demonlord_sprite.y, "CRITICO!", "#ff4444", "18px"); else crearTextoDmg(currentScene, demonlord_sprite.x, demonlord_sprite.y, "⚔️", "#fff", "16px"); } 
                     } 
                     if (window.esqueletosGrupo) { 
                         let esqueletoMasCercano = null; 
