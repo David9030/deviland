@@ -1657,9 +1657,10 @@ function preload() {
     this.load.audio('esqueletoLevanta', 'esqueleto_levanta.mp3'); 
 // Cargar animación de oro (gold drop) - 8 frames (0000.png a 0007.png)
 for (let i = 0; i <= 7; i++) { 
-    const frameNum = i.toString().padStart(4, '0'); 
-    this.load.image(`gold_${frameNum}`, `gold/${frameNum}.png`); 
-}
+        const frameNum = i.toString().padStart(4, '0'); 
+        this.load.image(`gold_${frameNum}`, `gold/${frameNum}.png`); 
+    }
+} 
 
 // ============================================
 // PHASER: CREATE
