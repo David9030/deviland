@@ -828,52 +828,25 @@ function inicializarInventario() {
     renderizarInventario(); 
 }
 
-function agregarItemAlInventarioEquipo(id, tipo, nombre, icono, cantidad, stats) { 
-    for (let i = 0; i < inventarioSlots.length; i++) { 
-        if (inventarioSlots[i] && inventarioSlots[i].id === id && inventarioSlots[i].tipo === tipo) { 
-            inventarioSlots[i].cantidad += cantidad; 
-            renderizarInventario(); 
-            guardarPartida(); 
-            return true; 
-        } 
-    } 
-    for (let i = 0; i < inventarioSlots.length; i++) { 
-        if (inventarioSlots[i] === null) { 
-            inventarioSlots[i] = { 
-                id, tipo, nombre, icono, cantidad, slotIndex: i,
-                ataqueFisico: stats.ataqueFisico, ataqueMagico: stats.ataqueMagico,
-                defensaFisica: stats.defensaFisica, defensaMagica: stats.defensaMagica, 
-                velocidad: stats.velocidad
-            }; 
-            renderizarInventario(); 
-            guardarPartida(); 
-            return true; 
-        } 
-    } 
-    mostrarMensaje(`❌ Inventario lleno!`, 'error'); 
-    return false; 
-}
-
 function agregarItemAlInventario(id, tipo, nombre, icono, cantidad, mostrarMsg = true) { 
     for (let i = 0; i < inventarioSlots.length; i++) { 
         if (inventarioSlots[i] && inventarioSlots[i].id === id && inventarioSlots[i].tipo === tipo) { 
-            inventarioSlots[i].cantidad += cantidad; 
-            renderizarInventario(); 
-            if (mostrarMsg) mostrarMensaje(`+${cantidad} ${nombre}`, 'exito'); 
-            guardarPartida(); 
-            return true; 
+            if (inventarioSlots[i].cantidad + cantidad <= 999) { inventarioSlots[i].cantidad += cantidad; renderizarInventario(); if (mostrarMsg) mostrarMensaje(`+${cantidad} ${nombre}`, 'exito'); guardarPartida(); return true; } 
+            else { const espacio = 999 - inventarioSlots[i].cantidad; inventarioSlots[i].cantidad = 999; cantidad -= espacio; if (mostrarMsg) mostrarMensaje(`+${espacio} ${nombre} (slot lleno)`, 'exito'); } 
         } 
     } 
     for (let i = 0; i < inventarioSlots.length; i++) { 
         if (inventarioSlots[i] === null) { 
-            inventarioSlots[i] = { id, tipo, nombre, icono, cantidad, slotIndex: i }; 
+            const nuevaCantidad = Math.min(cantidad, 999); 
+            inventarioSlots[i] = { id, tipo, nombre, icono, cantidad: nuevaCantidad, slotIndex: i }; 
             renderizarInventario(); 
-            if (mostrarMsg) mostrarMensaje(`+${cantidad} ${nombre}`, 'exito'); 
+            if (mostrarMsg) mostrarMensaje(`+${nuevaCantidad} ${nombre}`, 'exito'); 
             guardarPartida(); 
-            return true; 
+            cantidad -= nuevaCantidad; 
+            if (cantidad <= 0) return true; 
         } 
     } 
-    mostrarMensaje(`❌ Inventario lleno!`, 'error'); 
+    if (cantidad > 0) mostrarMensaje(`❌ Inventario lleno! Faltan ${cantidad} ${nombre} por recoger`, 'error'); 
     return false; 
 }
 
@@ -897,17 +870,28 @@ function crearSlotElement(slot, index, origen) {
         const i = document.createElement('div'); 
         i.className = 'slot-icon'; 
         
-        if (slot.icono && (slot.icono.includes('_img') || slot.icono === 'pocion_img')) { 
-            const img = document.createElement('img'); 
-            img.src = getImagenItem(slot.icono);
-            img.onerror = function() { 
-                this.style.display = 'none'; 
-                this.parentElement.textContent = '🗡️';
-            };
-            i.appendChild(img); 
-        } else { 
-            i.textContent = slot.icono; 
-        } 
+        if (slot.id === 'oro') {
+    // Usar gold_0007.png como ícono del oro
+    const img = document.createElement('img');
+    img.src = 'gold/0007.png';
+    img.style.width = '40px';
+    img.style.height = '40px';
+    img.onerror = function() { 
+        this.style.display = 'none'; 
+        this.parentElement.textContent = '💰';
+    };
+    i.appendChild(img);
+} else if (slot.icono && (slot.icono.includes('_img') || slot.icono === 'pocion_img')) { 
+    const img = document.createElement('img'); 
+    img.src = getImagenItem(slot.icono);
+    img.onerror = function() { 
+        this.style.display = 'none'; 
+        this.parentElement.textContent = '🗡️';
+    };
+    i.appendChild(img); 
+} else { 
+    i.textContent = slot.icono; 
+}
         
         let estaEquipado = false; 
         if (slot.tipo === 'espada' && equipamiento.arma === slot.id) estaEquipado = true; 
@@ -1090,31 +1074,6 @@ function actualizarStatsUI() {
     const manaPercent = playerMana / playerMaxMana;
     const manaFillVert = document.getElementById('mana-fill-vertical');
     if (manaFillVert) manaFillVert.style.transform = `scaleY(${manaPercent})`;
-
-    // ==========================================
-    // MOSTRAR ORO (desde inventario)
-    // ==========================================
-    let cantidadOro = 0;
-    for (let i = 0; i < inventarioSlots.length; i++) {
-        const slot = inventarioSlots[i];
-        if (slot && slot.id === 'oro') {
-            cantidadOro = slot.cantidad;
-            break;
-        }
-    }
-    
-    let oroElement = document.getElementById('stat-oro');
-    if (!oroElement) {
-        const statsPanel = document.getElementById('stats-panel-inline');
-        if (statsPanel) {
-            const oroRow = document.createElement('div');
-            oroRow.className = 'stat-row';
-            oroRow.innerHTML = `💰 ORO:<span id="stat-oro" class="stat-value">${cantidadOro}</span>`;
-            statsPanel.insertBefore(oroRow, statsPanel.firstChild);
-        }
-    } else {
-        oroElement.textContent = cantidadOro;
-    }
 
     const hpTextInline = document.getElementById('hp-text-inline');
     if (hpTextInline) hpTextInline.innerText = Math.floor(playerHP);
