@@ -433,6 +433,11 @@ function recogerMoneda(moneda) {
     
     // Mostrar mensaje
     mostrarMensaje(`💰 +${moneda.cantidad} ORO (Total: ${playerStats.oro})`, 'exito');
+
+    // REPRODUCIR SONIDO DE MONEDA
+    if (currentScene && currentScene.sound) {
+        currentScene.sound.play('sonidoMoneda', { volume: 0.5 });
+    }
     
     // Detener animación
     if (moneda.animInterval) clearInterval(moneda.animInterval);
@@ -1655,6 +1660,7 @@ function preload() {
     this.load.spritesheet('warrior', 'warrior.png', { frameWidth: 128, frameHeight: 128 }); 
     this.load.spritesheet('demonlord', 'demonlord.png', { frameWidth: 128, frameHeight: 128 }); 
     this.load.spritesheet('esqueleto', 'esqueleto.png', { frameWidth: 255, frameHeight: 255 }); 
+    this.load.audio('sonidoMoneda', 'moneda.mp3');  // ← AGREGAR
     
     for (let i = 0; i <= 26; i++) { 
         const frameNum = i.toString().padStart(4, '0'); 
