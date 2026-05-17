@@ -448,17 +448,76 @@ function recogerMoneda(moneda) {
         scale: 0,
         alpha: 0,
         duration: 200,
-        onComplete: () => {
+         onComplete: () => {
             moneda.destroy();
             const index = monedasSuelo.indexOf(moneda);
             if (index !== -1) monedasSuelo.splice(index, 1);
         }
     });
+}  // ← AGREGAR ESTA LLAVE
+
+// ==========================================
+// DROPS DE ESPADA
+// ==========================================
+let dropsSuelo = [];
+
+function crearDropEspada(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStats = {}) {
+    if (!currentScene) return;
     
-    // Actualizar UI
+    const drop = currentScene.add.image(x, y, 'espada');
+    drop.setScale(0.8);
+    drop.setDepth(y);
+    drop.itemId = itemId;
+    drop.itemNombre = itemNombre;
+    drop.itemTipo = itemTipo;
+    drop.itemIcono = itemIcono;
+    drop.itemStats = itemStats;
+    drop.recogida = false;
+    drop.id = 'drop_' + Date.now() + '_' + Math.random();
+    
+    drop.setInteractive({ useHandCursor: true });
+    drop.on('pointerdown', () => {
+        if (!player || !player.isAlive) return;
+        if (drop.recogida) return;
+        
+        const dist = Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y);
+        if (dist < 60) {
+            recogerDrop(drop);
+        } else {
+            mostrarMensaje(`❌ Debes acercarte más para recoger ${drop.itemNombre}`, 'error');
+        }
+    });
+    
+    dropsSuelo.push(drop);
+    return drop;
+}
+
+function recogerDrop(drop) {
+    if (!drop || !drop.active) return;
+    if (drop.recogida) return;
+    drop.recogida = true;
+    
+    agregarItemAlInventarioEquipo(drop.itemId, drop.itemTipo, drop.itemNombre, drop.itemIcono, 1, drop.itemStats);
+    
+    mostrarMensaje(`⚔️ +${drop.itemNombre}`, 'exito');
+    
+    if (currentScene && currentScene.sound) {
+        currentScene.sound.play('sonidoMoneda', { volume: 0.5 });
+    }
+    
+    currentScene.tweens.add({
+        targets: drop,
+        scale: 0,
+        alpha: 0,
+        duration: 200,
+        onComplete: () => {
+            drop.destroy();
+            const index = dropsSuelo.indexOf(drop);
+            if (index !== -1) dropsSuelo.splice(index, 1);
+        }
+    });
+    
     actualizarStatsUI();
-    
-    // Guardar partida
     guardarPartida();
 }
 
@@ -716,7 +775,10 @@ function ocultarPantallaCarga() {
     document.getElementById('loading-ui').style.display = 'none'; 
 }
 
-function nuevoJuego() { 
+// ============================================
+// FUNCIONES GLOBALES DEL MENU
+// ============================================
+window.nuevoJuego = function() { 
     borrarPartida(); 
     equipamiento = { arma: null, escudo: null, armadura: null }; 
     playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 }; 
@@ -724,9 +786,9 @@ function nuevoJuego() {
     inventarioSlots = [];
     document.getElementById('menu-ui').style.display = 'none'; 
     document.getElementById('class-ui').style.display = 'flex'; 
-}
+};
 
-function continuarPartida() { 
+window.continuarPartida = function() { 
     const g = cargarPartidaGuardada(); 
     if (!g) { 
         alert("No hay partida guardada.");
@@ -763,7 +825,7 @@ function continuarPartida() {
     document.getElementById('menu-ui').style.display = 'none'; 
     mostrarPantallaCarga(); 
     setTimeout(() => { iniciarJuegoConCarga(g); }, 500);
-}
+};
 
 function seleccionarClase(sprite, nombreClase) { 
     const n = document.getElementById('nombre-input').value.trim(); 
@@ -788,23 +850,35 @@ function seleccionarClase(sprite, nombreClase) {
 }
 
 function iniciarJuego() { 
+    console.log("🚀 iniciarJuego() llamado");
     juegoIniciado = true; 
-    ocultarPantallaCarga(); 
+    
+    // No ocultar la carga hasta que Phaser termine
+    // ocultarPantallaCarga();
+    
     setInterval(() => regenerarMana(), 5000); 
-    new Phaser.Game({ 
+    
+    const game = new Phaser.Game({ 
         type: Phaser.AUTO, 
         width: window.innerWidth, 
         height: window.innerHeight, 
         physics: { default: 'arcade' }, 
         scene: { preload: preload, create: create, update: update } 
     }); 
+    
+    console.log("🔵 Phaser.Game creado, esperando carga...");
 }
 
 function iniciarJuegoConCarga(g) { 
+    console.log("🚀 iniciarJuegoConCarga() llamado");
     juegoIniciado = true; 
     window.guardadoPendiente = g; 
-    ocultarPantallaCarga(); 
+    
+    // No ocultar la carga hasta que Phaser termine
+    // ocultarPantallaCarga();  ← COMENTAR ESTA LÍNEA
+    
     setInterval(() => regenerarMana(), 5000); 
+    
     new Phaser.Game({ 
         type: Phaser.AUTO, 
         width: window.innerWidth, 
@@ -812,6 +886,8 @@ function iniciarJuegoConCarga(g) {
         physics: { default: 'arcade' }, 
         scene: { preload: preload, create: create, update: update } 
     }); 
+    
+    console.log("🔵 Phaser.Game creado con carga guardada, esperando...");
     
     setTimeout(() => {
         forzarIconosCorrectos();
@@ -828,25 +904,31 @@ function inicializarInventario() {
     renderizarInventario(); 
 }
 
-function agregarItemAlInventario(id, tipo, nombre, icono, cantidad, mostrarMsg = true) { 
+function agregarItemAlInventarioEquipo(id, tipo, nombre, icono, cantidad, stats = {}) {
     for (let i = 0; i < inventarioSlots.length; i++) { 
         if (inventarioSlots[i] && inventarioSlots[i].id === id && inventarioSlots[i].tipo === tipo) { 
-            if (inventarioSlots[i].cantidad + cantidad <= 999) { inventarioSlots[i].cantidad += cantidad; renderizarInventario(); if (mostrarMsg) mostrarMensaje(`+${cantidad} ${nombre}`, 'exito'); guardarPartida(); return true; } 
-            else { const espacio = 999 - inventarioSlots[i].cantidad; inventarioSlots[i].cantidad = 999; cantidad -= espacio; if (mostrarMsg) mostrarMensaje(`+${espacio} ${nombre} (slot lleno)`, 'exito'); } 
+            inventarioSlots[i].cantidad += cantidad; 
+            renderizarInventario(); 
+            guardarPartida(); 
+            return true; 
         } 
     } 
     for (let i = 0; i < inventarioSlots.length; i++) { 
         if (inventarioSlots[i] === null) { 
-            const nuevaCantidad = Math.min(cantidad, 999); 
-            inventarioSlots[i] = { id, tipo, nombre, icono, cantidad: nuevaCantidad, slotIndex: i }; 
+            inventarioSlots[i] = { 
+                id, tipo, nombre, icono, cantidad, slotIndex: i,
+                ataqueFisico: stats.ataqueFisico || 0, 
+                ataqueMagico: stats.ataqueMagico || 0,
+                defensaFisica: stats.defensaFisica || 0, 
+                defensaMagica: stats.defensaMagica || 0, 
+                velocidad: stats.velocidad || 0
+            }; 
             renderizarInventario(); 
-            if (mostrarMsg) mostrarMensaje(`+${nuevaCantidad} ${nombre}`, 'exito'); 
             guardarPartida(); 
-            cantidad -= nuevaCantidad; 
-            if (cantidad <= 0) return true; 
+            return true; 
         } 
     } 
-    if (cantidad > 0) mostrarMensaje(`❌ Inventario lleno! Faltan ${cantidad} ${nombre} por recoger`, 'error'); 
+    mostrarMensaje(`❌ Inventario lleno!`, 'error'); 
     return false; 
 }
 
@@ -874,8 +956,8 @@ function crearSlotElement(slot, index, origen) {
     // Usar gold_0007.png como ícono del oro
     const img = document.createElement('img');
     img.src = 'gold/0007.png';
-    img.style.width = '40px';
-    img.style.height = '40px';
+    img.style.width = '80px';
+    img.style.height = '80px';
     img.onerror = function() { 
         this.style.display = 'none'; 
         this.parentElement.textContent = '💰';
@@ -1622,6 +1704,7 @@ function preload() {
     this.load.image('pino_1', 'pino_1.png'); 
     this.load.image('mina', 'mina.png'); 
     this.load.image('roca', 'roca.png'); 
+    this.load.image('espada', 'espada.png');
     this.load.spritesheet('barbaro', 'Barbaro.png', { frameWidth: 128, frameHeight: 128 }); 
     this.load.spritesheet('caballero', 'caballero.png', { frameWidth: 128, frameHeight: 128 }); 
     this.load.spritesheet('warrior', 'warrior.png', { frameWidth: 128, frameHeight: 128 }); 
@@ -1996,7 +2079,12 @@ function create() {
     
     socket.on('esqueletoAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); crearTextoDmg(this, player.x, player.y, data.damage, "#fff", "20px"); this.cameras.main.shake(150, 0.005); mostrarMensaje(`💀 Esqueleto te golpeó por ${data.damage}`, 'combate'); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play(`esqueleto_atk_${data.dir}`, true); setTimeout(() => { if (esq.active) esq.play(`esqueleto_idle_${data.dir}`, true); }, 300); } }); } });
     
-    socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) currentScene.sound.play('esqueletoMuere', { volume: 0.6 }); crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5); if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play('esqueleto_die_Abajo'); esq.once('animationcomplete', () => { if (esq && esq.active) { esq.stop(); esq.setFrame(55); esq.body.enable = false; esq.setVisible(true); setTimeout(() => { if (esq && esq.active) esq.destroy(); }, 60000); } }); if (data.exp > 0) ganarExp(data.exp); return; } }); } });
+    socket.on('esqueletoDeath', (data) => { 
+    if (currentScene && currentScene.sound) currentScene.sound.play('esqueletoMuere', { volume: 0.6 }); 
+    crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5);
+    if (Math.random() < 0.05) { crearDropEspada(data.x, data.y, 'espada_1', 'Espada', 'espada', 'espada_img', { ataqueFisico: 15, velocidad: -15 }); }
+    if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play('esqueleto_die_Abajo'); esq.once('animationcomplete', () => { if (esq && esq.active) { esq.stop(); esq.setFrame(55); esq.body.enable = false; esq.setVisible(true); setTimeout(() => { if (esq && esq.active) esq.destroy(); }, 60000); } }); if (data.exp > 0) ganarExp(data.exp); return; } }); } 
+});
     
     socket.on('esqueletoDestroy', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) esq.destroy(); }); } });
     
