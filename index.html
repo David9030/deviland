@@ -929,10 +929,10 @@ function agregarItemAlInventarioEquipo(id, tipo, nombre, icono, cantidad, stats 
         if (inventarioSlots[i] === null) { 
             inventarioSlots[i] = { 
                 id, tipo, nombre, icono, cantidad, slotIndex: i,
-                ataqueFisico: stats.ataqueFisico || 0, 
+                ataqueFisico: stats.ataqueFisico || 0,
                 ataqueMagico: stats.ataqueMagico || 0,
-                defensaFisica: stats.defensaFisica || 0, 
-                defensaMagica: stats.defensaMagica || 0, 
+                defensaFisica: stats.defensaFisica || 0,
+                defensaMagica: stats.defensaMagica || 0,
                 velocidad: stats.velocidad || 0
             }; 
             renderizarInventario(); 
@@ -2110,12 +2110,7 @@ function create() {
     
     socket.on('esqueletoAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); crearTextoDmg(this, player.x, player.y, data.damage, "#fff", "20px"); this.cameras.main.shake(150, 0.005); mostrarMensaje(`💀 Esqueleto te golpeó por ${data.damage}`, 'combate'); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play(`esqueleto_atk_${data.dir}`, true); setTimeout(() => { if (esq.active) esq.play(`esqueleto_idle_${data.dir}`, true); }, 300); } }); } });
     
-    socket.on('esqueletoDeath', (data) => { 
-    if (currentScene && currentScene.sound) currentScene.sound.play('esqueletoMuere', { volume: 0.6 }); 
-    crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5);
-    if (Math.random() < 0.05) { crearDropEspada(data.x, data.y, 'espada_1', 'Espada', 'espada', 'espada_img', { ataqueFisico: 15, velocidad: -15 }); }
-    if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play('esqueleto_die_Abajo'); esq.once('animationcomplete', () => { if (esq && esq.active) { esq.stop(); esq.setFrame(55); esq.body.enable = false; esq.setVisible(true); setTimeout(() => { if (esq && esq.active) esq.destroy(); }, 60000); } }); if (data.exp > 0) ganarExp(data.exp); return; } }); } 
-});
+   socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) currentScene.sound.play('esqueletoMuere', { volume: 0.6 }); crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5); if (Math.random() < 0.05) { crearDropEspada(data.x, data.y, 'espada_1', 'Espada', 'espada', 'espada_img', { ataqueFisico: 15, velocidad: -15 }); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play('esqueleto_die_Abajo'); esq.once('animationcomplete', () => { if (esq && esq.active) { esq.stop(); esq.setFrame(55); esq.body.enable = false; esq.setVisible(true); setTimeout(() => { if (esq && esq.active) esq.destroy(); }, 60000); } }); if (data.exp > 0 && data.attackers && data.attackers.includes(socket.id)) { ganarExp(data.exp); } return; } }); } });
     
     socket.on('esqueletoDestroy', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) esq.destroy(); }); } });
     
