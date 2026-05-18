@@ -1836,8 +1836,9 @@ function preload() {
     this.load.spritesheet('necromancer_sprite', 'necromancer.png', { frameWidth: 255, frameHeight: 255 }); 
     this.load.image('pino_1', 'pino_1.png'); 
     this.load.image('mina', 'mina.png'); 
-    this.load.image('roca', 'roca.png'); 
-    this.load.image('espada', 'espada.png');
+    this.load.image('roca', 'roca.png');
+    this.load.image('espada', 'espada.png'); 
+    this.load.image('espadadrop', 'espadadrop.png');
     this.load.image('escudodrop', 'escudodrop.png');
     this.load.image('armaduradrop', 'armaduradrop.png');
     this.load.spritesheet('barbaro', 'Barbaro.png', { frameWidth: 128, frameHeight: 128 }); 
@@ -2215,8 +2216,7 @@ if (guardado) {
     
     socket.on('esqueletoAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); crearTextoDmg(this, player.x, player.y, data.damage, "#fff", "20px"); this.cameras.main.shake(150, 0.005); mostrarMensaje(`💀 Esqueleto te golpeó por ${data.damage}`, 'combate'); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play(`esqueleto_atk_${data.dir}`, true); setTimeout(() => { if (esq.active) esq.play(`esqueleto_idle_${data.dir}`, true); }, 300); } }); } });
     
-   socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) currentScene.sound.play('esqueletoMuere', { volume: 0.6 }); crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5); if (Math.random() < 0.05) { crearDropEspada(data.x, data.y, 'espada_1', 'Espada', 'espada', 'espada_img', { ataqueFisico: 15, velocidad: -15 }); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play('esqueleto_die_Abajo'); esq.once('animationcomplete', () => { if (esq && esq.active) { esq.stop(); esq.setFrame(55); esq.body.enable = false; esq.setVisible(true); setTimeout(() => { if (esq && esq.active) esq.destroy(); }, 60000); } }); if (data.exp > 0 && data.attackers && data.attackers.includes(socket.id)) { ganarExp(data.exp); } return; } }); } });
-    
+   socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) currentScene.sound.play('esqueletoMuere', { volume: 0.6 }); crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5); if (Math.random() < 0.05) { crearDropEspada(data.x, data.y, 'espada_1', 'Espada', 'espada', 'espada_img', { ataqueFisico: 15, velocidad: -15 }); } if (Math.random() < 0.05) { crearDropEscudo(data.x, data.y, 'escudo_1', 'Escudo', 'escudo', 'escudo_madera_img', { defensaFisica: 20, velocidad: -15 }); } if (Math.random() < 0.03) { crearDropArmadura(data.x, data.y, 'armadura_1', 'Armadura', 'armadura', 'armadura_de_cuero_img', { defensaFisica: 15, velocidad: -20 }); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play('esqueleto_die_Abajo'); esq.once('animationcomplete', () => { if (esq && esq.active) { esq.stop(); esq.setFrame(55); esq.body.enable = false; esq.setVisible(true); setTimeout(() => { if (esq && esq.active) esq.destroy(); }, 60000); } }); if (data.exp > 0 && data.attackers && data.attackers.includes(socket.id)) { ganarExp(data.exp); } return; } }); } });
     socket.on('esqueletoDestroy', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) esq.destroy(); }); } });
     
     socket.on('esqueletoNew', (data) => { if (currentScene && currentScene.sound) currentScene.sound.play('esqueletoLevanta', { volume: 0.5 }); const img = this.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3).setDepth(data.y); img.esqueletoId = data.id; img.isAlly = false; img.setCollideWorldBounds(true); img.play('esqueleto_idle_Abajo', true); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto enemigo seleccionado.`, 'info'); }); window.esqueletosGrupo.add(img); });
