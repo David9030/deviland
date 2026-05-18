@@ -331,39 +331,56 @@ io.on('connection', (socket) => {
         } 
     });
     
-    socket.on('esqueletoHit', (data) => { 
-        const jugador = players[socket.id]; 
-        if (!jugador || !jugador.isAlive) return; 
-        let esqueleto = esqueletos.find(e => e.id === data.id && e.isAlive); 
-        if (!esqueleto) return; 
-        let damage = data.damageBonus || 0; 
-        const finalDamage = Math.max(1, damage); 
-        esqueleto.hp = Math.max(0, esqueleto.hp - finalDamage); 
-        io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: finalDamage }); 
-        if (esqueleto.hp <= 0) { 
-            esqueleto.isAlive = false; 
-            io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP }); 
-            darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP); 
-            respawnEsqueleto(esqueleto.id); 
-        } 
-    });
-    
-    socket.on('playerMurio', (data) => {
-        console.log(`💀 Jugador murió: ${data.id}`);
-        const jugador = players[data.id];
-        if (jugador && jugador.isAlive) {
-            jugador.isAlive = false;
-            jugador.hp = 0;
-            io.emit('playerDeath', { id: data.id, name: jugador.name });
-            
-            esqueletos.forEach(esq => {
-                if (esq.targetId === data.id) {
-                    esq.targetId = null;
-                    esq.targetType = null;
-                }
+   socket.on('esqueletoHit', (data) => { 
+    const jugador = players[socket.id]; 
+    if (!jugador || !jugador.isAlive) return; 
+    let esqueleto = esqueletos.find(e => e.id === data.id && e.isAlive); 
+    if (!esqueleto) return; 
+    let damage = data.damageBonus || 0; 
+    const finalDamage = Math.max(1, damage); 
+    esqueleto.hp = Math.max(0, esqueleto.hp - finalDamage); 
+
+    // REGISTRAR QUE EL JUGADOR ATACÓ A ESTE ESQUELETO
+    if (!esqueleto.attackers) esqueleto.attackers = [];
+    if (!esqueleto.attackers.includes(socket.id)) {
+        esqueleto.attackers.push(socket.id);
+    }
+
+    io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: finalDamage }); 
+    if (esqueleto.hp <= 0) { 
+        esqueleto.isAlive = false; 
+        
+        // DAR EXP SOLO A LOS QUE ATACARON (no solo al que dio el último golpe)
+        if (esqueleto.attackers && esqueleto.attackers.length > 0) {
+            esqueleto.attackers.forEach(attackerId => {
+                darExpAJugadorYEquipo(attackerId, CONFIG.SKELETON.EXP);
             });
+        } else {
+            // Si por alguna razón no hay atacantes registrados, dar exp al que mató
+            darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP);
         }
-    });
+        
+        io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP, attackers: esqueleto.attackers || [] }); 
+        respawnEsqueleto(esqueleto.id); 
+    } 
+});
+
+socket.on('playerMurio', (data) => {
+    console.log(`💀 Jugador murió: ${data.id}`);
+    const jugador = players[data.id];
+    if (jugador && jugador.isAlive) {
+        jugador.isAlive = false;
+        jugador.hp = 0;
+        io.emit('playerDeath', { id: data.id, name: jugador.name });
+        
+        esqueletos.forEach(esq => {
+            if (esq.targetId === data.id) {
+                esq.targetId = null;
+                esq.targetType = null;
+            }
+        });
+    }
+});
     
     socket.on('playerRespawn', (data) => {
         console.log(`🔥 playerRespawn recibido para ID: ${data.id}`);
@@ -373,44 +390,60 @@ io.on('connection', (socket) => {
     });
     
     socket.on('demonlordHit', (data) => {
-        if (!demonlord.isAlive) return;
-        const jugador = players[socket.id];
-        if (!jugador || !jugador.isAlive) return;
+    if (!demonlord.isAlive) return;
+    const jugador = players[socket.id];
+    if (!jugador || !jugador.isAlive) return;
+    
+    // REGISTRAR QUE EL JUGADOR ATACÓ AL DEMONLORD
+    if (!demonlord.attackers) demonlord.attackers = [];
+    if (!demonlord.attackers.includes(socket.id)) {
+        demonlord.attackers.push(socket.id);
+    }
+    
+    let damage = jugador.ataqueFisico;
+    if (data.damageBonus) damage += data.damageBonus;
+    if (data.esCritico) damage *= 2;
+    
+    demonlord.hp = Math.max(0, demonlord.hp - damage);
+    io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: damage, hp: demonlord.hp });
+    
+    if (demonlord.hp <= 0) {
+        demonlord.isAlive = false;
         
-        let damage = jugador.ataqueFisico;
-        if (data.damageBonus) damage += data.damageBonus;
-        if (data.esCritico) damage *= 2;
-        
-        demonlord.hp = Math.max(0, demonlord.hp - damage);
-        io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: damage, hp: demonlord.hp });
-        
-        if (demonlord.hp <= 0) {
-            demonlord.isAlive = false;
-            io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y });
-            
-            setTimeout(() => {
-                for (let i = 0; i < 8; i++) {
-                    const angle = (i / 8) * Math.PI * 2;
-                    const distancia = 60 + (Math.random() * 40);
-                    const offsetX = Math.cos(angle) * distancia;
-                    const offsetY = Math.sin(angle) * distancia;
-                    spawnItem(demonlord.x + offsetX, demonlord.y + offsetY, 'moneda');
-                }
-            }, 1000);
-            
-            setTimeout(() => {
-                demonlord.hp = CONFIG.DEMONLORD.MAX_HP;
-                demonlord.isAlive = true;
-                demonlord.x = 1500;
-                demonlord.y = 1500;
-                io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y });
-                io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `👹 El Demonlord ha renacido!` });
-            }, CONFIG.DEMONLORD.RESPAWN_TIME);
-            
+        // DAR EXP A TODOS LOS QUE ATACARON AL DEMONLORD
+        if (demonlord.attackers && demonlord.attackers.length > 0) {
+            demonlord.attackers.forEach(attackerId => {
+                darExpAJugadorYEquipo(attackerId, CONFIG.DEMONLORD.EXP);
+            });
+            io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🏆 Los héroes derrotaron al Demonlord y ganaron ${CONFIG.DEMONLORD.EXP} EXP!` });
+        } else {
             darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP);
             io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🏆 ${jugador.name} y su equipo ganaron ${CONFIG.DEMONLORD.EXP} EXP!` });
         }
-    });
+        
+        io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
+        
+        setTimeout(() => {
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                const distancia = 60 + (Math.random() * 40);
+                const offsetX = Math.cos(angle) * distancia;
+                const offsetY = Math.sin(angle) * distancia;
+                spawnItem(demonlord.x + offsetX, demonlord.y + offsetY, 'moneda');
+            }
+        }, 1000);
+        
+        setTimeout(() => {
+            demonlord.hp = CONFIG.DEMONLORD.MAX_HP;
+            demonlord.isAlive = true;
+            demonlord.x = 1500;
+            demonlord.y = 1500;
+            demonlord.attackers = [];
+            io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y });
+            io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `👹 El Demonlord ha renacido!` });
+        }, CONFIG.DEMONLORD.RESPAWN_TIME);
+    }
+});
     
     socket.on('solicitarDemonlordHP', () => {
         const jugador = players[socket.id];
