@@ -964,16 +964,16 @@ function crearSlotElement(slot, index, origen) {
         const i = document.createElement('div'); 
         i.className = 'slot-icon'; 
         
-        if (slot.id === 'oro') {
-            const img = document.createElement('img');
-            img.src = 'gold/0007.png';
-            img.style.width = '80px';
-            img.style.height = '80px';
-            img.onerror = function() { 
-                this.style.display = 'none'; 
-                this.parentElement.textContent = '💰';
-            };
-            i.appendChild(img);
+       if (slot.id === 'oro') {
+    const img = document.createElement('img');
+    img.src = 'oroinv.png';  // ← CAMBIA LA RUTA
+    img.style.width = '70px';
+    img.style.height = '70px';
+    img.onerror = function() { 
+        this.style.display = 'none'; 
+        this.parentElement.textContent = '💰';
+    };
+    i.appendChild(img);
         } else if (slot.icono && (slot.icono.includes('_img') || slot.icono === 'pocion_img')) { 
             const img = document.createElement('img'); 
             img.src = getImagenItem(slot.icono);
