@@ -937,7 +937,6 @@ function agregarItemAlInventario(id, tipo, nombre, icono, cantidad, mostrarMsg =
 }
 
 function agregarItemAlInventarioEquipo(id, tipo, nombre, icono, cantidad, stats = {}) {
-    // Buscar slot existente del mismo tipo
     for (let i = 0; i < inventarioSlots.length; i++) { 
         if (inventarioSlots[i] && inventarioSlots[i].id === id && inventarioSlots[i].tipo === tipo) { 
             inventarioSlots[i].cantidad += cantidad; 
@@ -946,7 +945,6 @@ function agregarItemAlInventarioEquipo(id, tipo, nombre, icono, cantidad, stats 
             return true; 
         } 
     } 
-    // Buscar slot vacío
     for (let i = 0; i < inventarioSlots.length; i++) { 
         if (inventarioSlots[i] === null) { 
             inventarioSlots[i] = { 
