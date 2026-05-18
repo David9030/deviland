@@ -1002,18 +1002,18 @@ function agregarItemAlInventario(id, tipo, nombre, icono, cantidad, mostrarMsg =
 }
 
 function agregarItemAlInventarioEquipo(id, tipo, nombre, icono, cantidad, stats = {}) {
+    // Si ya existe un item de este tipo en el inventario, no agregar otro
     for (let i = 0; i < inventarioSlots.length; i++) { 
         if (inventarioSlots[i] && inventarioSlots[i].id === id && inventarioSlots[i].tipo === tipo) { 
-            inventarioSlots[i].cantidad += cantidad; 
-            renderizarInventario(); 
-            guardarPartida(); 
-            return true; 
+            mostrarMensaje(`❌ Ya tienes un ${nombre} en el inventario`, 'error');
+            return false; 
         } 
     } 
+    // Buscar slot vacío
     for (let i = 0; i < inventarioSlots.length; i++) { 
         if (inventarioSlots[i] === null) { 
             inventarioSlots[i] = { 
-                id, tipo, nombre, icono, cantidad, slotIndex: i,
+                id, tipo, nombre, icono, cantidad: 1, slotIndex: i,
                 ataqueFisico: stats.ataqueFisico || 0,
                 ataqueMagico: stats.ataqueMagico || 0,
                 defensaFisica: stats.defensaFisica || 0,
@@ -1022,6 +1022,7 @@ function agregarItemAlInventarioEquipo(id, tipo, nombre, icono, cantidad, stats 
             }; 
             renderizarInventario(); 
             guardarPartida(); 
+            mostrarMensaje(`+${nombre}`, 'exito');
             return true; 
         } 
     } 
