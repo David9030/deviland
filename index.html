@@ -768,10 +768,12 @@ function iniciarJuegoConCarga(g) {
 function crearDropEscudo(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStats = {}) {
     if (!currentScene) return;
     
+    const uniqueId = itemId + '_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+    
     const drop = currentScene.add.image(x, y, 'escudodrop');
     drop.setScale(0.8);
     drop.setDepth(y);
-    drop.itemId = itemId;
+    drop.itemId = uniqueId;
     drop.itemNombre = itemNombre;
     drop.itemTipo = itemTipo;
     drop.itemIcono = itemIcono;
@@ -799,10 +801,13 @@ function crearDropEscudo(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStat
 function crearDropArmadura(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStats = {}) {
     if (!currentScene) return;
     
+    // Generar ID único para cada armadura
+    const uniqueId = itemId + '_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+    
     const drop = currentScene.add.image(x, y, 'armaduradrop');
     drop.setScale(0.8);
     drop.setDepth(y);
-    drop.itemId = itemId;
+    drop.itemId = uniqueId;  // ← ID único
     drop.itemNombre = itemNombre;
     drop.itemTipo = itemTipo;
     drop.itemIcono = itemIcono;
