@@ -2131,6 +2131,10 @@ if (guardado) {
             } 
         }); 
     }); 
+
+   socket.on('crearMonedaServidor', (data) => {
+    crearMonedaSuelo(data.x, data.y, data.cantidad);
+});
     
     socket.on('playerStatsUpdate', (data) => { 
         if (data.id === socket.id) { 
