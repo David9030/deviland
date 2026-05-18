@@ -457,6 +457,19 @@ function desequiparItem(tipo) {
         if (socket) socket.emit('actualizarInventario', { inventarioSlots: inventarioSlots.map(s => s || null), equipamiento: equipamiento });
     } 
 }
+
+// ==========================================
+// AGREGAR AQUÍ
+// ==========================================
+function equiparItem(item, tipo) { 
+    if (equipamiento[tipo]) desequiparItem(tipo); 
+    equipamiento[tipo] = item.id; 
+    mostrarMensaje(`🔨 ${item.nombre} equipado!`, 'exito'); 
+    actualizarStatsUI(); 
+    renderizarInventario(); 
+    guardarPartida(); 
+    if (socket) socket.emit('actualizarInventario', { inventarioSlots: inventarioSlots.map(s => s || null), equipamiento: equipamiento });
+}
 function getVelocidadActual() { 
     let statsBase = classStats[pClassName] || classStats['WARRIOR']; 
     let velocidadBase = statsBase.velocidad + (playerStats.agilidad * 1.5); 
