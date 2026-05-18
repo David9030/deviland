@@ -670,25 +670,23 @@ window.continuarPartida = function() {
         inicializarInventario();
     }
     
-    // ==========================================
-    // MIGRAR ITEMS ANTIGUOS PARA QUE TENGAN STATS (MOVIDO AQUÍ)
-    // ==========================================
-    if (inventarioSlots) {
-        inventarioSlots.forEach(slot => {
-            if (slot && slot.id === 'espada_1' && slot.ataqueFisico === undefined) {
-                slot.ataqueFisico = 15;
-                slot.velocidad = -15;
-            }
-            if (slot && slot.id === 'escudo_1' && slot.defensaFisica === undefined) {
-                slot.defensaFisica = 20;
-                slot.velocidad = -15;
-            }
-            if (slot && slot.id === 'armadura_1' && slot.defensaFisica === undefined) {
-                slot.defensaFisica = 15;
-                slot.velocidad = -20;
-            }
-        });
-    }
+    // Dentro de continuarPartida, después de cargar inventarioSlots
+if (inventarioSlots) {
+    inventarioSlots.forEach(slot => {
+        if (slot && slot.id === 'espada_1' && slot.ataqueFisico === undefined) {
+            slot.ataqueFisico = 15;
+            slot.velocidad = -15;
+        }
+        if (slot && slot.id === 'escudo_1' && slot.defensaFisica === undefined) {
+            slot.defensaFisica = 20;
+            slot.velocidad = -15;
+        }
+        if (slot && slot.id === 'armadura_1' && slot.defensaFisica === undefined) {
+            slot.defensaFisica = 15;
+            slot.velocidad = -20;
+        }
+    });
+}
     
     if (pClassName === 'NECROMANCER') {
         skillsEquipadas = g.skillsEquipadas || ['levantar_muerto', 'furia_necrotica', 'ataque_distancia'];
@@ -948,12 +946,7 @@ function agregarItemAlInventarioEquipo(id, tipo, nombre, icono, cantidad, stats 
     for (let i = 0; i < inventarioSlots.length; i++) { 
         if (inventarioSlots[i] === null) { 
             inventarioSlots[i] = { 
-                id: id, 
-                tipo: tipo, 
-                nombre: nombre, 
-                icono: icono, 
-                cantidad: cantidad, 
-                slotIndex: i,
+                id, tipo, nombre, icono, cantidad, slotIndex: i,
                 ataqueFisico: stats.ataqueFisico || 0,
                 ataqueMagico: stats.ataqueMagico || 0,
                 defensaFisica: stats.defensaFisica || 0,
