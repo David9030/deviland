@@ -210,7 +210,7 @@
         <div class="class-box">
             <h2>CREAR PERSONAJE</h2>
             <input type="text" id="nombre-input" placeholder="NOMBRE"><br>
-            <button class="class-btn" onclick="seleccionarClase('barbaro', 'BÁRBARO')">⚔️ BÁRBARO</button>
+            <button class="class-btn" onclick="seleccionarClase('barbaro', 'BARBARO')">⚔️ BARBARO</button>
             <button class="class-btn" onclick="seleccionarClase('caballero', 'CABALLERO')">🛡️ CABALLERO</button>
             <button class="class-btn" onclick="seleccionarClase('warrior', 'WARRIOR')">🏹 WARRIOR</button>
             <button class="class-btn" onclick="seleccionarClase('mago_sprite', 'MAGO')">🔮 MAGO</button>
@@ -337,6 +337,7 @@ let skillsEquipadas = [];
 let MAX_SKILLS = 5;
 let inventarioSlots = [];
 let equipamiento = { arma: null, escudo: null, armadura: null };
+let playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 };
 let previewTimeout = null;
 let ultimoAtaqueNormal = 0;
 const COOLDOWN_ATAQUE_NORMAL = 1000;
@@ -375,151 +376,6 @@ const classStats = {
 // ============================================
 // FUNCIONES AUXILIARES
 // ============================================
-
-function crearMonedaSuelo(x, y, cantidad = 1) {
-    if (!currentScene) return;
-    
-    const moneda = currentScene.add.sprite(x, y, 'gold_0000');
-    moneda.setScale(0.8);
-    moneda.setDepth(y);
-    moneda.cantidad = cantidad;
-    moneda.id = 'moneda_' + Date.now() + '_' + Math.random();
-    moneda.recogida = false;
-    
-    // Animación que se detiene en el último frame
-    let frameIndex = 0;
-    const animInterval = setInterval(() => {
-        if (!moneda || !moneda.active) {
-            clearInterval(animInterval);
-            return;
-        }
-        frameIndex++;
-        if (frameIndex <= 7) {
-            const frameNum = frameIndex.toString().padStart(4, '0');
-            moneda.setTexture(`gold_${frameNum}`);
-        } else {
-            clearInterval(animInterval);
-        }
-    }, 100);
-    
-    moneda.animInterval = animInterval;
-    
-    // Hacer interactiva - SOLO RECOGE SI ESTÁ CERCA
-    moneda.setInteractive({ useHandCursor: true });
-    moneda.on('pointerdown', () => {
-        if (!player || !player.isAlive) return;
-        if (moneda.recogida) return;
-        
-        // Verificar distancia ANTES de recoger
-        const dist = Phaser.Math.Distance.Between(player.x, player.y, moneda.x, moneda.y);
-        if (dist < 60) {
-            recogerMoneda(moneda);
-        } else {
-            mostrarMensaje(`❌ Debes acercarte más para recoger el oro`, 'error');
-        }
-    });
-    
-    monedasSuelo.push(moneda);
-    return moneda;
-}
-
-function recogerMoneda(moneda) {
-    if (!moneda || !moneda.active) return;
-    if (moneda.recogida) return;
-    moneda.recogida = true;
-    
-    // Agregar oro al inventario
-    agregarItemAlInventario('oro', 'moneda', 'Oro', '💰', moneda.cantidad, true);
-    
-    // Mostrar mensaje
-    mostrarMensaje(`💰 +${moneda.cantidad} ORO`, 'exito');
-    
-    // REPRODUCIR SONIDO DE MONEDA
-    if (currentScene && currentScene.sound) {
-        currentScene.sound.play('sonidoMoneda', { volume: 0.5 });
-    }
-    
-    // Detener animación
-    if (moneda.animInterval) clearInterval(moneda.animInterval);
-    
-    // Efecto de desaparición
-    currentScene.tweens.add({
-        targets: moneda,
-        scale: 0,
-        alpha: 0,
-        duration: 200,
-         onComplete: () => {
-            moneda.destroy();
-            const index = monedasSuelo.indexOf(moneda);
-            if (index !== -1) monedasSuelo.splice(index, 1);
-        }
-    });
-}  // ← AGREGAR ESTA LLAVE
-
-// ==========================================
-// DROPS DE ESPADA
-// ==========================================
-let dropsSuelo = [];
-
-function crearDropEspada(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStats = {}) {
-    if (!currentScene) return;
-    
-    const drop = currentScene.add.image(x, y, 'espada');
-    drop.setScale(0.8);
-    drop.setDepth(y);
-    drop.itemId = itemId;
-    drop.itemNombre = itemNombre;
-    drop.itemTipo = itemTipo;
-    drop.itemIcono = itemIcono;
-    drop.itemStats = itemStats;
-    drop.recogida = false;
-    drop.id = 'drop_' + Date.now() + '_' + Math.random();
-    
-    drop.setInteractive({ useHandCursor: true });
-    drop.on('pointerdown', () => {
-        if (!player || !player.isAlive) return;
-        if (drop.recogida) return;
-        
-        const dist = Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y);
-        if (dist < 60) {
-            recogerDrop(drop);
-        } else {
-            mostrarMensaje(`❌ Debes acercarte más para recoger ${drop.itemNombre}`, 'error');
-        }
-    });
-    
-    dropsSuelo.push(drop);
-    return drop;
-}
-
-function recogerDrop(drop) {
-    if (!drop || !drop.active) return;
-    if (drop.recogida) return;
-    drop.recogida = true;
-    
-    agregarItemAlInventarioEquipo(drop.itemId, drop.itemTipo, drop.itemNombre, drop.itemIcono, 1, drop.itemStats);
-    
-    mostrarMensaje(`⚔️ +${drop.itemNombre}`, 'exito');
-    
-    if (currentScene && currentScene.sound) {
-        currentScene.sound.play('sonidoMoneda', { volume: 0.5 });
-    }
-    
-    currentScene.tweens.add({
-        targets: drop,
-        scale: 0,
-        alpha: 0,
-        duration: 200,
-        onComplete: () => {
-            drop.destroy();
-            const index = dropsSuelo.indexOf(drop);
-            if (index !== -1) dropsSuelo.splice(index, 1);
-        }
-    });
-    
-    actualizarStatsUI();
-    guardarPartida();
-}
 
 function toggleChat() { 
     document.getElementById('chat-container').classList.toggle('chat-minimizado'); 
@@ -852,33 +708,21 @@ function seleccionarClase(sprite, nombreClase) {
 function iniciarJuego() { 
     console.log("🚀 iniciarJuego() llamado");
     juegoIniciado = true; 
-    
-    // No ocultar la carga hasta que Phaser termine
-    // ocultarPantallaCarga();
-    
     setInterval(() => regenerarMana(), 5000); 
-    
-    const game = new Phaser.Game({ 
+    new Phaser.Game({ 
         type: Phaser.AUTO, 
         width: window.innerWidth, 
         height: window.innerHeight, 
         physics: { default: 'arcade' }, 
         scene: { preload: preload, create: create, update: update } 
     }); 
-    
-    console.log("🔵 Phaser.Game creado, esperando carga...");
 }
 
 function iniciarJuegoConCarga(g) { 
     console.log("🚀 iniciarJuegoConCarga() llamado");
     juegoIniciado = true; 
     window.guardadoPendiente = g; 
-    
-    // No ocultar la carga hasta que Phaser termine
-    // ocultarPantallaCarga();  ← COMENTAR ESTA LÍNEA
-    
     setInterval(() => regenerarMana(), 5000); 
-    
     new Phaser.Game({ 
         type: Phaser.AUTO, 
         width: window.innerWidth, 
@@ -887,12 +731,158 @@ function iniciarJuegoConCarga(g) {
         scene: { preload: preload, create: create, update: update } 
     }); 
     
-    console.log("🔵 Phaser.Game creado con carga guardada, esperando...");
-    
     setTimeout(() => {
         forzarIconosCorrectos();
     }, 500);
 }
+
+// ============================================
+// SISTEMA DE ORO
+// ============================================
+
+function crearMonedaSuelo(x, y, cantidad = 1) {
+    if (!currentScene) return;
+    
+    const moneda = currentScene.add.sprite(x, y, 'gold_0000');
+    moneda.setScale(0.8);
+    moneda.setDepth(y);
+    moneda.cantidad = cantidad;
+    moneda.id = 'moneda_' + Date.now() + '_' + Math.random();
+    moneda.recogida = false;
+    
+    let frameIndex = 0;
+    const animInterval = setInterval(() => {
+        if (!moneda || !moneda.active) {
+            clearInterval(animInterval);
+            return;
+        }
+        frameIndex++;
+        if (frameIndex <= 7) {
+            const frameNum = frameIndex.toString().padStart(4, '0');
+            moneda.setTexture(`gold_${frameNum}`);
+        } else {
+            clearInterval(animInterval);
+        }
+    }, 100);
+    
+    moneda.animInterval = animInterval;
+    
+    moneda.setInteractive({ useHandCursor: true });
+    moneda.on('pointerdown', () => {
+        if (!player || !player.isAlive) return;
+        if (moneda.recogida) return;
+        
+        const dist = Phaser.Math.Distance.Between(player.x, player.y, moneda.x, moneda.y);
+        if (dist < 60) {
+            recogerMoneda(moneda);
+        } else {
+            mostrarMensaje(`❌ Debes acercarte más para recoger el oro`, 'error');
+        }
+    });
+    
+    monedasSuelo.push(moneda);
+    return moneda;
+}
+
+function recogerMoneda(moneda) {
+    if (!moneda || !moneda.active) return;
+    if (moneda.recogida) return;
+    moneda.recogida = true;
+    
+    agregarItemAlInventario('oro', 'moneda', 'Oro', '💰', moneda.cantidad, true);
+    
+    mostrarMensaje(`💰 +${moneda.cantidad} ORO`, 'exito');
+    
+    if (currentScene && currentScene.sound) {
+        currentScene.sound.play('sonidoMoneda', { volume: 0.5 });
+    }
+    
+    if (moneda.animInterval) clearInterval(moneda.animInterval);
+    
+    currentScene.tweens.add({
+        targets: moneda,
+        scale: 0,
+        alpha: 0,
+        duration: 200,
+        onComplete: () => {
+            moneda.destroy();
+            const index = monedasSuelo.indexOf(moneda);
+            if (index !== -1) monedasSuelo.splice(index, 1);
+        }
+    });
+    
+    actualizarStatsUI();
+    guardarPartida();
+}
+
+// ============================================
+// DROPS DE ESPADA
+// ============================================
+let dropsSuelo = [];
+
+function crearDropEspada(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStats = {}) {
+    if (!currentScene) return;
+    
+    const drop = currentScene.add.image(x, y, 'espada');
+    drop.setScale(0.8);
+    drop.setDepth(y);
+    drop.itemId = itemId;
+    drop.itemNombre = itemNombre;
+    drop.itemTipo = itemTipo;
+    drop.itemIcono = itemIcono;
+    drop.itemStats = itemStats;
+    drop.recogida = false;
+    drop.id = 'drop_' + Date.now() + '_' + Math.random();
+    
+    drop.setInteractive({ useHandCursor: true });
+    drop.on('pointerdown', () => {
+        if (!player || !player.isAlive) return;
+        if (drop.recogida) return;
+        
+        const dist = Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y);
+        if (dist < 60) {
+            recogerDrop(drop);
+        } else {
+            mostrarMensaje(`❌ Debes acercarte más para recoger ${drop.itemNombre}`, 'error');
+        }
+    });
+    
+    dropsSuelo.push(drop);
+    return drop;
+}
+
+function recogerDrop(drop) {
+    if (!drop || !drop.active) return;
+    if (drop.recogida) return;
+    drop.recogida = true;
+    
+    agregarItemAlInventarioEquipo(drop.itemId, drop.itemTipo, drop.itemNombre, drop.itemIcono, 1, drop.itemStats);
+    
+    mostrarMensaje(`⚔️ +${drop.itemNombre}`, 'exito');
+    
+    if (currentScene && currentScene.sound) {
+        currentScene.sound.play('sonidoMoneda', { volume: 0.5 });
+    }
+    
+    currentScene.tweens.add({
+        targets: drop,
+        scale: 0,
+        alpha: 0,
+        duration: 200,
+        onComplete: () => {
+            drop.destroy();
+            const index = dropsSuelo.indexOf(drop);
+            if (index !== -1) dropsSuelo.splice(index, 1);
+        }
+    });
+    
+    actualizarStatsUI();
+    guardarPartida();
+}
+
+// ============================================
+// INVENTARIO
+// ============================================
 
 function agregarItemAlInventario(id, tipo, nombre, icono, cantidad, mostrarMsg = true) { 
     for (let i = 0; i < inventarioSlots.length; i++) { 
@@ -977,8 +967,8 @@ function crearSlotElement(slot, index, origen) {
         if (slot.id === 'oro') {
             const img = document.createElement('img');
             img.src = 'gold/0007.png';
-            img.style.width = '80px';
-            img.style.height = '80px';
+            img.style.width = '60px';
+            img.style.height = '60px';
             img.onerror = function() { 
                 this.style.display = 'none'; 
                 this.parentElement.textContent = '💰';
@@ -1121,123 +1111,6 @@ function inicializarInventario() {
     agregarItemAlInventarioEquipo('armadura_1', 'armadura', 'Armadura Basica', 'armadura_de_cuero_img', 1, { defensaFisica: 15, velocidad: -20 });
     agregarItemAlInventarioEquipo('escudo_1', 'escudo', 'Escudo Basico', 'escudo_madera_img', 1, { defensaFisica: 20, velocidad: -15 });
     renderizarInventario(); 
-}
-        
-        let estaEquipado = false; 
-        if (slot.tipo === 'espada' && equipamiento.arma === slot.id) estaEquipado = true; 
-        if (slot.tipo === 'escudo' && equipamiento.escudo === slot.id) estaEquipado = true; 
-        if (slot.tipo === 'armadura' && equipamiento.armadura === slot.id) estaEquipado = true; 
-        if (estaEquipado) { 
-            const eSpan = document.createElement('span'); 
-            eSpan.className = 'equipped-icon'; 
-            eSpan.textContent = 'E'; 
-            i.appendChild(eSpan); 
-        } 
-        
-        const c = document.createElement('div'); 
-        c.className = 'slot-cantidad'; 
-        c.textContent = slot.cantidad; 
-        
-        const n = document.createElement('div'); 
-        n.className = 'slot-nombre'; 
-        n.textContent = slot.nombre.length > 8 ? slot.nombre.slice(0, 6) + '..' : slot.nombre; 
-        
-        d.appendChild(i); 
-        d.appendChild(c); 
-        d.appendChild(n); 
-        
-        if (slot.tipo === 'espada' || slot.tipo === 'escudo' || slot.tipo === 'armadura') { 
-            d.addEventListener('click', (e) => { 
-                e.stopPropagation(); 
-                mostrarPreviewStats(slot, slot.tipo === 'espada' ? 'arma' : (slot.tipo === 'escudo' ? 'escudo' : 'armadura')); 
-            }); 
-        } 
-        
-        d.addEventListener('dblclick', (e) => { 
-            e.stopPropagation(); 
-            if (slot.tipo === 'pocion') { 
-                if (playerHP < playerMaxHP) { 
-                    const curacion = 20; 
-                    const nuevaVida = Math.min(playerHP + curacion, playerMaxHP); 
-                    const curado = nuevaVida - playerHP; 
-                    playerHP = nuevaVida; 
-                    actualizarStatsUI(); 
-                    mostrarMensaje(`❤️ +${curado} HP`, 'exito'); 
-                    slot.cantidad -= 1; 
-                    if (slot.cantidad <= 0) inventarioSlots[index] = null; 
-                    renderizarInventario(); 
-                    guardarPartida(); 
-                    if (socket) socket.emit('usarPocion', { curacion: curacion }); 
-                } else { 
-                    mostrarMensaje(`❌ Vida al maximo`, 'error'); 
-                } 
-            } else if (slot.tipo === 'espada') { 
-                if (equipamiento.arma === slot.id) desequiparItem('arma'); 
-                else equiparItem(slot, 'arma'); 
-                renderizarInventario(); 
-            } else if (slot.tipo === 'escudo') { 
-                if (equipamiento.escudo === slot.id) desequiparItem('escudo'); 
-                else equiparItem(slot, 'escudo'); 
-                renderizarInventario(); 
-            } else if (slot.tipo === 'armadura') { 
-                if (equipamiento.armadura === slot.id) desequiparItem('armadura'); 
-                else equiparItem(slot, 'armadura'); 
-                renderizarInventario(); 
-            } 
-        }); 
-    } else { 
-        const e = document.createElement('div'); 
-        e.style.fontSize = '12px'; 
-        e.style.opacity = '0.2'; 
-        e.textContent = '□'; 
-        d.appendChild(e); 
-    } 
-    
-    d.setAttribute('draggable', 'true'); 
-    d.addEventListener('dragstart', (e) => { 
-        if (!slot) { e.preventDefault(); return false; } 
-        e.dataTransfer.setData('text/plain', JSON.stringify({ origen: origen, index: index })); 
-        e.target.closest('.slot').style.opacity = '0.5'; 
-    }); 
-    d.addEventListener('dragend', (e) => { 
-        if (e.target.closest('.slot')) e.target.closest('.slot').style.opacity = '1'; 
-    }); 
-    d.addEventListener('dragover', (e) => { 
-        e.preventDefault(); 
-        e.target.closest('.slot')?.classList.add('drag-over'); 
-    }); 
-    d.addEventListener('dragleave', (e) => { 
-        e.target.closest('.slot')?.classList.remove('drag-over'); 
-    }); 
-    d.addEventListener('drop', (e) => { 
-        e.preventDefault(); 
-        e.target.closest('.slot')?.classList.remove('drag-over'); 
-        try { 
-            const data = JSON.parse(e.dataTransfer.getData('text/plain')); 
-            if (data.origen === 'inventario' && data.index !== undefined && data.index !== index) { 
-                const temp = inventarioSlots[index]; 
-                inventarioSlots[index] = inventarioSlots[data.index]; 
-                inventarioSlots[data.index] = temp; 
-                if (inventarioSlots[index]) inventarioSlots[index].slotIndex = index; 
-                if (inventarioSlots[data.index]) inventarioSlots[data.index].slotIndex = data.index; 
-                renderizarInventario(); 
-                guardarPartida(); 
-                mostrarMensaje(`📦 Item reordenado`, 'exito'); 
-            } 
-        } catch(err) { console.error('Drop error:', err); } 
-    }); 
-    return d; 
-}
-
-function renderizarInventario() { 
-    const g = document.getElementById('inventario-grid'); 
-    if (!g) return; 
-    g.innerHTML = ''; 
-    for (let i = 0; i < inventarioSlots.length; i++) { 
-        const s = inventarioSlots[i]; 
-        const d = crearSlotElement(s, i, 'inventario'); 
-        g.appendChild(d); 
-    } 
 }
 
 function actualizarStatsUI() {
@@ -1858,7 +1731,7 @@ function preload() {
     this.load.spritesheet('warrior', 'warrior.png', { frameWidth: 128, frameHeight: 128 }); 
     this.load.spritesheet('demonlord', 'demonlord.png', { frameWidth: 128, frameHeight: 128 }); 
     this.load.spritesheet('esqueleto', 'esqueleto.png', { frameWidth: 255, frameHeight: 255 }); 
-    this.load.audio('sonidoMoneda', 'moneda.mp3');  // ← AGREGAR
+    this.load.audio('sonidoMoneda', 'moneda.mp3');
     
     for (let i = 0; i <= 26; i++) { 
         const frameNum = i.toString().padStart(4, '0'); 
@@ -1871,8 +1744,8 @@ function preload() {
     this.load.audio('musicaFondo', 'musica1.mp3'); 
     this.load.audio('esqueletoMuere', 'esqueleto_muere.mp3'); 
     this.load.audio('esqueletoLevanta', 'esqueleto_levanta.mp3'); 
-// Cargar animación de oro (gold drop) - 8 frames (0000.png a 0007.png)
-for (let i = 0; i <= 7; i++) { 
+    
+    for (let i = 0; i <= 7; i++) { 
         const frameNum = i.toString().padStart(4, '0'); 
         this.load.image(`gold_${frameNum}`, `gold/${frameNum}.png`); 
     }
@@ -2103,7 +1976,7 @@ function create() {
     
     btnAttack.addEventListener('click', () => { if (window.simularAtaque) window.simularAtaque(); });
     
-    // SOCKET EVENTS
+        // SOCKET EVENTS
     socket.on('currentPlayers', (ps) => { 
         Object.keys(ps).forEach(id => { if (id !== socket.id) addOtherPlayer(this, ps[id]); }); 
     }); 
