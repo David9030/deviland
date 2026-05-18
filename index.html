@@ -1002,14 +1002,7 @@ function agregarItemAlInventario(id, tipo, nombre, icono, cantidad, mostrarMsg =
 }
 
 function agregarItemAlInventarioEquipo(id, tipo, nombre, icono, cantidad, stats = {}) {
-    // Si ya existe un item de este tipo en el inventario, no agregar otro
-    for (let i = 0; i < inventarioSlots.length; i++) { 
-        if (inventarioSlots[i] && inventarioSlots[i].id === id && inventarioSlots[i].tipo === tipo) { 
-            mostrarMensaje(`❌ Ya tienes un ${nombre} en el inventario`, 'error');
-            return false; 
-        } 
-    } 
-    // Buscar slot vacío
+    // Buscar UN slot vacío (no acumular con existentes)
     for (let i = 0; i < inventarioSlots.length; i++) { 
         if (inventarioSlots[i] === null) { 
             inventarioSlots[i] = { 
