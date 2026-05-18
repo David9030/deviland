@@ -670,23 +670,26 @@ window.continuarPartida = function() {
         inicializarInventario();
     }
     
-    // Dentro de continuarPartida, después de cargar inventarioSlots
-if (inventarioSlots) {
-    inventarioSlots.forEach(slot => {
-        if (slot && slot.id === 'espada_1' && slot.ataqueFisico === undefined) {
-            slot.ataqueFisico = 15;
-            slot.velocidad = -15;
-        }
-        if (slot && slot.id === 'escudo_1' && slot.defensaFisica === undefined) {
-            slot.defensaFisica = 20;
-            slot.velocidad = -15;
-        }
-        if (slot && slot.id === 'armadura_1' && slot.defensaFisica === undefined) {
-            slot.defensaFisica = 15;
-            slot.velocidad = -20;
-        }
-    });
-}
+    // Migrar items antiguos para que tengan stats
+    if (inventarioSlots) {
+        inventarioSlots.forEach(slot => {
+            if (slot && slot.id === 'espada_1' && slot.ataqueFisico === undefined) {
+                slot.ataqueFisico = 15;
+                slot.velocidad = -15;
+                console.log("Espada corregida automáticamente");
+            }
+            if (slot && slot.id === 'escudo_1' && slot.defensaFisica === undefined) {
+                slot.defensaFisica = 20;
+                slot.velocidad = -15;
+                console.log("Escudo corregido automáticamente");
+            }
+            if (slot && slot.id === 'armadura_1' && slot.defensaFisica === undefined) {
+                slot.defensaFisica = 15;
+                slot.velocidad = -20;
+                console.log("Armadura corregida automáticamente");
+            }
+        });
+    }
     
     if (pClassName === 'NECROMANCER') {
         skillsEquipadas = g.skillsEquipadas || ['levantar_muerto', 'furia_necrotica', 'ataque_distancia'];
@@ -758,6 +761,68 @@ function iniciarJuegoConCarga(g) {
 // SISTEMA DE ORO
 // ============================================
 
+function crearDropEscudo(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStats = {}) {
+    if (!currentScene) return;
+    
+    const drop = currentScene.add.image(x, y, 'escudodrop');
+    drop.setScale(0.8);
+    drop.setDepth(y);
+    drop.itemId = itemId;
+    drop.itemNombre = itemNombre;
+    drop.itemTipo = itemTipo;
+    drop.itemIcono = itemIcono;
+    drop.itemStats = itemStats;
+    drop.recogida = false;
+    drop.id = 'drop_' + Date.now() + '_' + Math.random();
+    
+    drop.setInteractive({ useHandCursor: true });
+    drop.on('pointerdown', () => {
+        if (!player || !player.isAlive) return;
+        if (drop.recogida) return;
+        
+        const dist = Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y);
+        if (dist < 60) {
+            recogerDrop(drop);
+        } else {
+            mostrarMensaje(`❌ Debes acercarte más para recoger ${drop.itemNombre}`, 'error');
+        }
+    });
+    
+    dropsSuelo.push(drop);
+    return drop;
+}
+
+function crearDropArmadura(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStats = {}) {
+    if (!currentScene) return;
+    
+    const drop = currentScene.add.image(x, y, 'armaduradrop');
+    drop.setScale(0.8);
+    drop.setDepth(y);
+    drop.itemId = itemId;
+    drop.itemNombre = itemNombre;
+    drop.itemTipo = itemTipo;
+    drop.itemIcono = itemIcono;
+    drop.itemStats = itemStats;
+    drop.recogida = false;
+    drop.id = 'drop_' + Date.now() + '_' + Math.random();
+    
+    drop.setInteractive({ useHandCursor: true });
+    drop.on('pointerdown', () => {
+        if (!player || !player.isAlive) return;
+        if (drop.recogida) return;
+        
+        const dist = Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y);
+        if (dist < 60) {
+            recogerDrop(drop);
+        } else {
+            mostrarMensaje(`❌ Debes acercarte más para recoger ${drop.itemNombre}`, 'error');
+        }
+    });
+    
+    dropsSuelo.push(drop);
+    return drop;
+}
+ 
 function crearMonedaSuelo(x, y, cantidad = 1) {
     if (!currentScene) return;
     
@@ -1135,9 +1200,6 @@ function inicializarInventario() {
     inventarioSlots = []; 
     for (let i = 0; i < 36; i++) inventarioSlots.push(null); 
     agregarItemAlInventario('pocion_1', 'pocion', 'Pocion de Vida', '❤️', 2);
-    agregarItemAlInventarioEquipo('espada_1', 'espada', 'Espada Basica', 'espada_img', 1, { ataqueFisico: 15, velocidad: -15 });
-    agregarItemAlInventarioEquipo('armadura_1', 'armadura', 'Armadura Basica', 'armadura_de_cuero_img', 1, { defensaFisica: 15, velocidad: -20 });
-    agregarItemAlInventarioEquipo('escudo_1', 'escudo', 'Escudo Basico', 'escudo_madera_img', 1, { defensaFisica: 20, velocidad: -15 });
     renderizarInventario(); 
 }
 
@@ -1754,6 +1816,8 @@ function preload() {
     this.load.image('mina', 'mina.png'); 
     this.load.image('roca', 'roca.png'); 
     this.load.image('espada', 'espada.png');
+    this.load.image('escudodrop', 'escudodrop.png');
+    this.load.image('armaduradrop', 'armaduradrop.png');
     this.load.spritesheet('barbaro', 'Barbaro.png', { frameWidth: 128, frameHeight: 128 }); 
     this.load.spritesheet('caballero', 'caballero.png', { frameWidth: 128, frameHeight: 128 }); 
     this.load.spritesheet('warrior', 'warrior.png', { frameWidth: 128, frameHeight: 128 }); 
