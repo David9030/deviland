@@ -46,52 +46,39 @@ function getDistance(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
 
 // ========== FUNCIONES DE DEFENSA ==========
 function getPlayerDefense(playerId) {
-    console.log(`🔍 getPlayerDefense llamado con ID: ${playerId}`);
-    
     const jugador = players[playerId];
-    if (!jugador) {
-        console.log(`❌ No se encontró jugador: ${playerId}`);
-        return 0;
-    }
+    if (!jugador) return 0;
     
     const inventario = inventariosJugadores[playerId];
-    if (!inventario) {
-        console.log(`❌ No se encontró inventario para: ${playerId}`);
-        return 0;
-    }
+    if (!inventario) return 0;
     
     let defensaTotal = 0;
     
-    console.log(`📦 Inventario de ${jugador.name}:`, inventario.items.map(i => i.nombre));
-    console.log(`🔧 Equipamiento:`, jugador.equipamiento);
-    
-    // Items equipados
-    const itemsEquipados = [
-        jugador.equipamiento?.arma,
-        jugador.equipamiento?.escudo,
-        jugador.equipamiento?.armadura
-    ];
-    
-    itemsEquipados.forEach(itemId => {
-        if (itemId) {
-            const item = inventario.items.find(i => i.id === itemId);
-            if (item) {
-                console.log(`🔍 Item encontrado: ${item.nombre}, defensaFisica: ${item.defensaFisica}`);
-                if (item.defensaFisica) {
-                    defensaTotal += item.defensaFisica;
-                }
-            } else {
-                console.log(`❌ Item no encontrado en inventario: ${itemId}`);
-            }
+    // Leer el escudo equipado
+    const escudoId = jugador.equipamiento?.escudo;
+    if (escudoId) {
+        const item = inventario.items.find(i => i.id === escudoId);
+        if (item && item.defensaFisica) {
+            defensaTotal += item.defensaFisica;
+            console.log(`🛡️ Escudo equipado: ${item.nombre}, defensa: ${item.defensaFisica}`);
+        } else if (item) {
+            console.log(`⚠️ Escudo encontrado pero sin defensaFisica:`, item);
         }
-    });
+    }
+    
+    // Leer armadura equipada
+    const armaduraId = jugador.equipamiento?.armadura;
+    if (armaduraId) {
+        const item = inventario.items.find(i => i.id === armaduraId);
+        if (item && item.defensaFisica) {
+            defensaTotal += item.defensaFisica;
+            console.log(`👕 Armadura equipada: ${item.nombre}, defensa: ${item.defensaFisica}`);
+        }
+    }
     
     // Defensa base de la clase
     const statsBase = CONFIG.PLAYER.BASE_STATS[jugador.class] || CONFIG.PLAYER.BASE_STATS.warrior;
     defensaTotal += statsBase.defensa || 0;
-    
-    // Defensa por stats del jugador (vitalidad)
-    defensaTotal += Math.floor((jugador.stats?.vitalidad || 0) / 2);
     
     console.log(`📊 Defensa total de ${jugador.name}: ${defensaTotal}`);
     
@@ -99,18 +86,12 @@ function getPlayerDefense(playerId) {
 }
 
 function calcularDañoFinal(objetivoId, dañoBase, tipo = 'fisico') {
-    console.log(`🔍 calcularDañoFinal recibió objetivoId: ${objetivoId}`);
-    console.log(`🔍 Tipo de objetivoId: ${typeof objetivoId}`);
-    console.log(`🔍 ¿Existe en players? ${players[objetivoId] ? 'SÍ' : 'NO'}`);
-    
     const defensa = getPlayerDefense(objetivoId);
-    const dañoCalculado = dañoBase - defensa;
-    const dañoFinal = Math.max(1, Math.floor(dañoCalculado));
-    
-    console.log(`💰 Daño base: ${dañoBase}, Defensa: ${defensa}, Daño final: ${dañoFinal}`);
-    
+    const dañoFinal = Math.max(1, dañoBase - defensa);
+    console.log(`💰 Daño: ${dañoBase} - ${defensa} = ${dañoFinal}`);
     return dañoFinal;
 }
+
 // ==============================================
 
 function darExpAJugadorYEquipo(socketId, exp) {
