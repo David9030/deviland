@@ -44,8 +44,10 @@ let invitacionesPendientes = {};
 
 function getDistance(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
 
-// ========== NUEVAS FUNCIONES DE DEFENSA ==========
+// ========== FUNCIONES DE DEFENSA ==========
 function getPlayerDefense(playerId) {
+    console.log(`🔍 getPlayerDefense llamado con ID: ${playerId}`);
+    
     const jugador = players[playerId];
     if (!jugador) {
         console.log(`❌ No se encontró jugador: ${playerId}`);
@@ -75,7 +77,7 @@ function getPlayerDefense(playerId) {
             const item = inventario.items.find(i => i.id === itemId);
             if (item) {
                 console.log(`🔍 Item encontrado: ${item.nombre}, defensaFisica: ${item.defensaFisica}`);
-                if (item && item.defensaFisica) {
+                if (item.defensaFisica) {
                     defensaTotal += item.defensaFisica;
                 }
             } else {
@@ -97,15 +99,15 @@ function getPlayerDefense(playerId) {
 }
 
 function calcularDañoFinal(objetivoId, dañoBase, tipo = 'fisico') {
+    console.log(`🔍 calcularDañoFinal recibió objetivoId: ${objetivoId}`);
+    console.log(`🔍 Tipo de objetivoId: ${typeof objetivoId}`);
+    console.log(`🔍 ¿Existe en players? ${players[objetivoId] ? 'SÍ' : 'NO'}`);
+    
     const defensa = getPlayerDefense(objetivoId);
     const dañoCalculado = dañoBase - defensa;
     const dañoFinal = Math.max(1, Math.floor(dañoCalculado));
     
-    console.log(`🔍 CÁLCULO DAÑO:`);
-    console.log(`   - Daño base: ${dañoBase}`);
-    console.log(`   - Defensa total: ${defensa}`);
-    console.log(`   - Daño calculado: ${dañoCalculado}`);
-    console.log(`   - Daño final (mínimo 1): ${dañoFinal}`);
+    console.log(`💰 Daño base: ${dañoBase}, Defensa: ${defensa}, Daño final: ${dañoFinal}`);
     
     return dañoFinal;
 }
@@ -788,7 +790,23 @@ setInterval(() => {
             if (esqueleto.attackCooldown <= 0 && closestDistance < 50 && !isOwner) {
                 esqueleto.attackCooldown = CONFIG.SKELETON.ATTACK_COOLDOWN;
                 let dañoBase = CONFIG.SKELETON.ATTACK_DAMAGE + (esqueleto.damageBonus || 0);
-                let damage = calcularDañoFinal(closestTarget.id, dañoBase);
+                
+                // LOG PARA VER QUÉ ESTÁ ATACANDO
+                console.log(`🎯 ESQUELETO ATACA - closestTarget.id: ${closestTarget.id}`);
+                console.log(`🎯 ¿Es jugador? ${players[closestTarget.id] ? 'SÍ' : 'NO'}`);
+                console.log(`🎯 ¿Es demonlord? ${closestTarget.id === 'demonlord' ? 'SÍ' : 'NO'}`);
+                
+                let damage;
+                if (players[closestTarget.id]) {
+                    // Es un jugador, aplicar defensa
+                    damage = calcularDañoFinal(closestTarget.id, dañoBase);
+                    console.log(`✅ Daño a JUGADOR después de defensa: ${damage}`);
+                } else {
+                    // No es jugador, daño directo
+                    damage = dañoBase;
+                    console.log(`⚔️ Daño a ENEMIGO (sin defensa): ${damage}`);
+                }
+                
                 closestTarget.hp = Math.max(0, closestTarget.hp - damage);
                 io.emit('esqueletoAttack', { id: esqueleto.id, targetId: closestTarget.id, damage: damage, x: esqueleto.x, y: esqueleto.y, dir: esqueleto.dir });
                 if (closestTarget.hp <= 0) {
