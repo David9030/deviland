@@ -44,6 +44,48 @@ let invitacionesPendientes = {};
 
 function getDistance(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
 
+// ========== NUEVAS FUNCIONES DE DEFENSA ==========
+function getPlayerDefense(playerId) {
+    const jugador = players[playerId];
+    if (!jugador) return 0;
+    
+    const inventario = inventariosJugadores[playerId];
+    if (!inventario) return 0;
+    
+    let defensaTotal = 0;
+    
+    // Items equipados
+    const itemsEquipados = [
+        jugador.equipamiento?.arma,
+        jugador.equipamiento?.escudo,
+        jugador.equipamiento?.armadura
+    ];
+    
+    itemsEquipados.forEach(itemId => {
+        if (itemId) {
+            const item = inventario.items.find(i => i.id === itemId);
+            if (item && item.defensaFisica) {
+                defensaTotal += item.defensaFisica;
+            }
+        }
+    });
+    
+    // Defensa base de la clase
+    const statsBase = CONFIG.PLAYER.BASE_STATS[jugador.class] || CONFIG.PLAYER.BASE_STATS.warrior;
+    defensaTotal += statsBase.defensa || 0;
+    
+    // Defensa por stats del jugador (vitalidad)
+    defensaTotal += Math.floor((jugador.stats?.vitalidad || 0) / 2);
+    
+    return defensaTotal;
+}
+
+function calcularDañoFinal(objetivoId, dañoBase) {
+    const defensa = getPlayerDefense(objetivoId);
+    return Math.max(1, Math.floor(dañoBase - defensa));
+}
+// ==============================================
+
 function darExpAJugadorYEquipo(socketId, exp) {
     const jugador = players[socketId];
     if (!jugador) return;
@@ -178,30 +220,29 @@ io.on('connection', (socket) => {
             ataqueFisico: ataqueFisico
         };
         
-       // Inicializar el inventario si no existe
-if (!inventariosJugadores[socket.id]) {
-    inventariosJugadores[socket.id] = { items: [], equipamiento: {} };
-}
-inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 });
+        // Inicializar inventario si no existe
+        if (!inventariosJugadores[socket.id]) {
+            inventariosJugadores[socket.id] = { items: [], equipamiento: {} };
+        }
+        inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 });
         
         socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
         socket.broadcast.emit('newPlayer', players[socket.id]);
     });
     
     socket.on('solicitarInventarioCompleto', () => {
-    if (inventariosJugadores[socket.id]) {
-        socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
-    } else {
-        inventariosJugadores[socket.id] = { 
-            items: [
-                { id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 },
-                // Los items de equipo se ganan matando esqueletos
-            ], 
-            equipamiento: {} 
-        };
-        socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
-    }
-});
+        if (inventariosJugadores[socket.id]) {
+            socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
+        } else {
+            inventariosJugadores[socket.id] = { 
+                items: [
+                    { id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 },
+                ], 
+                equipamiento: {} 
+            };
+            socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
+        }
+    });
     
     socket.on('actualizarInventario', (data) => {
         const jugador = players[socket.id];
@@ -347,26 +388,7 @@ inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nom
             
             // Generar 15 esqueletos después de 2 minutos
             setTimeout(() => {
-                for(let i = 0; i < 15; i++) {
-                    esqueletos.push({ 
-                        id: 'esqueleto_' + nextSkeletonId++, 
-                        x: Math.random() * 2800 + 100, 
-                        y: Math.random() * 2800 + 100, 
-                        hp: CONFIG.SKELETON.MAX_HP, 
-                        maxHp: CONFIG.SKELETON.MAX_HP,
-                        isAlive: true, 
-                        isAlly: false,
-                        ownerId: null,
-                        targetId: null,
-                        targetType: null,
-                        dir: 'Abajo', 
-                        attackCooldown: 0,
-                        damageBonus: 0,
-                        baseDamage: CONFIG.SKELETON.ATTACK_DAMAGE,
-                        attackers: []
-                    });
-                }
-                io.emit('esqueletosIniciales', esqueletos.filter(e => e.isAlive));
+                generarEsqueletos(15);
                 io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `⚔️ ¡Han aparecido 15 esqueletos en el mapa!` });
             }, 120000);
             
@@ -671,7 +693,8 @@ setInterval(() => {
         }
         if (demonlord.attackCooldown <= 0 && distance < 70) {
             demonlord.attackCooldown = CONFIG.DEMONLORD.ATTACK_COOLDOWN;
-            let damage = CONFIG.DEMONLORD.ATTACK_DAMAGE;
+            let dañoBase = CONFIG.DEMONLORD.ATTACK_DAMAGE;
+            let damage = calcularDañoFinal(closestTarget.id, dañoBase);
             closestTarget.hp = Math.max(0, closestTarget.hp - damage);
             io.emit('demonlordAttack', { targetId: closestTarget.id, damage: damage, x: demonlord.x, y: demonlord.y, dir: demonlord.dir });
             io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: damage, hp: demonlord.hp });
@@ -739,7 +762,8 @@ setInterval(() => {
             const isOwner = (esqueleto.isAlly === true && closestTarget === players[esqueleto.ownerId]);
             if (esqueleto.attackCooldown <= 0 && closestDistance < 50 && !isOwner) {
                 esqueleto.attackCooldown = CONFIG.SKELETON.ATTACK_COOLDOWN;
-                const damage = CONFIG.SKELETON.ATTACK_DAMAGE + (esqueleto.damageBonus || 0);
+                let dañoBase = CONFIG.SKELETON.ATTACK_DAMAGE + (esqueleto.damageBonus || 0);
+                let damage = calcularDañoFinal(closestTarget.id, dañoBase);
                 closestTarget.hp = Math.max(0, closestTarget.hp - damage);
                 io.emit('esqueletoAttack', { id: esqueleto.id, targetId: closestTarget.id, damage: damage, x: esqueleto.x, y: esqueleto.y, dir: esqueleto.dir });
                 if (closestTarget.hp <= 0) {
@@ -783,5 +807,5 @@ setInterval(() => {
 
 setInterval(() => { if (demonlord.isAlive && Math.random() < 0.3) io.emit('demonlordAtkVisual', { dir: demonlord.dir, esFuerte: Math.random() < 0.3 }); }, 2000);
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`🔥 DEVILAND - Servidor en puerto ${PORT}`));
