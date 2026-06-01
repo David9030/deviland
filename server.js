@@ -178,8 +178,11 @@ io.on('connection', (socket) => {
             ataqueFisico: ataqueFisico
         };
         
-        inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 });
-// Los items de equipo se ganan matando esqueletos
+       // Inicializar el inventario si no existe
+if (!inventariosJugadores[socket.id]) {
+    inventariosJugadores[socket.id] = { items: [], equipamiento: {} };
+}
+inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 });
         
         socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
         socket.broadcast.emit('newPlayer', players[socket.id]);
