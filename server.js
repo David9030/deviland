@@ -98,8 +98,16 @@ function getPlayerDefense(playerId) {
 
 function calcularDañoFinal(objetivoId, dañoBase, tipo = 'fisico') {
     const defensa = getPlayerDefense(objetivoId);
-    console.log(`💰 Daño base: ${dañoBase}, Defensa: ${defensa}, Daño final: ${Math.max(1, dañoBase - defensa)}`);
-    return Math.max(1, Math.floor(dañoBase - defensa));
+    const dañoCalculado = dañoBase - defensa;
+    const dañoFinal = Math.max(1, Math.floor(dañoCalculado));
+    
+    console.log(`🔍 CÁLCULO DAÑO:`);
+    console.log(`   - Daño base: ${dañoBase}`);
+    console.log(`   - Defensa total: ${defensa}`);
+    console.log(`   - Daño calculado: ${dañoCalculado}`);
+    console.log(`   - Daño final (mínimo 1): ${dañoFinal}`);
+    
+    return dañoFinal;
 }
 // ==============================================
 
