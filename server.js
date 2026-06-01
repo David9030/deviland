@@ -47,12 +47,21 @@ function getDistance(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
 // ========== NUEVAS FUNCIONES DE DEFENSA ==========
 function getPlayerDefense(playerId) {
     const jugador = players[playerId];
-    if (!jugador) return 0;
+    if (!jugador) {
+        console.log(`❌ No se encontró jugador: ${playerId}`);
+        return 0;
+    }
     
     const inventario = inventariosJugadores[playerId];
-    if (!inventario) return 0;
+    if (!inventario) {
+        console.log(`❌ No se encontró inventario para: ${playerId}`);
+        return 0;
+    }
     
     let defensaTotal = 0;
+    
+    console.log(`📦 Inventario de ${jugador.name}:`, inventario.items.map(i => i.nombre));
+    console.log(`🔧 Equipamiento:`, jugador.equipamiento);
     
     // Items equipados
     const itemsEquipados = [
@@ -64,8 +73,13 @@ function getPlayerDefense(playerId) {
     itemsEquipados.forEach(itemId => {
         if (itemId) {
             const item = inventario.items.find(i => i.id === itemId);
-            if (item && item.defensaFisica) {
-                defensaTotal += item.defensaFisica;
+            if (item) {
+                console.log(`🔍 Item encontrado: ${item.nombre}, defensaFisica: ${item.defensaFisica}`);
+                if (item && item.defensaFisica) {
+                    defensaTotal += item.defensaFisica;
+                }
+            } else {
+                console.log(`❌ Item no encontrado en inventario: ${itemId}`);
             }
         }
     });
@@ -77,11 +91,14 @@ function getPlayerDefense(playerId) {
     // Defensa por stats del jugador (vitalidad)
     defensaTotal += Math.floor((jugador.stats?.vitalidad || 0) / 2);
     
+    console.log(`📊 Defensa total de ${jugador.name}: ${defensaTotal}`);
+    
     return defensaTotal;
 }
 
-function calcularDañoFinal(objetivoId, dañoBase) {
+function calcularDañoFinal(objetivoId, dañoBase, tipo = 'fisico') {
     const defensa = getPlayerDefense(objetivoId);
+    console.log(`💰 Daño base: ${dañoBase}, Defensa: ${defensa}, Daño final: ${Math.max(1, dañoBase - defensa)}`);
     return Math.max(1, Math.floor(dañoBase - defensa));
 }
 // ==============================================
