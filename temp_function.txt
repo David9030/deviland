@@ -1,0 +1,48 @@
+socket.on('levantarEsqueleto', (data) => {
+    const jugador = players[socket.id];
+    if (!jugador || jugador.className !== 'NECROMANCER') {
+        socket.emit('mensaje', 'Solo los Necromancer pueden levantar muertos');
+        return;
+    }
+    
+    let cadaver = esqueletos.find(e => e.id === data.id && !e.isAlive && !e.isAlly);
+    if (!cadaver) {
+        socket.emit('mensaje', 'No hay cadáver cerca');
+        return;
+    }
+    
+    const vidaRequerida = cadaver.maxHp;
+    
+    if (jugador.hp >= vidaRequerida) {
+        jugador.hp = jugador.hp - vidaRequerida;
+        
+        const index = esqueletos.findIndex(e => e.id === data.id);
+        if (index !== -1) esqueletos.splice(index, 1);
+        io.emit('esqueletoDestroy', { id: data.id });
+        
+        const newSkeleton = {
+            id: 'esqueleto_' + nextSkeletonId++,
+            x: jugador.x + (Math.random() * 100 - 50),
+            y: jugador.y + (Math.random() * 100 - 50),
+            hp: cadaver.maxHp,
+            maxHp: cadaver.maxHp,
+            isAlive: true,
+            isAlly: true,
+            ownerId: socket.id,
+            targetId: null,
+            targetType: null,
+            dir: 'Abajo',
+            attackCooldown: 0,
+            damageBonus: 0,
+            baseDamage: CONFIG.SKELETON.ATTACK_DAMAGE
+        };
+        esqueletos.push(newSkeleton);
+        jugador.esqueletosSummon = (jugador.esqueletosSummon || 0) + 1;
+        
+        io.emit('esqueletoRevive', { id: newSkeleton.id, x: newSkeleton.x, y: newSkeleton.y, ownerId: socket.id });
+        socket.emit('mensaje', '?? ¡Has levantado un esqueleto aliado! - Te costó ' + vidaRequerida + ' de vida');
+        io.emit('playerStatsUpdate', { id: socket.id, hp: jugador.hp, mana: jugador.mana });
+    } else {
+        socket.emit('mensaje', '? Necesitas ' + vidaRequerida + ' de vida (tienes ' + jugador.hp + ') para levantar este esqueleto');
+    }
+});

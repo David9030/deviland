@@ -2196,7 +2196,7 @@ if (guardado) {
     
     socket.on('demonlordMoved', (data) => { if (demonlord_sprite) { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.cDir = data.dir; demonlord_sprite.play('dl_walk_' + data.dir, true); demonlord_sprite.setDepth(data.y); } });
     
-    socket.on('demonlordAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); crearTextoDmg(this, player.x, player.y, data.damage, "#fff", "20px"); this.cameras.main.shake(150, 0.005); mostrarMensaje(`💀 -${data.damage}`, 'combate'); } });
+    socket.on('demonlordAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); crearTextoDmg(this, player.x, player.y, data.damage, "#fff", "20px"); mostrarMensaje(`💀 -${data.damage}`, 'combate'); } });
     
     socket.on('demonlordDeath', (data) => { demonlord_sprite.setVisible(false); crearTextoDmg(this, data.x, data.y, "VENCIDO", "#fff", "22px"); mostrarMensaje(`🏆 Demonlord derrotado! +500 EXP`, 'exito'); ganarExp(500); for (let i = 0; i < 8; i++) { const offsetX = (Math.random() - 0.5) * 100; const offsetY = (Math.random() - 0.5) * 100; crearMonedaSuelo(data.x + offsetX, data.y + offsetY, Math.floor(Math.random() * 20) + 10); } });
     
