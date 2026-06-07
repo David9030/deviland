@@ -1963,6 +1963,8 @@ function create() {
     
     this.physics.world.setBounds(0, 0, 3000, 3000); 
     this.cameras.main.setBounds(0, 0, 3000, 3000); 
+this.physics.world.debugGraphic.clear();  // Limpiar debug existente
+this.physics.world.createDebugGraphic = function() {};  // Evitar que cree nuevos
     this.add.tileSprite(1500, 1500, 3000, 3000, 'suelo').setAlpha(0.6);
     
     keys = this.input.keyboard.addKeys('W,A,S,D,SPACE,SHIFT,R,I,T'); 
