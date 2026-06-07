@@ -424,11 +424,12 @@ function initControlesVolumen() {
     
     if (musicaInput) {
         const savedMusica = localStorage.getItem('volumen_musica');
-        if (savedMusica) {
+        if (savedMusica !== null) {
             window.volumenMusica = parseFloat(savedMusica);
             musicaInput.value = window.volumenMusica * 100;
             musicaValor.textContent = Math.floor(window.volumenMusica * 100) + '%';
         } else {
+            window.volumenMusica = 0.3;
             musicaInput.value = 30;
             musicaValor.textContent = '30%';
         }
@@ -440,18 +441,21 @@ function initControlesVolumen() {
             localStorage.setItem('volumen_musica', vol);
             if (currentScene && currentScene.sound) {
                 const musica = currentScene.sound.get('musicaFondo');
-                if (musica) musica.setVolume(vol);
+                if (musica && typeof musica.setVolume === 'function') {
+                    musica.setVolume(vol);
+                }
             }
         });
     }
     
     if (fxInput) {
         const savedFX = localStorage.getItem('volumen_fx');
-        if (savedFX) {
+        if (savedFX !== null) {
             window.volumenFX = parseFloat(savedFX);
             fxInput.value = window.volumenFX * 100;
             fxValor.textContent = Math.floor(window.volumenFX * 100) + '%';
         } else {
+            window.volumenFX = 0.6;
             fxInput.value = 60;
             fxValor.textContent = '60%';
         }
