@@ -2041,15 +2041,7 @@ function create() {
         for (let i = 0; i < anim.dieCount; i++) dieFrames.push({ key: 'mago_sprite', frame: anim.dieStart + i }); 
         this.anims.create({ key: `mago_sprite_die_${anim.dir}`, frames: dieFrames, frameRate: 8 }); 
     });
-    
-    const DL_CONFIG = { fPB: 8, fPF: 16, filas: { idle: 0, walk: 2, tired: 4, reir: 6, ataque: 8 }, direcciones: [{ d: 'Derecha', r: 0, b: 0 }, { d: 'Arriba', r: 0, b: 1 }, { d: 'Abajo', r: 1, b: 0 }, { d: 'Izquierda', r: 1, b: 1 }] }; 
-    DL_CONFIG.direcciones.forEach(conf => { 
-        const off = (conf.r * DL_CONFIG.fPF) + (conf.b * DL_CONFIG.fPB); 
-        Object.keys(DL_CONFIG.filas).forEach(st => { 
-            const start = (DL_CONFIG.filas[st] * DL_CONFIG.fPF) + off; 
-            this.anims.create({ key: `dl_${st}_${conf.d}`, frames: this.anims.generateFrameNumbers('demonlord', { start: start, end: start + 7 }), frameRate: (st === 'ataque') ? 16 : 10, repeat: (st === 'idle' || st === 'walk' || st === 'tired') ? -1 : 0 }); 
-        }); 
-    }); 
+   const DL_CONFIG = { fPB: 8, fPF: 16, filas: { idle: 0, walk: 2, tired: 4, reir: 6, ataque: 10 }, direcciones: [{ d: 'Derecha', r: 0, b: 0 }, { d: 'Arriba', r: 0, b: 1 }, { d: 'Abajo', r: 1, b: 0 }, { d: 'Izquierda', r: 1, b: 1 }] }; DL_CONFIG.direcciones.forEach(conf => { const off = (conf.r * DL_CONFIG.fPF) + (conf.b * DL_CONFIG.fPB); Object.keys(DL_CONFIG.filas).forEach(st => { const start = (DL_CONFIG.filas[st] * DL_CONFIG.fPF) + off; this.anims.create({ key: `dl_${st}_${conf.d}`, frames: this.anims.generateFrameNumbers('demonlord', { start: start, end: start + 7 }), frameRate: (st === 'ataque') ? 16 : 10, repeat: (st === 'idle' || st === 'walk' || st === 'tired') ? -1 : 0 }); }); });
     
     let escalaJugador = (pClassName === 'NECROMANCER' || pClassName === 'MAGO') ? 0.3 : 2;
     player = this.physics.add.sprite(512, 512, pClass).setScale(escalaJugador).setCollideWorldBounds(true); 
@@ -2261,7 +2253,7 @@ setTimeout(() => {
         } 
     });
     
-    socket.on('demonlordAtkVisual', (d) => { if (demonlord_sprite) { demonlord_sprite.play('dl_ataque_' + d.dir, true); if (d.esFuerte) { demonlord_sprite.setTint(0x888888); setTimeout(() => demonlord_sprite.clearTint(), 500); } } });
+    socket.on('demonlordAtkVisual', (d) => { if (demonlord_sprite) { demonlord_sprite.play('dl_ataque_' + d.dir, true); demonlord_sprite.once('animationcomplete', () => { if (demonlord_sprite && demonlord_sprite.active) { demonlord_sprite.play('dl_idle_' + d.dir, true); } }); if (d.esFuerte) { demonlord_sprite.setTint(0x888888); setTimeout(() => demonlord_sprite.clearTint(), 500); } } });
     
     socket.on('demonlordState', (d) => { demonlordHP = d.hp; demonlordMaxHP = 5000; actualizarDemonlordHPBar(); if (d.isAlive === false) demonlord_sprite.setVisible(false); else demonlord_sprite.setVisible(true); });
     
