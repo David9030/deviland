@@ -677,7 +677,6 @@ setInterval(() => {
             else demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
             io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: true });
         } else {
-            // Solo emitir idle si NO está en cooldown de ataque (para no interrumpir animación)
             if (demonlord.attackCooldown <= 0) {
                 io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
             }
@@ -688,10 +687,8 @@ setInterval(() => {
             const dirAtaque = demonlord.dir;
             const damage = calcularDañoFinal(targetId, CONFIG.DEMONLORD.ATTACK_DAMAGE);
             
-            // Emitir animación de ataque
             io.emit('demonlordAtkVisual', { dir: dirAtaque, esFuerte: false });
             
-            // Aplicar daño después de la animación
             setTimeout(() => {
                 if (!demonlord.isAlive) return;
                 let target = players[targetId];

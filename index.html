@@ -2253,7 +2253,7 @@ setTimeout(() => {
         } 
     });
     
-    socket.on('demonlordAtkVisual', (d) => { if (demonlord_sprite) { demonlord_sprite.play('dl_ataque_' + d.dir, true); demonlord_sprite.once('animationcomplete', () => { if (demonlord_sprite && demonlord_sprite.active) { demonlord_sprite.play('dl_idle_' + d.dir, true); } }); if (d.esFuerte) { demonlord_sprite.setTint(0x888888); setTimeout(() => demonlord_sprite.clearTint(), 500); } } });
+    socket.on('demonlordAtkVisual', (d) => { if (demonlord_sprite && !demonlord_sprite.anims.isPlaying) { demonlord_sprite.play('dl_ataque_' + d.dir, true); demonlord_sprite.once('animationcomplete', () => { if (demonlord_sprite && demonlord_sprite.active) { demonlord_sprite.play('dl_idle_' + d.dir, true); } }); if (d.esFuerte) { demonlord_sprite.setTint(0x888888); setTimeout(() => demonlord_sprite.clearTint(), 500); } } });
     
     socket.on('demonlordState', (d) => { demonlordHP = d.hp; demonlordMaxHP = 5000; actualizarDemonlordHPBar(); if (d.isAlive === false) demonlord_sprite.setVisible(false); else demonlord_sprite.setVisible(true); });
     
