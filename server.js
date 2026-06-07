@@ -659,14 +659,39 @@ io.on('connection', (socket) => {
 // MOVIMIENTO DE DEMONLORD
 setInterval(() => {
     if (!demonlord.isAlive) return;
+    
     let closestTarget = null;
     let closestDistance = Infinity;
-    Object.values(players).forEach(player => { if (player.isAlive) { const dist = getDistance(demonlord.x, demonlord.y, player.x, player.y); if (dist < closestDistance) { closestDistance = dist; closestTarget = player; } } });
-    esqueletos.forEach(esqueleto => { if (esqueleto.isAlive && esqueleto.isAlly === true) { const dist = getDistance(demonlord.x, demonlord.y, esqueleto.x, esqueleto.y); if (dist < closestDistance) { closestDistance = dist; closestTarget = esqueleto; } } });
+    
+    // Buscar jugador más cercano
+    for (let id in players) {
+        let player = players[id];
+        if (player && player.isAlive) {
+            let dist = getDistance(demonlord.x, demonlord.y, player.x, player.y);
+            if (dist < closestDistance) {
+                closestDistance = dist;
+                closestTarget = player;
+            }
+        }
+    }
+    
+    // Buscar esqueleto aliado más cercano
+    for (let esqueleto of esqueletos) {
+        if (esqueleto.isAlive && esqueleto.isAlly === true) {
+            let dist = getDistance(demonlord.x, demonlord.y, esqueleto.x, esqueleto.y);
+            if (dist < closestDistance) {
+                closestDistance = dist;
+                closestTarget = esqueleto;
+            }
+        }
+    }
+    
     if (!closestTarget) return;
+    
     const dx = closestTarget.x - demonlord.x;
     const dy = closestTarget.y - demonlord.y;
     const distance = Math.hypot(dx, dy);
+    
     if (distance < CONFIG.DEMONLORD.VISION_RANGE) {
         if (distance > 70) {
             const moveX = (dx / distance) * CONFIG.DEMONLORD.SPEED;
@@ -681,6 +706,7 @@ setInterval(() => {
                 io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
             }
         }
+        
         if (demonlord.attackCooldown <= 0 && distance < 70) {
             demonlord.attackCooldown = CONFIG.DEMONLORD.ATTACK_COOLDOWN;
             const targetId = closestTarget.id;
@@ -706,6 +732,7 @@ setInterval(() => {
             }, 300);
         }
     }
+    
     if (demonlord.attackCooldown > 0) demonlord.attackCooldown -= 100;
 }, 100);
 
