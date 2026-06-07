@@ -1915,10 +1915,10 @@ function preload() {
     this.load.spritesheet('esqueleto', 'esqueleto.png', { frameWidth: 255, frameHeight: 255 }); 
     this.load.audio('sonidoMoneda', 'moneda.mp3');
     
-    for (let i = 0; i <= 26; i++) { 
-        const frameNum = i.toString().padStart(4, '0'); 
-        this.load.image(`fireball_${frameNum}`, `fireball/${frameNum}.png`); 
-    }
+    for (let i = 0; i <= 55; i++) { 
+    const frameNum = i.toString().padStart(4, '0'); 
+    this.load.image(`fireball_${frameNum}`, `fireball/${frameNum}.png`); 
+}
     
     this.load.audio('sonidoTalar', 'talar.mp3'); 
     this.load.audio('sonidoMina', 'mina.mp3'); 
@@ -2117,10 +2117,16 @@ if (guardado) {
         if (window.minasGrupo) window.minasGrupo.getChildren().forEach(mn => { if (mn.active && Phaser.Math.Distance.Between(player.x, player.y, mn.x, mn.y) < 80) { mina = true; mC = mn; } }); 
         if (window.rocasGrupo) window.rocasGrupo.getChildren().forEach(rc => { if (rc.active && Phaser.Math.Distance.Between(player.x, player.y, rc.x, rc.y) < 50) { roca = true; rC = rc; } }); 
         
-        player.attacking = true; 
-        player.setVelocity(0, 0); 
-        player.play(pClass + '_atk_' + player.lastDir, true); 
-        
+        player.attacking = true;
+player.setVelocity(0, 0);
+player.play(pClass + '_atk_' + player.lastDir, true);
+
+// Timeout de respaldo obligatorio (300-500ms)
+setTimeout(() => {
+    player.attacking = false;
+    window.ataqueEnProceso = false;
+    console.log("Ataque reset por timeout");
+}, 400);
         if (currentScene) {
             const sonidoAtq = currentScene.sound.get('sonidoAtaque');
             if (sonidoAtq) reproducirSonido(sonidoAtq, window.volumenFX);
