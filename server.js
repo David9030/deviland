@@ -680,22 +680,21 @@ setInterval(() => {
             io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
         }
         if (demonlord.attackCooldown <= 0 && distance < 70) {
-            console.log("⚔️ Demonlord atacando a:", closestTarget.id);
             demonlord.attackCooldown = CONFIG.DEMONLORD.ATTACK_COOLDOWN;
             const targetId = closestTarget.id;
             const dirAtaque = demonlord.dir;
+            const damage = calcularDañoFinal(targetId, CONFIG.DEMONLORD.ATTACK_DAMAGE);
             
+            // Emitir animación de ataque
             io.emit('demonlordAtkVisual', { dir: dirAtaque, esFuerte: false });
             
+            // Aplicar daño después de la animación
             setTimeout(() => {
                 if (!demonlord.isAlive) return;
                 let target = players[targetId];
                 if (!target || target.hp <= 0) return;
                 
-                let dañoBase = CONFIG.DEMONLORD.ATTACK_DAMAGE;
-                let damage = calcularDañoFinal(targetId, dañoBase);
                 target.hp = Math.max(0, target.hp - damage);
-                
                 io.emit('demonlordAttack', { targetId: targetId, damage: damage, x: demonlord.x, y: demonlord.y, dir: dirAtaque });
                 io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: damage, hp: demonlord.hp });
                 
