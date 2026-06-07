@@ -2257,7 +2257,7 @@ setTimeout(() => {
     
     socket.on('demonlordState', (d) => { demonlordHP = d.hp; demonlordMaxHP = 5000; actualizarDemonlordHPBar(); if (d.isAlive === false) demonlord_sprite.setVisible(false); else demonlord_sprite.setVisible(true); });
     
-    socket.on('demonlordMoved', (data) => { if (demonlord_sprite) { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.cDir = data.dir; demonlord_sprite.play('dl_walk_' + data.dir, true); demonlord_sprite.setDepth(data.y); } });
+    socket.on('demonlordMoved', (data) => { if (demonlord_sprite) { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.cDir = data.dir; if (data.isMoving) { demonlord_sprite.play('dl_walk_' + data.dir, true); } else { demonlord_sprite.play('dl_idle_' + data.dir, true); } demonlord_sprite.setDepth(data.y); } });
     
     socket.on('demonlordAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); crearTextoDmg(this, player.x, player.y, data.damage, "#fff", "20px"); mostrarMensaje(`💀 -${data.damage}`, 'combate'); } });
     
