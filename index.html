@@ -1804,18 +1804,28 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
     proyectil.startY = origenY; 
     proyectiles.push(proyectil); 
     
-    let frameIndex = 0;
-    const animInterval = setInterval(() => { 
-        if (!proyectil || !proyectil.active) { 
-            clearInterval(animInterval); 
-            return; 
-        } 
-        frameIndex++; 
-        if (frameIndex > 26) frameIndex = 0;
-        const frameNum = frameIndex.toString().padStart(4, '0'); 
-        proyectil.setTexture(`fireball_${frameNum}`); 
-        proyectil.setRotation(angle - Math.PI / 2); 
-    }, 50);
+   let frameIndex = 0;
+const animInterval = setInterval(() => {
+    if (!proyectil || !proyectil.active) {
+        clearInterval(animInterval);
+        return;
+    }
+    frameIndex++;
+    const frameNum = frameIndex.toString().padStart(4, '0');
+    proyectil.setTexture(`fireball_${frameNum}`);
+    proyectil.setRotation(angle - Math.PI / 2);
+    
+    // Si llegó al último frame (0055), destruir el proyectil
+    if (frameIndex >= 55) {
+        if (proyectil && proyectil.active) {
+            proyectil.destroy();
+        }
+        clearInterval(animInterval);
+        // Remover del array de proyectiles
+        const index = proyectiles.indexOf(proyectil);
+        if (index !== -1) proyectiles.splice(index, 1);
+    }
+}, 50);
     
     if (currentScene && window.esqueletosGrupo) {
         currentScene.physics.add.overlap(proyectil, window.esqueletosGrupo, (p, esqueleto) => { 
