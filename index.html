@@ -2251,7 +2251,7 @@ if (guardado) {
     
     socket.on('demonlordRespawn', (data) => { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.setVisible(true); demonlord_sprite.clearTint(); demonlordHP = 5000; actualizarDemonlordHPBar(); crearTextoDmg(this, data.x, data.y, "RENACE", "#fff", "22px"); });
     
-    socket.on('enemyDamaged', (data) => { if (data.id === 'demonlord') { demonlordHP = data.hp; actualizarDemonlordHPBar(); crearTextoDmg(this, data.x, data.y, data.dmg, '#fff', '20px'); } else if (data.id === socket.id) { crearTextoDmg(this, player.x, player.y, data.dmg, '#fff', '20px'); } } );
+    socket.on('enemyDamaged', (data) => { if (data.id === 'demonlord') { demonlordHP = data.hp; actualizarDemonlordHPBar(); crearTextoDmg(this, data.x, data.y, data.dmg, '#fff', '20px'); } else if (data.id === socket.id) { crearTextoDmg(this, player.x, player.y, data.dmg, '#fff', '20px'); } else { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { crearTextoDmg(this, data.x, data.y, data.dmg, '#fff', '16px'); } }); } } });
     
     socket.on('esqueletosIniciales', (data) => { 
         if (!window.esqueletosGrupo) window.esqueletosGrupo = this.add.group(); 
