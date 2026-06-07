@@ -6,7 +6,7 @@ const path = require('path');
 
 const CONFIG = {
     PORT: 3000,
-    DEMONLORD: { MAX_HP: 50000, RESPAWN_TIME: 10000, SPEED: 10, ATTACK_COOLDOWN: 2000, ATTACK_DAMAGE: 145, VISION_RANGE: 300, EXP: 500 },
+    DEMONLORD: { MAX_HP: 5000, RESPAWN_TIME: 10000, SPEED: 15, ATTACK_COOLDOWN: 2000, ATTACK_DAMAGE: 45, VISION_RANGE: 350, EXP: 500 },
     SKELETON: { MAX_HP: 200, RESPAWN_TIME: 60000, SPEED: 12, ATTACK_COOLDOWN: 1000, ATTACK_DAMAGE: 25, VISION_RANGE: 500, EXP: 50, DEFENSE: 0 },
     PLAYER: { MAX_HP: 500, RESPAWN_TIME: 10000,
         BASE_STATS: {
@@ -54,33 +54,20 @@ function getPlayerDefense(playerId) {
     
     let defensaTotal = 0;
     
-    // Leer el escudo equipado
     const escudoId = jugador.equipamiento?.escudo;
     if (escudoId) {
         const item = inventario.items.find(i => i.id === escudoId);
-        if (item && item.defensaFisica) {
-            defensaTotal += item.defensaFisica;
-            console.log(`🛡️ Escudo equipado: ${item.nombre}, defensa: ${item.defensaFisica}`);
-        } else if (item) {
-            console.log(`⚠️ Escudo encontrado pero sin defensaFisica:`, item);
-        }
+        if (item && item.defensaFisica) defensaTotal += item.defensaFisica;
     }
     
-    // Leer armadura equipada
     const armaduraId = jugador.equipamiento?.armadura;
     if (armaduraId) {
         const item = inventario.items.find(i => i.id === armaduraId);
-        if (item && item.defensaFisica) {
-            defensaTotal += item.defensaFisica;
-            console.log(`👕 Armadura equipada: ${item.nombre}, defensa: ${item.defensaFisica}`);
-        }
+        if (item && item.defensaFisica) defensaTotal += item.defensaFisica;
     }
     
-    // Defensa base de la clase
     const statsBase = CONFIG.PLAYER.BASE_STATS[jugador.class] || CONFIG.PLAYER.BASE_STATS.warrior;
     defensaTotal += statsBase.defensa || 0;
-    
-    console.log(`📊 Defensa total de ${jugador.name}: ${defensaTotal}`);
     
     return defensaTotal;
 }
@@ -88,10 +75,31 @@ function getPlayerDefense(playerId) {
 function calcularDañoFinal(objetivoId, dañoBase, tipo = 'fisico') {
     const defensa = getPlayerDefense(objetivoId);
     const dañoFinal = Math.max(1, dañoBase - defensa);
-    console.log(`💰 Daño: ${dañoBase} - ${defensa} = ${dañoFinal}`);
     return dañoFinal;
 }
 
+// ========== FUNCIÓN UNIFICADA PARA DAÑAR ESQUELETOS ==========
+function dañarEsqueleto(esqueleto, atacanteId, daño, esDistancia = false) {
+    if (!esqueleto || !esqueleto.isAlive) return;
+    if (!esqueleto.attackers) esqueleto.attackers = [];
+    if (!esqueleto.attackers.includes(atacanteId)) esqueleto.attackers.push(atacanteId);
+    
+    esqueleto.hp = Math.max(0, esqueleto.hp - daño);
+    
+    // Solo UN texto de daño
+    io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: daño });
+    
+    if (esqueleto.hp <= 0) {
+        esqueleto.isAlive = false;
+        if (esqueleto.attackers && esqueleto.attackers.length > 0) {
+            esqueleto.attackers.forEach(attackerId => darExpAJugadorYEquipo(attackerId, CONFIG.SKELETON.EXP));
+        } else {
+            darExpAJugadorYEquipo(atacanteId, CONFIG.SKELETON.EXP);
+        }
+        io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP, attackers: esqueleto.attackers || [] });
+        respawnEsqueleto(esqueleto.id);
+    }
+}
 // ==============================================
 
 function darExpAJugadorYEquipo(socketId, exp) {
@@ -228,7 +236,6 @@ io.on('connection', (socket) => {
             ataqueFisico: ataqueFisico
         };
         
-        // Inicializar inventario si no existe
         if (!inventariosJugadores[socket.id]) {
             inventariosJugadores[socket.id] = { items: [], equipamiento: {} };
         }
@@ -282,6 +289,7 @@ io.on('connection', (socket) => {
         }
     });
     
+    // ATAQUE CUERPO A CUERPO (unificado con dañarEsqueleto)
     socket.on('playerAttack', (data) => { 
         const jugador = players[socket.id]; 
         if (!jugador || !jugador.isAlive) return; 
@@ -305,24 +313,11 @@ io.on('connection', (socket) => {
         if (esqueletoCercano) { 
             let damage = data.damageBonus || jugador.ataqueFisico; 
             const finalDamage = Math.max(1, Math.floor(damage)); 
-            if (!esqueletoCercano.attackers) esqueletoCercano.attackers = [];
-            if (!esqueletoCercano.attackers.includes(socket.id)) esqueletoCercano.attackers.push(socket.id);
-            esqueletoCercano.hp = Math.max(0, esqueletoCercano.hp - finalDamage); 
-            io.emit('enemyDamaged', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, dmg: finalDamage }); 
-            
-            if (esqueletoCercano.hp <= 0) { 
-                esqueletoCercano.isAlive = false; 
-                if (esqueletoCercano.attackers && esqueletoCercano.attackers.length > 0) {
-                    esqueletoCercano.attackers.forEach(attackerId => darExpAJugadorYEquipo(attackerId, CONFIG.SKELETON.EXP));
-                } else {
-                    darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP);
-                }
-                io.emit('esqueletoDeath', { id: esqueletoCercano.id, x: esqueletoCercano.x, y: esqueletoCercano.y, exp: CONFIG.SKELETON.EXP, attackers: esqueletoCercano.attackers || [] }); 
-                respawnEsqueleto(esqueletoCercano.id); 
-            } 
+            dañarEsqueleto(esqueletoCercano, socket.id, finalDamage, false);
         } 
     });
     
+    // ATAQUE A DISTANCIA (mago/necromancer) - unificado con dañarEsqueleto
     socket.on('esqueletoHit', (data) => { 
         const jugador = players[socket.id]; 
         if (!jugador || !jugador.isAlive) return; 
@@ -330,20 +325,7 @@ io.on('connection', (socket) => {
         if (!esqueleto) return; 
         let damage = data.damageBonus || 0; 
         const finalDamage = Math.max(1, damage); 
-        if (!esqueleto.attackers) esqueleto.attackers = [];
-        if (!esqueleto.attackers.includes(socket.id)) esqueleto.attackers.push(socket.id);
-        esqueleto.hp = Math.max(0, esqueleto.hp - finalDamage); 
-        io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: finalDamage }); 
-        if (esqueleto.hp <= 0) { 
-            esqueleto.isAlive = false; 
-            if (esqueleto.attackers && esqueleto.attackers.length > 0) {
-                esqueleto.attackers.forEach(attackerId => darExpAJugadorYEquipo(attackerId, CONFIG.SKELETON.EXP));
-            } else {
-                darExpAJugadorYEquipo(socket.id, CONFIG.SKELETON.EXP);
-            }
-            io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP, attackers: esqueleto.attackers || [] }); 
-            respawnEsqueleto(esqueleto.id); 
-        } 
+        dañarEsqueleto(esqueleto, socket.id, finalDamage, true);
     });
 
     socket.on('playerMurio', (data) => {
@@ -382,7 +364,6 @@ io.on('connection', (socket) => {
                 darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP);
             }
             
-            // Generar 8 monedas alrededor del Demonlord
             for (let i = 0; i < 8; i++) {
                 const angle = (i / 8) * Math.PI * 2;
                 const distancia = 60 + (Math.random() * 40);
@@ -394,7 +375,6 @@ io.on('connection', (socket) => {
             
             io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
             
-            // Generar 15 esqueletos después de 2 minutos
             setTimeout(() => {
                 generarEsqueletos(15);
                 io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `⚔️ ¡Han aparecido 15 esqueletos en el mapa!` });
@@ -772,20 +752,11 @@ setInterval(() => {
                 esqueleto.attackCooldown = CONFIG.SKELETON.ATTACK_COOLDOWN;
                 let dañoBase = CONFIG.SKELETON.ATTACK_DAMAGE + (esqueleto.damageBonus || 0);
                 
-                // LOG PARA VER QUÉ ESTÁ ATACANDO
-                console.log(`🎯 ESQUELETO ATACA - closestTarget.id: ${closestTarget.id}`);
-                console.log(`🎯 ¿Es jugador? ${players[closestTarget.id] ? 'SÍ' : 'NO'}`);
-                console.log(`🎯 ¿Es demonlord? ${closestTarget.id === 'demonlord' ? 'SÍ' : 'NO'}`);
-                
                 let damage;
                 if (players[closestTarget.id]) {
-                    // Es un jugador, aplicar defensa
                     damage = calcularDañoFinal(closestTarget.id, dañoBase);
-                    console.log(`✅ Daño a JUGADOR después de defensa: ${damage}`);
                 } else {
-                    // No es jugador, daño directo
                     damage = dañoBase;
-                    console.log(`⚔️ Daño a ENEMIGO (sin defensa): ${damage}`);
                 }
                 
                 closestTarget.hp = Math.max(0, closestTarget.hp - damage);
