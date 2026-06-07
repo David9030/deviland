@@ -1817,7 +1817,8 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
         
         if (frameIndex >= 55) {
             if (proyectil && proyectil.active) {
-                if (proyectil.body) proyectil.body.destroy();
+                proyectil.setVisible(false);
+                proyectil.disableBody(true, true);
                 proyectil.destroy();
             }
             clearInterval(animInterval);
@@ -1838,7 +1839,8 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
                     if (sonido) reproducirSonido(sonido, window.volumenFX);
                     else currentScene.sound.play('sonidoAtaque', { volume: window.volumenFX });
                 }
-                if (p.body) p.body.destroy();
+                p.setVisible(false);
+                p.disableBody(true, true);
                 p.destroy(); 
                 clearInterval(animInterval); 
                 const index = proyectiles.indexOf(p); 
@@ -1855,8 +1857,9 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
         const distRecorrida = Math.hypot(proyectil.x - proyectil.startX, proyectil.y - proyectil.startY); 
         if (distRecorrida > 600) { 
             if (proyectil && proyectil.active) {
-                if (proyectil.body) proyectil.body.destroy();
-                proyectil.destroy(); 
+                proyectil.setVisible(false);
+                proyectil.disableBody(true, true);
+                proyectil.destroy();
             }
             clearInterval(checkDistance); 
             clearInterval(animInterval); 
