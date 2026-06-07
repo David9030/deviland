@@ -1851,18 +1851,18 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
         }); 
     }
     
-    const checkDistance = setInterval(() => { 
-        if (!proyectil || !proyectil.active) { 
-            clearInterval(checkDistance); 
-            return; 
-        } 
-        const distRecorrida = Math.hypot(proyectil.x - proyectil.startX, proyectil.y - proyectil.startY); 
-        if (distRecorrida > 600) { 
-            clearInterval(checkDistance); 
-            clearInterval(animInterval); 
-            destruirProyectil(proyectil);
-        } 
-    }, 50); 
+   const checkDistance = setInterval(() => { 
+    if (!proyectil || !proyectil.active) { 
+        clearInterval(checkDistance); 
+        return; 
+    } 
+    const distRecorrida = Math.hypot(proyectil.x - proyectil.startX, proyectil.y - proyectil.startY); 
+    if (distRecorrida > 1200) {
+        clearInterval(checkDistance); 
+        clearInterval(animInterval); 
+        destruirProyectil(proyectil);
+    } 
+}, 50);
     
     if (esLocal && socket) socket.emit('crearProyectil', { origenX, origenY, targetX, targetY, damage }); 
 }
