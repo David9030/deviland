@@ -1794,6 +1794,8 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
     proyectil.setRotation(rotation); 
     proyectil.setDepth(9000); 
     currentScene.physics.add.existing(proyectil); 
+    proyectil.body.debugShowBody = false;
+    proyectil.body.debugShowVelocity = false;
     proyectil.body.setSize(10, 10); 
     proyectil.body.setOffset(10, 10); 
     proyectil.body.setVelocity(velocityX, velocityY); 
@@ -1804,13 +1806,16 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
     proyectil.startY = origenY; 
     proyectiles.push(proyectil); 
     
-    // Función para destruir completamente el proyectil
     function destruirProyectil(p) {
         if (!p) return;
         if (p.body) {
+            p.body.enable = false;
+            p.body.setVelocity(0, 0);
+            p.body.setCollideWorldBounds(false);
             currentScene.physics.world.remove(p.body);
             p.body.destroy();
         }
+        p.visible = false;
         p.destroy();
         const idx = proyectiles.indexOf(p);
         if (idx !== -1) proyectiles.splice(idx, 1);
@@ -1851,18 +1856,18 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
         }); 
     }
     
-   const checkDistance = setInterval(() => { 
-    if (!proyectil || !proyectil.active) { 
-        clearInterval(checkDistance); 
-        return; 
-    } 
-    const distRecorrida = Math.hypot(proyectil.x - proyectil.startX, proyectil.y - proyectil.startY); 
-    if (distRecorrida > 1200) {
-        clearInterval(checkDistance); 
-        clearInterval(animInterval); 
-        destruirProyectil(proyectil);
-    } 
-}, 50);
+    const checkDistance = setInterval(() => { 
+        if (!proyectil || !proyectil.active) { 
+            clearInterval(checkDistance); 
+            return; 
+        } 
+        const distRecorrida = Math.hypot(proyectil.x - proyectil.startX, proyectil.y - proyectil.startY); 
+        if (distRecorrida > 1200) {
+            clearInterval(checkDistance); 
+            clearInterval(animInterval); 
+            destruirProyectil(proyectil);
+        } 
+    }, 50); 
     
     if (esLocal && socket) socket.emit('crearProyectil', { origenX, origenY, targetX, targetY, damage }); 
 }
