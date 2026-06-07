@@ -86,7 +86,6 @@ function dañarEsqueleto(esqueleto, atacanteId, daño, esDistancia = false) {
     
     esqueleto.hp = Math.max(0, esqueleto.hp - daño);
     
-    // Solo UN texto de daño
     io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: daño });
     
     if (esqueleto.hp <= 0) {
@@ -289,7 +288,6 @@ io.on('connection', (socket) => {
         }
     });
     
-    // ATAQUE CUERPO A CUERPO (unificado con dañarEsqueleto)
     socket.on('playerAttack', (data) => { 
         const jugador = players[socket.id]; 
         if (!jugador || !jugador.isAlive) return; 
@@ -317,7 +315,6 @@ io.on('connection', (socket) => {
         } 
     });
     
-    // ATAQUE A DISTANCIA (mago/necromancer) - unificado con dañarEsqueleto
     socket.on('esqueletoHit', (data) => { 
         const jugador = players[socket.id]; 
         if (!jugador || !jugador.isAlive) return; 
@@ -658,19 +655,16 @@ io.on('connection', (socket) => {
 
 // MOVIMIENTO DE DEMONLORD
 setInterval(() => {
-    console.log("🔄 DEMONLORD TICK - isAlive:", demonlord.isAlive);
     if (!demonlord.isAlive) return;
     
     let closestTarget = null;
     let closestDistance = Infinity;
     
-    console.log("👥 Jugadores activos:", Object.keys(players).length);
-    
+    // Buscar jugador más cercano
     for (let id in players) {
         let player = players[id];
         if (player && player.isAlive) {
             let dist = getDistance(demonlord.x, demonlord.y, player.x, player.y);
-            console.log(`📏 Distancia a ${player.name}: ${dist}`);
             if (dist < closestDistance) {
                 closestDistance = dist;
                 closestTarget = player;
@@ -678,19 +672,13 @@ setInterval(() => {
         }
     }
     
-    if (!closestTarget) {
-        console.log("❌ No se encontró objetivo");
-        return;
-    }
-    
-    console.log(`🎯 Objetivo encontrado: ${closestTarget.id}, distancia: ${closestDistance}`);
+    if (!closestTarget) return;
     
     const dx = closestTarget.x - demonlord.x;
     const dy = closestTarget.y - demonlord.y;
     const distance = Math.hypot(dx, dy);
     
     if (distance < CONFIG.DEMONLORD.VISION_RANGE) {
-        console.log(`🚶 Moviéndose hacia objetivo, distancia: ${distance}`);
         if (distance > 70) {
             const moveX = (dx / distance) * CONFIG.DEMONLORD.SPEED;
             const moveY = (dy / distance) * CONFIG.DEMONLORD.SPEED;
@@ -699,8 +687,34 @@ setInterval(() => {
             if (Math.abs(dx) > Math.abs(dy)) demonlord.dir = dx > 0 ? 'Derecha' : 'Izquierda';
             else demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
             io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: true });
+        } else {
+            io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
         }
-        // ... resto del código (ataque)
+        
+        if (demonlord.attackCooldown <= 0 && distance < 70) {
+            demonlord.attackCooldown = CONFIG.DEMONLORD.ATTACK_COOLDOWN;
+            const targetId = closestTarget.id;
+            const dirAtaque = demonlord.dir;
+            const damage = calcularDañoFinal(targetId, CONFIG.DEMONLORD.ATTACK_DAMAGE);
+            
+            io.emit('demonlordAtkVisual', { dir: dirAtaque, esFuerte: false });
+            
+            setTimeout(() => {
+                if (!demonlord.isAlive) return;
+                let target = players[targetId];
+                if (!target || target.hp <= 0) return;
+                
+                target.hp = Math.max(0, target.hp - damage);
+                io.emit('demonlordAttack', { targetId: targetId, damage: damage, x: demonlord.x, y: demonlord.y, dir: dirAtaque });
+                io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: damage, hp: demonlord.hp });
+                
+                if (target.hp <= 0) {
+                    target.isAlive = false;
+                    io.emit('playerDeath', { id: targetId, name: target.name });
+                    setTimeout(() => revivirJugador(targetId), CONFIG.PLAYER.RESPAWN_TIME);
+                }
+            }, 300);
+        }
     }
     
     if (demonlord.attackCooldown > 0) demonlord.attackCooldown -= 100;
