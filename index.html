@@ -2234,12 +2234,7 @@ if (guardado) {
         } 
     });
     
-    socket.on('demonlordAtkVisual', (d) => { 
-        if (demonlord_sprite) { 
-            demonlord_sprite.play('dl_ataque_' + d.dir, true); 
-            if (d.esFuerte) { demonlord_sprite.setTint(0x888888); setTimeout(() => demonlord_ssocket.on('esqueletoAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); mostrarMensaje(`💀 Recibiste ${data.damage} de daño`, 'combate'); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play(`esqueleto_atk_${data.dir}`, true); setTimeout(() => { if (esq.active) esq.play(`esqueleto_idle_${data.dir}`, true); }, 300); } }); } });prite.clearTint(), 500); } 
-        } 
-    });
+    socket.on('demonlordAtkVisual', (d) => { if (demonlord_sprite) { demonlord_sprite.play('dl_ataque_' + d.dir, true); if (d.esFuerte) { demonlord_sprite.setTint(0x888888); setTimeout(() => demonlord_sprite.clearTint(), 500); } } });
     
     socket.on('demonlordState', (d) => { demonlordHP = d.hp; demonlordMaxHP = 5000; actualizarDemonlordHPBar(); if (d.isAlive === false) demonlord_sprite.setVisible(false); else demonlord_sprite.setVisible(true); });
     
