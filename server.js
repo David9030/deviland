@@ -677,7 +677,10 @@ setInterval(() => {
             else demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
             io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: true });
         } else {
-            io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
+            // Solo emitir idle si NO está en cooldown de ataque (para no interrumpir animación)
+            if (demonlord.attackCooldown <= 0) {
+                io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
+            }
         }
         if (demonlord.attackCooldown <= 0 && distance < 70) {
             demonlord.attackCooldown = CONFIG.DEMONLORD.ATTACK_COOLDOWN;
