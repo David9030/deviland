@@ -653,34 +653,67 @@ io.on('connection', (socket) => {
     });
 });
 
-// MOVIMIENTO DE DEMONLORD - Ataca a lo que tenga más cerca (jugadores o cualquier esqueleto)
+// MOVIMIENTO DE DEMONLORD - Siempre mira hacia el objetivo
 setInterval(() => {
     if (!demonlord.isAlive) return;
     
-    // Buscar el objetivo MÁS CERCANO (jugador o CUALQUIER esqueleto)
     let closestTarget = null;
     let closestDistance = Infinity;
     
-    // Buscar entre jugadores
-    for (let id in players) {
-        let player = players[id];
-        if (player && player.isAlive) {
-            let dist = getDistance(demonlord.x, demonlord.y, player.x, player.y);
-            if (dist < closestDistance) {
-                closestDistance = dist;
-                closestTarget = player;
+    // Si tiene un objetivo actual y sigue vivo, mantenerlo
+    if (demonlord.currentTarget) {
+        let target = demonlord.currentTarget;
+        let isStillValid = false;
+        
+        // Verificar si sigue siendo jugador vivo
+        if (players[target.id] && players[target.id].isAlive) {
+            isStillValid = true;
+            closestTarget = players[target.id];
+            closestDistance = getDistance(demonlord.x, demonlord.y, target.x, target.y);
+        }
+        // Verificar si sigue siendo esqueleto vivo
+        else if (target.id && !players[target.id]) {
+            const esqueleto = esqueletos.find(e => e.id === target.id);
+            if (esqueleto && esqueleto.isAlive) {
+                isStillValid = true;
+                closestTarget = esqueleto;
+                closestDistance = getDistance(demonlord.x, demonlord.y, esqueleto.x, esqueleto.y);
             }
+        }
+        
+        if (!isStillValid) {
+            demonlord.currentTarget = null;
         }
     }
     
-    // Buscar entre TODOS los esqueletos (aliados Y enemigos)
-    for (let esq of esqueletos) {
-        if (esq.isAlive) {  // <--- SIN FILTRAR, ataca a TODOS los esqueletos
-            let dist = getDistance(demonlord.x, demonlord.y, esq.x, esq.y);
-            if (dist < closestDistance) {
-                closestDistance = dist;
-                closestTarget = esq;
+    // Si no tiene objetivo válido, buscar el más cercano
+    if (!closestTarget) {
+        // Buscar entre jugadores
+        for (let id in players) {
+            let player = players[id];
+            if (player && player.isAlive) {
+                let dist = getDistance(demonlord.x, demonlord.y, player.x, player.y);
+                if (dist < closestDistance) {
+                    closestDistance = dist;
+                    closestTarget = player;
+                }
             }
+        }
+        
+        // Buscar entre TODOS los esqueletos
+        for (let esq of esqueletos) {
+            if (esq.isAlive) {
+                let dist = getDistance(demonlord.x, demonlord.y, esq.x, esq.y);
+                if (dist < closestDistance) {
+                    closestDistance = dist;
+                    closestTarget = esq;
+                }
+            }
+        }
+        
+        // Guardar el nuevo objetivo
+        if (closestTarget) {
+            demonlord.currentTarget = closestTarget;
         }
     }
     
@@ -690,33 +723,44 @@ setInterval(() => {
     const dy = closestTarget.y - demonlord.y;
     const distance = Math.hypot(dx, dy);
     
-    // Movimiento
-    if (distance < CONFIG.DEMONLORD.VISION_RANGE) {
+    // ==========================================
+    // CALCULAR DIRECCIÓN SIEMPRE HACIA EL OBJETIVO
+    // ==========================================
+    let nuevaDireccion;
+    if (Math.abs(dx) > Math.abs(dy)) {
+        nuevaDireccion = dx > 0 ? 'Derecha' : 'Izquierda';
+    } else {
+        nuevaDireccion = dy > 0 ? 'Abajo' : 'Arriba';
+    }
+    
+    // Actualizar dirección SOLO si cambió (para evitar spam)
+    if (demonlord.dir !== nuevaDireccion) {
+        demonlord.dir = nuevaDireccion;
+    }
+    
+    // ==========================================
+    // MOVIMIENTO (si está en rango)
+    // ==========================================
+    const enRango = distance < CONFIG.DEMONLORD.VISION_RANGE;
+    
+    if (enRango) {
         if (distance > 70) {
+            // Moverse hacia el objetivo
             const moveX = (dx / distance) * CONFIG.DEMONLORD.SPEED;
             const moveY = (dy / distance) * CONFIG.DEMONLORD.SPEED;
             demonlord.x += moveX;
             demonlord.y += moveY;
             demonlord.x = Math.min(Math.max(demonlord.x, 50), 2950);
             demonlord.y = Math.min(Math.max(demonlord.y, 50), 2950);
-            
-            if (Math.abs(dx) > Math.abs(dy)) {
-    demonlord.dir = dx > 0 ? 'Derecha' : 'Izquierda';
-} else {
-    demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
-}
-io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: true });
-} else {
-    // ACTUALIZAR DIRECCIÓN TAMBIÉN CUANDO ESTÁ QUIETO
-    if (Math.abs(dx) > Math.abs(dy)) {
-        demonlord.dir = dx > 0 ? 'Derecha' : 'Izquierda';
-    } else {
-        demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
-    }
-    io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
-}
+            io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: true });
+        } else {
+            // Quieto pero mirando al objetivo
+            io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
+        }
         
-        // Ataque
+        // ==========================================
+        // ATAQUE
+        // ==========================================
         if (demonlord.attackCooldown <= 0 && distance < 70) {
             demonlord.attackCooldown = CONFIG.DEMONLORD.ATTACK_COOLDOWN;
             
@@ -742,6 +786,7 @@ io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, 
                         closestTarget.isAlive = false;
                         io.emit('playerDeath', { id: closestTarget.id, name: closestTarget.name });
                         setTimeout(() => revivirJugador(closestTarget.id), CONFIG.PLAYER.RESPAWN_TIME);
+                        demonlord.currentTarget = null;
                     }
                 } else {
                     closestTarget.hp = Math.max(0, closestTarget.hp - damage);
@@ -750,6 +795,7 @@ io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, 
                     if (closestTarget.hp <= 0) {
                         closestTarget.isAlive = false;
                         io.emit('esqueletoDeath', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, exp: CONFIG.SKELETON.EXP, attackers: ['demonlord'] });
+                        demonlord.currentTarget = null;
                         
                         setTimeout(() => {
                             const idx = esqueletos.findIndex(e => e.id === closestTarget.id);
@@ -782,6 +828,9 @@ io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, 
                 io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: damage, hp: demonlord.hp });
             }, 300);
         }
+    } else {
+        // Fuera de rango de visión: quieto pero manteniendo última dirección
+        io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
     }
     
     if (demonlord.attackCooldown > 0) demonlord.attackCooldown -= 100;
