@@ -2041,8 +2041,66 @@ function create() {
         for (let i = 0; i < anim.dieCount; i++) dieFrames.push({ key: 'mago_sprite', frame: anim.dieStart + i }); 
         this.anims.create({ key: `mago_sprite_die_${anim.dir}`, frames: dieFrames, frameRate: 8 }); 
     });
-   // ANIMACIONES DEL DEMONLORD con frames de ataque específicos
-const DL_CONFIG = { fPB: 8, fPF: 16, filas: { idle: 0, walk: 2, tired: 4, reir: 6 }, direcciones: [{ d: 'Derecha', r: 0, b: 0, a: 161 }, { d: 'Arriba', r: 0, b: 1, a: 169 }, { d: 'Abajo', r: 1, b: 0, a: 177 }, { d: 'Izquierda', r: 1, b: 1, a: 185 }] }; DL_CONFIG.direcciones.forEach(conf => { const off = (conf.r * DL_CONFIG.fPF) + (conf.b * DL_CONFIG.fPB); Object.keys(DL_CONFIG.filas).forEach(st => { const start = (DL_CONFIG.filas[st] * DL_CONFIG.fPF) + off; this.anims.create({ key: `dl_${st}_${conf.d}`, frames: this.anims.generateFrameNumbers('demonlord', { start: start, end: start + 7 }), frameRate: 10, repeat: -1 }); }); this.anims.create({ key: `dl_ataque_${conf.d}`, frames: this.anims.generateFrameNumbers('demonlord', { start: conf.a, end: conf.a + 7 }), frameRate: 16, repeat: 0 }); });
+   // ============================================
+// ANIMACIONES DEL DEMONLORD - VERSIÓN CORREGIDA
+// ============================================
+
+// Primero, animaciones de movimiento (idle, walk)
+const demonDir = ['Derecha', 'Arriba', 'Abajo', 'Izquierda'];
+const demonFrames = {
+    idle: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    walk: [32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47],
+    tired: [64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79],
+    reir: [96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
+};
+
+const demonAtaqueFrames = {
+    Derecha: [161, 162, 163, 164, 165, 166, 167, 168],
+    Arriba: [169, 170, 171, 172, 173, 174, 175, 176],
+    Abajo: [177, 178, 179, 180, 181, 182, 183, 184],
+    Izquierda: [185, 186, 187, 188, 189, 190, 191, 192, 193]
+};
+
+// Crear animaciones de idle, walk, tired, reir para cada dirección
+demonDir.forEach(dir => {
+    this.anims.create({
+        key: `dl_idle_${dir}`,
+        frames: demonFrames.idle.map(frame => ({ key: 'demonlord', frame: frame })),
+        frameRate: 10,
+        repeat: -1
+    });
+    
+    this.anims.create({
+        key: `dl_walk_${dir}`,
+        frames: demonFrames.walk.map(frame => ({ key: 'demonlord', frame: frame })),
+        frameRate: 10,
+        repeat: -1
+    });
+    
+    this.anims.create({
+        key: `dl_tired_${dir}`,
+        frames: demonFrames.tired.map(frame => ({ key: 'demonlord', frame: frame })),
+        frameRate: 10,
+        repeat: -1
+    });
+    
+    this.anims.create({
+        key: `dl_reir_${dir}`,
+        frames: demonFrames.reir.map(frame => ({ key: 'demonlord', frame: frame })),
+        frameRate: 10,
+        repeat: -1
+    });
+    
+    // ANIMACIONES DE ATAQUE CON FRAMES ESPECÍFICOS
+    this.anims.create({
+        key: `dl_ataque_${dir}`,
+        frames: demonAtaqueFrames[dir].map(frame => ({ key: 'demonlord', frame: frame })),
+        frameRate: 16,
+        repeat: 0
+    });
+});
+
+console.log("✅ Animaciones del demonlord creadas:", this.anims.anims.keys.filter(k => k.startsWith('dl_')));
     
     let escalaJugador = (pClassName === 'NECROMANCER' || pClassName === 'MAGO') ? 0.3 : 2;
     player = this.physics.add.sprite(512, 512, pClass).setScale(escalaJugador).setCollideWorldBounds(true); 
