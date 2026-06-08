@@ -33,7 +33,7 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 let players = {};
 let ultimoAtaque = new Map();
-let demonlord = { id: 'demonlord', x: 1500, y: 1500, hp: CONFIG.DEMONLORD.MAX_HP, maxHp: CONFIG.DEMONLORD.MAX_HP, isAlive: true, dir: 'Abajo', attackCooldown: 0, attackers: [] };
+let demonlord = { id: 'demonlord', x: 1500, y: 1500, hp: CONFIG.DEMONLORD.MAX_HP, maxHp: CONFIG.DEMONLORD.MAX_HP, isAlive: true, dir: 'Abajo', attackCooldown: 0, attackers: [], isAttacking: false };
 let esqueletos = [];
 let arboles = [], minas = [], rocas = [], recursosJugadores = {}, inventariosJugadores = {};
 let nextSkeletonId = 16;
@@ -653,85 +653,159 @@ io.on('connection', (socket) => {
     });
 });
 
-// MOVIMIENTO DE DEMONLORD
+// ============================================
+// MOVIMIENTO DE DEMONLORD - PERSIGUE JUGADORES Y ESQUELETOS ENEMIGOS
+// ============================================
+let demonlordAttacking = false;
+
 setInterval(() => {
-    console.log("🔄 Tick Demonlord - isAlive:", demonlord.isAlive);
-    console.log("👥 Jugadores en players:", Object.keys(players).length);
+    if (!demonlord.isAlive) return;
     
-    for (let id in players) {
-        let player = players[id];
-        console.log(`   - ${player?.name} (${id}): isAlive=${player?.isAlive}, hp=${player?.hp}`);
-    }
-    
-    if (!demonlord.isAlive) {
-        console.log("❌ Demonlord muerto");
-        return;
-    }
-    
+    // Buscar el objetivo MÁS CERCANO entre jugadores y esqueletos enemigos
     let target = null;
+    let minDistance = Infinity;
+    
+    // Buscar entre jugadores vivos
     for (let id in players) {
         let player = players[id];
         if (player && player.isAlive) {
-            target = player;
-            console.log("🎯 Jugador vivo encontrado:", player.name);
-            break;
+            const dist = getDistance(demonlord.x, demonlord.y, player.x, player.y);
+            if (dist < minDistance) {
+                minDistance = dist;
+                target = player;
+                target.isPlayer = true;
+            }
         }
     }
     
-    if (!target) {
-        console.log("❌ No hay jugadores vivos");
-        return;
+    // Buscar entre esqueletos enemigos (NO aliados)
+    for (let esqueleto of esqueletos) {
+        if (esqueleto.isAlive && esqueleto.isAlly === false) {
+            const dist = getDistance(demonlord.x, demonlord.y, esqueleto.x, esqueleto.y);
+            if (dist < minDistance) {
+                minDistance = dist;
+                target = esqueleto;
+                target.isPlayer = false;
+            }
+        }
     }
+    
+    // Si no hay objetivo, salir
+    if (!target) return;
     
     const dx = target.x - demonlord.x;
     const dy = target.y - demonlord.y;
     const distance = Math.hypot(dx, dy);
     
-    console.log("📏 Distancia al jugador:", distance);
-    
-    if (distance < CONFIG.DEMONLORD.VISION_RANGE) {
+    // MOVIMIENTO: solo si NO está atacando
+    if (!demonlordAttacking && distance < CONFIG.DEMONLORD.VISION_RANGE) {
         if (distance > 70) {
+            // Moverse hacia el objetivo
             const moveX = (dx / distance) * CONFIG.DEMONLORD.SPEED;
             const moveY = (dy / distance) * CONFIG.DEMONLORD.SPEED;
             demonlord.x += moveX;
             demonlord.y += moveY;
-            if (Math.abs(dx) > Math.abs(dy)) demonlord.dir = dx > 0 ? 'Derecha' : 'Izquierda';
-            else demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
+            
+            // Limitar dentro del mapa
+            demonlord.x = Math.min(Math.max(demonlord.x, 50), 2950);
+            demonlord.y = Math.min(Math.max(demonlord.y, 50), 2950);
+            
+            // Calcular dirección para animación
+            if (Math.abs(dx) > Math.abs(dy)) {
+                demonlord.dir = dx > 0 ? 'Derecha' : 'Izquierda';
+            } else {
+                demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
+            }
             io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: true });
-            console.log("🚶 Demonlord moviéndose");
         } else {
+            // Está cerca pero no lo suficientemente para atacar
             io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
-            console.log("🚫 Demonlord quieto, cerca del jugador");
         }
+    } else if (!demonlordAttacking) {
+        // Fuera de rango de visión, quieto
+        io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
+    }
+    
+    // ATAQUE: si está en rango y no está en cooldown
+    if (demonlord.attackCooldown <= 0 && distance < 70 && !demonlordAttacking) {
+        demonlordAttacking = true;
+        demonlord.attackCooldown = CONFIG.DEMONLORD.ATTACK_COOLDOWN;
         
-        if (demonlord.attackCooldown <= 0 && distance < 70) {
-            demonlord.attackCooldown = CONFIG.DEMONLORD.ATTACK_COOLDOWN;
-            console.log("⚔️ DEMONLORD ATACA!");
+        // Enviar animación de ataque
+        io.emit('demonlordAtkVisual', { dir: demonlord.dir, esFuerte: false });
+        
+        // Aplicar daño después de 300ms (para sincronizar con animación)
+        setTimeout(() => {
+            demonlordAttacking = false;
             
-            io.emit('demonlordAtkVisual', { dir: demonlord.dir, esFuerte: false });
+            if (!demonlord.isAlive) return;
+            if (!target || (target.isPlayer && target.hp <= 0) || (!target.isPlayer && !target.isAlive)) return;
             
-            setTimeout(() => {
-                if (!demonlord.isAlive) return;
-                if (!target || target.hp <= 0) return;
-                
-                let damage = calcularDañoFinal(target.id, CONFIG.DEMONLORD.ATTACK_DAMAGE);
+            let damage = CONFIG.DEMONLORD.ATTACK_DAMAGE;
+            
+            if (target.isPlayer) {
+                // Ataque a jugador (aplica defensa)
+                damage = calcularDañoFinal(target.id, CONFIG.DEMONLORD.ATTACK_DAMAGE);
                 target.hp = Math.max(0, target.hp - damage);
                 io.emit('demonlordAttack', { targetId: target.id, damage: damage, x: demonlord.x, y: demonlord.y, dir: demonlord.dir });
-                io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: damage, hp: demonlord.hp });
+                io.emit('playerStatsUpdate', { id: target.id, hp: target.hp });
+                io.emit('enemyDamaged', { id: target.id, x: target.x, y: target.y, dmg: damage });
                 
                 if (target.hp <= 0) {
                     target.isAlive = false;
                     io.emit('playerDeath', { id: target.id, name: target.name });
                     setTimeout(() => revivirJugador(target.id), CONFIG.PLAYER.RESPAWN_TIME);
                 }
-            }, 300);
-        }
+            } else {
+                // Ataque a esqueleto enemigo
+                if (!target.attackers) target.attackers = [];
+                if (!target.attackers.includes('demonlord')) target.attackers.push('demonlord');
+                
+                target.hp = Math.max(0, target.hp - damage);
+                io.emit('enemyDamaged', { id: target.id, x: target.x, y: target.y, dmg: damage });
+                
+                if (target.hp <= 0) {
+                    target.isAlive = false;
+                    io.emit('esqueletoDeath', { id: target.id, x: target.x, y: target.y, exp: CONFIG.SKELETON.EXP, attackers: target.attackers || [] });
+                    
+                    // Respawn del esqueleto enemigo después de 2 segundos
+                    setTimeout(() => {
+                        const idx = esqueletos.findIndex(e => e.id === target.id);
+                        if (idx !== -1 && !esqueletos[idx].isAlive && !esqueletos[idx].isAlly) {
+                            esqueletos.splice(idx, 1);
+                            const newEnemy = {
+                                id: 'esqueleto_' + nextSkeletonId++,
+                                x: Math.random() * 2800 + 100,
+                                y: Math.random() * 2800 + 100,
+                                hp: CONFIG.SKELETON.MAX_HP,
+                                maxHp: CONFIG.SKELETON.MAX_HP,
+                                isAlive: true,
+                                isAlly: false,
+                                ownerId: null,
+                                targetId: null,
+                                targetType: null,
+                                dir: 'Abajo',
+                                attackCooldown: 0,
+                                damageBonus: 0,
+                                baseDamage: CONFIG.SKELETON.ATTACK_DAMAGE,
+                                attackers: []
+                            };
+                            esqueletos.push(newEnemy);
+                            io.emit('esqueletoNew', { id: newEnemy.id, x: newEnemy.x, y: newEnemy.y });
+                        }
+                    }, 2000);
+                }
+            }
+            
+            io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: damage, hp: demonlord.hp });
+        }, 300);
     }
     
+    // Reducir cooldown
     if (demonlord.attackCooldown > 0) demonlord.attackCooldown -= 100;
 }, 100);
 
-// MOVIMIENTO DE ESQUELETOS
+// MOVIMIENTO DE ESQUELETOS (sin cambios, ya funciona)
 setInterval(() => {
     esqueletos.forEach(esqueleto => {
         if (!esqueleto.isAlive) return;
