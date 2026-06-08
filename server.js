@@ -701,14 +701,20 @@ setInterval(() => {
             demonlord.y = Math.min(Math.max(demonlord.y, 50), 2950);
             
             if (Math.abs(dx) > Math.abs(dy)) {
-                demonlord.dir = dx > 0 ? 'Derecha' : 'Izquierda';
-            } else {
-                demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
-            }
-            io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: true });
-        } else {
-            io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
-        }
+    demonlord.dir = dx > 0 ? 'Derecha' : 'Izquierda';
+} else {
+    demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
+}
+io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: true });
+} else {
+    // ACTUALIZAR DIRECCIÓN TAMBIÉN CUANDO ESTÁ QUIETO
+    if (Math.abs(dx) > Math.abs(dy)) {
+        demonlord.dir = dx > 0 ? 'Derecha' : 'Izquierda';
+    } else {
+        demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
+    }
+    io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
+}
         
         // Ataque
         if (demonlord.attackCooldown <= 0 && distance < 70) {
