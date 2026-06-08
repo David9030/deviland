@@ -1952,6 +1952,20 @@ function create() {
             chatInput.value = ""; 
         } 
     } 
+
+// Función para crear círculo de impacto del demonlord
+function crearCirculoImpacto(x, y) {
+    const graphics = currentScene.add.graphics();
+    graphics.lineStyle(3, 0xff0000, 1);
+    graphics.strokeCircle(x, y, 45);
+    graphics.fillStyle(0xff0000, 0.3);
+    graphics.fillCircle(x, y, 45);
+    
+    // Desaparece después de 0.5 segundos
+    currentScene.time.delayedCall(500, () => {
+        graphics.destroy();
+    });
+}
     
     if (chatSend) chatSend.addEventListener('click', enviarMensaje); 
     if (chatInput) chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') enviarMensaje(); }); 
@@ -2250,7 +2264,7 @@ setTimeout(() => {
     
  socket.on('demonlordMoved', (data) => { if (demonlord_sprite) { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.setDepth(data.y); demonlord_sprite.cDir = data.dir; const isAttacking = demonlord_sprite.anims.isPlaying && demonlord_sprite.anims.currentAnim && demonlord_sprite.anims.currentAnim.key.includes('ataque'); if (!isAttacking) { if (data.isMoving) { demonlord_sprite.play('dl_walk_' + data.dir, true); } else { demonlord_sprite.play('dl_idle_' + data.dir, true); } } } });
     
-    socket.on('demonlordAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); mostrarMensaje(`💀 -${data.damage}`, 'combate'); } });
+    socket.on('demonlordAttack', (data) => { crearCirculoImpacto(data.x, data.y); if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); mostrarMensaje(`💀 -${data.damage}`, 'combate'); } });
     
     socket.on('demonlordDeath', (data) => { demonlord_sprite.setVisible(false); crearTextoDmg(this, data.x, data.y, "VENCIDO", "#fff", "22px"); mostrarMensaje(`🏆 Demonlord derrotado! +500 EXP`, 'exito'); ganarExp(500); for (let i = 0; i < 8; i++) { const offsetX = (Math.random() - 0.5) * 100; const offsetY = (Math.random() - 0.5) * 100; crearMonedaSuelo(data.x + offsetX, data.y + offsetY, Math.floor(Math.random() * 20) + 10); } });
     
