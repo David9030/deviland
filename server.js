@@ -653,24 +653,27 @@ io.on('connection', (socket) => {
     });
 });
 
-// MOVIMIENTO DE DEMONLORD - VERSIÓN DE PRUEBA
-console.log("🟢 Iniciando Demonlord - versión de prueba");
-
+// MOVIMIENTO DE DEMONLORD
 setInterval(() => {
     console.log("🔄 Tick Demonlord - isAlive:", demonlord.isAlive);
+    console.log("👥 Jugadores en players:", Object.keys(players).length);
+    
+    for (let id in players) {
+        let player = players[id];
+        console.log(`   - ${player?.name} (${id}): isAlive=${player?.isAlive}, hp=${player?.hp}`);
+    }
     
     if (!demonlord.isAlive) {
         console.log("❌ Demonlord muerto");
         return;
     }
     
-    // Buscar cualquier jugador vivo
     let target = null;
     for (let id in players) {
         let player = players[id];
         if (player && player.isAlive) {
             target = player;
-            console.log("🎯 Jugador encontrado:", player.name, "en posición:", player.x, player.y);
+            console.log("🎯 Jugador vivo encontrado:", player.name);
             break;
         }
     }
@@ -686,30 +689,23 @@ setInterval(() => {
     
     console.log("📏 Distancia al jugador:", distance);
     
-    if (distance < 350) { // VISION_RANGE
+    if (distance < CONFIG.DEMONLORD.VISION_RANGE) {
         if (distance > 70) {
-            // Moverse hacia el jugador
-            const moveX = (dx / distance) * 15; // SPEED
-            const moveY = (dy / distance) * 15;
+            const moveX = (dx / distance) * CONFIG.DEMONLORD.SPEED;
+            const moveY = (dy / distance) * CONFIG.DEMONLORD.SPEED;
             demonlord.x += moveX;
             demonlord.y += moveY;
-            
-            if (Math.abs(dx) > Math.abs(dy)) {
-                demonlord.dir = dx > 0 ? 'Derecha' : 'Izquierda';
-            } else {
-                demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
-            }
-            
+            if (Math.abs(dx) > Math.abs(dy)) demonlord.dir = dx > 0 ? 'Derecha' : 'Izquierda';
+            else demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
             io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: true });
-            console.log("🚶 Demonlord moviéndose hacia", demonlord.dir);
+            console.log("🚶 Demonlord moviéndose");
         } else {
             io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
             console.log("🚫 Demonlord quieto, cerca del jugador");
         }
         
-        // Atacar
         if (demonlord.attackCooldown <= 0 && distance < 70) {
-            demonlord.attackCooldown = 2000;
+            demonlord.attackCooldown = CONFIG.DEMONLORD.ATTACK_COOLDOWN;
             console.log("⚔️ DEMONLORD ATACA!");
             
             io.emit('demonlordAtkVisual', { dir: demonlord.dir, esFuerte: false });
@@ -718,7 +714,7 @@ setInterval(() => {
                 if (!demonlord.isAlive) return;
                 if (!target || target.hp <= 0) return;
                 
-                let damage = 45;
+                let damage = calcularDañoFinal(target.id, CONFIG.DEMONLORD.ATTACK_DAMAGE);
                 target.hp = Math.max(0, target.hp - damage);
                 io.emit('demonlordAttack', { targetId: target.id, damage: damage, x: demonlord.x, y: demonlord.y, dir: demonlord.dir });
                 io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: damage, hp: demonlord.hp });
@@ -726,7 +722,7 @@ setInterval(() => {
                 if (target.hp <= 0) {
                     target.isAlive = false;
                     io.emit('playerDeath', { id: target.id, name: target.name });
-                    setTimeout(() => revivirJugador(target.id), 10000);
+                    setTimeout(() => revivirJugador(target.id), CONFIG.PLAYER.RESPAWN_TIME);
                 }
             }, 300);
         }
@@ -734,6 +730,7 @@ setInterval(() => {
     
     if (demonlord.attackCooldown > 0) demonlord.attackCooldown -= 100;
 }, 100);
+
 // MOVIMIENTO DE ESQUELETOS
 setInterval(() => {
     esqueletos.forEach(esqueleto => {
