@@ -1,15 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>} else if (slot.id === 'roca') {
-    const img = document.createElement('img');
-    img.src = 'roca.png';
-    img.style.width = '10px';
-    img.style.height = '10px';
-    img.onerror = function() { 
-        this.style.display = 'none'; 
-        this.parentElement.textContent = '🪨';
-    };
-    i.appendChild(img);
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DEVILAND</title>
@@ -59,16 +50,16 @@
         .floating-tab { background: rgba(0,0,0,0.7); border: 1px solid #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; color: #fff; }
         
         #inventario-ui {
-    position: fixed !important; top: 50% !important; left: 50% !important;
-    transform: translate(-50%, -50%) !important; background: #000 !important;
-    border: 3px solid #fff !important; padding: 15px !important;
-    z-index: 999999 !important; width: auto !important;
-    max-width: 95vw !important;
-    max-height: 90vh !important;
-    overflow-x: auto !important;
-    overflow-y: auto !important;
-    display: none;
-}
+            position: fixed !important; top: 50% !important; left: 50% !important;
+            transform: translate(-50%, -50%) !important; background: #000 !important;
+            border: 3px solid #fff !important; padding: 15px !important;
+            z-index: 999999 !important; width: auto !important;
+            max-width: 95vw !important;
+            max-height: 90vh !important;
+            overflow-x: auto !important;
+            overflow-y: auto !important;
+            display: none;
+        }
         .inventario-grid { display: grid; grid-template-columns: repeat(6, 60px); gap: 5px; background: #111; padding: 10px; }
         .slot { background: #1a1a1a; border: 1px solid #444; width: 60px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; }
         .slot-icon { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 18px; position: relative; overflow: hidden; }
@@ -2039,68 +2030,10 @@ function create() {
         this.anims.create({ key: `mago_sprite_atk_${anim.dir}`, frames: [{ key: 'mago_sprite', frame: anim.atk1 }, { key: 'mago_sprite', frame: anim.atk2 }], frameRate: 12, repeat: 0 }); 
         const dieFrames = []; 
         for (let i = 0; i < anim.dieCount; i++) dieFrames.push({ key: 'mago_sprite', frame: anim.dieStart + i }); 
-        this.anims.create({ key: `mago_sprite_die_${anim.dir}`, frames: dieFrames, frameRate: 8 }); 
+    this.anims.create({ key: `mago_sprite_die_${anim.dir}`, frames: dieFrames, frameRate: 8 }); 
     });
-   // ============================================
-// ANIMACIONES DEL DEMONLORD - VERSIÓN CORREGIDA
-// ============================================
-
-// Primero, animaciones de movimiento (idle, walk)
-const demonDir = ['Derecha', 'Arriba', 'Abajo', 'Izquierda'];
-const demonFrames = {
-    idle: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-    walk: [32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47],
-    tired: [64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79],
-    reir: [96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
-};
-
-const demonAtaqueFrames = {
-    Derecha: [161, 162, 163, 164, 165, 166, 167, 168],
-    Arriba: [169, 170, 171, 172, 173, 174, 175, 176],
-    Abajo: [177, 178, 179, 180, 181, 182, 183, 184],
-    Izquierda: [185, 186, 187, 188, 189, 190, 191, 192, 193]
-};
-
-// Crear animaciones de idle, walk, tired, reir para cada dirección
-demonDir.forEach(dir => {
-    this.anims.create({
-        key: `dl_idle_${dir}`,
-        frames: demonFrames.idle.map(frame => ({ key: 'demonlord', frame: frame })),
-        frameRate: 10,
-        repeat: -1
-    });
-    
-    this.anims.create({
-        key: `dl_walk_${dir}`,
-        frames: demonFrames.walk.map(frame => ({ key: 'demonlord', frame: frame })),
-        frameRate: 10,
-        repeat: -1
-    });
-    
-    this.anims.create({
-        key: `dl_tired_${dir}`,
-        frames: demonFrames.tired.map(frame => ({ key: 'demonlord', frame: frame })),
-        frameRate: 10,
-        repeat: -1
-    });
-    
-    this.anims.create({
-        key: `dl_reir_${dir}`,
-        frames: demonFrames.reir.map(frame => ({ key: 'demonlord', frame: frame })),
-        frameRate: 10,
-        repeat: -1
-    });
-    
-    // ANIMACIONES DE ATAQUE CON FRAMES ESPECÍFICOS
-    this.anims.create({
-        key: `dl_ataque_${dir}`,
-        frames: demonAtaqueFrames[dir].map(frame => ({ key: 'demonlord', frame: frame })),
-        frameRate: 16,
-        repeat: 0
-    });
-});
-
-console.log("✅ Animaciones del demonlord creadas:", this.anims.anims.keys.filter(k => k.startsWith('dl_')));
+   // ANIMACIONES DEL DEMONLORD con frames de ataque específicos
+   const demonDir = ['Derecha','Arriba','Abajo','Izquierda']; const demonFrames = { idle: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15], walk: [32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47], tired: [64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79], reir: [96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111] }; const demonAtaqueFrames = { Derecha: [161,162,163,164,165,166,167,168], Arriba: [169,170,171,172,173,174,175,176], Abajo: [177,178,179,180,181,182,183,184], Izquierda: [185,186,187,188,189,190,191,192,193] }; demonDir.forEach(dir => { this.anims.create({ key: `dl_idle_${dir}`, frames: demonFrames.idle.map(f => ({ key: 'demonlord', frame: f })), frameRate: 10, repeat: -1 }); this.anims.create({ key: `dl_walk_${dir}`, frames: demonFrames.walk.map(f => ({ key: 'demonlord', frame: f })), frameRate: 10, repeat: -1 }); this.anims.create({ key: `dl_tired_${dir}`, frames: demonFrames.tired.map(f => ({ key: 'demonlord', frame: f })), frameRate: 10, repeat: -1 }); this.anims.create({ key: `dl_reir_${dir}`, frames: demonFrames.reir.map(f => ({ key: 'demonlord', frame: f })), frameRate: 10, repeat: -1 }); this.anims.create({ key: `dl_ataque_${dir}`, frames: demonAtaqueFrames[dir].map(f => ({ key: 'demonlord', frame: f })), frameRate: 16, repeat: 0 }); }); console.log("✅ Animaciones demonlord creadas");
     
     let escalaJugador = (pClassName === 'NECROMANCER' || pClassName === 'MAGO') ? 0.3 : 2;
     player = this.physics.add.sprite(512, 512, pClass).setScale(escalaJugador).setCollideWorldBounds(true); 
@@ -2110,7 +2043,7 @@ console.log("✅ Animaciones del demonlord creadas:", this.anims.anims.keys.filt
     this.cameras.main.startFollow(player, true, 0.1, 0.1);
     
     demonlord_sprite = this.physics.add.sprite(1500, 1500, 'demonlord').setScale(2.5).setDepth(1500); 
-    demonlord_sprite.cDir = 'Abajo'; 
+    demonlord_sprite.cDir = 'Abajo';
     
    const guardado = window.guardadoPendiente || null; 
 if (guardado) { 
@@ -2312,22 +2245,11 @@ setTimeout(() => {
         } 
     });
     
-    socket.on('demonlordAtkVisual', (d) => { if (demonlord_sprite && !demonlord_sprite.anims.isPlaying) { demonlord_sprite.play(`dl_ataque_${d.dir}`, true); demonlord_sprite.once('animationcomplete', () => { if (demonlord_sprite && demonlord_sprite.active) { demonlord_sprite.play(`dl_idle_${d.dir}`, true); } }); if (d.esFuerte) { demonlord_sprite.setTint(0x888888); setTimeout(() => demonlord_sprite.clearTint(), 500); } } });
+    socket.on('demonlordAtkVisual', (d) => { if (demonlord_sprite && demonlord_sprite.active) { demonlord_sprite.play(`dl_ataque_${d.dir}`, true); demonlord_sprite.once('animationcomplete', () => { if (demonlord_sprite && demonlord_sprite.active) { demonlord_sprite.play(`dl_idle_${d.dir}`, true); } }); if (d.esFuerte) { demonlord_sprite.setTint(0x888888); setTimeout(() => demonlord_sprite.clearTint(), 500); } } });
     
     socket.on('demonlordState', (d) => { demonlordHP = d.hp; demonlordMaxHP = 5000; actualizarDemonlordHPBar(); if (d.isAlive === false) demonlord_sprite.setVisible(false); else demonlord_sprite.setVisible(true); });
     
-  socket.on('demonlordMoved', (data) => { 
-    if (demonlord_sprite) { 
-        demonlord_sprite.setPosition(data.x, data.y); 
-        demonlord_sprite.cDir = data.dir; 
-        if (data.isMoving) { 
-            demonlord_sprite.play('dl_walk_' + data.dir, true); 
-        } else { 
-            demonlord_sprite.play('dl_idle_' + data.dir, true); 
-        } 
-        demonlord_sprite.setDepth(data.y); 
-    } 
-});
+ socket.on('demonlordMoved', (data) => { if (demonlord_sprite) { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.setDepth(data.y); demonlord_sprite.cDir = data.dir; const isAttacking = demonlord_sprite.anims.isPlaying && demonlord_sprite.anims.currentAnim && demonlord_sprite.anims.currentAnim.key.includes('ataque'); if (!isAttacking) { if (data.isMoving) { demonlord_sprite.play('dl_walk_' + data.dir, true); } else { demonlord_sprite.play('dl_idle_' + data.dir, true); } } } });
     
     socket.on('demonlordAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); mostrarMensaje(`💀 -${data.damage}`, 'combate'); } });
     
