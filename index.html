@@ -1953,16 +1953,27 @@ function create() {
         } 
     } 
 
-// Función para crear círculo de impacto del demonlord
-function crearCirculoImpacto(x, y) {
+// Función para crear círculo de impacto del demonlord (adelante de él)
+function crearCirculoImpacto(x, y, dir) {
+    let offsetX = 0, offsetY = 0;
+    switch(dir) {
+        case 'Derecha': offsetX = 60; break;
+        case 'Izquierda': offsetX = -60; break;
+        case 'Arriba': offsetY = -60; break;
+        case 'Abajo': offsetY = 60; break;
+        default: offsetY = 60; break;
+    }
+    
+    const circuloX = x + offsetX;
+    const circuloY = y + offsetY;
+    
     const graphics = currentScene.add.graphics();
     graphics.lineStyle(3, 0xff0000, 1);
-    graphics.strokeCircle(x, y, 45);
-    graphics.fillStyle(0xff0000, 0.3);
-    graphics.fillCircle(x, y, 45);
+    graphics.strokeCircle(circuloX, circuloY, 30);
+    graphics.fillStyle(0xff0000, 0.4);
+    graphics.fillCircle(circuloX, circuloY, 30);
     
-    // Desaparece después de 0.5 segundos
-    currentScene.time.delayedCall(500, () => {
+    currentScene.time.delayedCall(400, () => {
         graphics.destroy();
     });
 }
@@ -2264,7 +2275,7 @@ setTimeout(() => {
     
  socket.on('demonlordMoved', (data) => { if (demonlord_sprite) { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.setDepth(data.y); demonlord_sprite.cDir = data.dir; const isAttacking = demonlord_sprite.anims.isPlaying && demonlord_sprite.anims.currentAnim && demonlord_sprite.anims.currentAnim.key.includes('ataque'); if (!isAttacking) { if (data.isMoving) { demonlord_sprite.play('dl_walk_' + data.dir, true); } else { demonlord_sprite.play('dl_idle_' + data.dir, true); } } } });
     
-    socket.on('demonlordAttack', (data) => { crearCirculoImpacto(data.x, data.y); if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); mostrarMensaje(`💀 -${data.damage}`, 'combate'); } });
+   socket.on('demonlordAttack', (data) => { crearCirculoImpacto(data.x, data.y, data.dir); if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); mostrarMensaje(`💀 -${data.damage}`, 'combate'); } });
     
     socket.on('demonlordDeath', (data) => { demonlord_sprite.setVisible(false); crearTextoDmg(this, data.x, data.y, "VENCIDO", "#fff", "22px"); mostrarMensaje(`🏆 Demonlord derrotado! +500 EXP`, 'exito'); ganarExp(500); for (let i = 0; i < 8; i++) { const offsetX = (Math.random() - 0.5) * 100; const offsetY = (Math.random() - 0.5) * 100; crearMonedaSuelo(data.x + offsetX, data.y + offsetY, Math.floor(Math.random() * 20) + 10); } });
     
