@@ -1,10 +1,6 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="es">
-<head>socket.on('enemyDamaged', (data) => { 
-    if (data.id === 'demonlord') { 
-        // Esto muestra daño en demonlordinicializarInventario
-    }
-});
+<head>crearMonedaServidor
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DEVILAND</title>
@@ -892,6 +888,39 @@ function crearDropEscudo(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStat
     
     dropsSuelo.push(drop);
     return drop;
+}
+
+function recogerPocionSuelo(drop) {
+    if (!drop || !drop.active) return;
+    if (drop.recogida) return;
+    drop.recogida = true;
+    
+    if (drop.tipo === 'hp') {
+        agregarItemAlInventario('pocion_1', 'pocion', 'Poción de Vida', '❤️', 1, true);
+    } else {
+        agregarItemAlInventario('pocion_mana', 'pocion_mana', 'Poción de Maná', '💙', 1, true);
+    }
+    
+    if (currentScene && currentScene.sound) {
+        const sonido = currentScene.sound.get('sonidoMoneda');
+        if (sonido) reproducirSonido(sonido, window.volumenFX);
+        else currentScene.sound.play('sonidoMoneda', { volume: window.volumenFX });
+    }
+    
+    currentScene.tweens.add({
+        targets: drop,
+        scale: 0,
+        alpha: 0,
+        duration: 200,
+        onComplete: () => {
+            drop.destroy();
+            const index = dropsSuelo.indexOf(drop);
+            if (index !== -1) dropsSuelo.splice(index, 1);
+        }
+    });
+    
+    actualizarStatsUI();
+    guardarPartida();
 }
 
 function crearDropArmadura(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStats = {}) {
@@ -1932,6 +1961,8 @@ function preload() {
     this.load.image('pino_1', 'pino_1.png'); 
     this.load.image('mina', 'mina.png'); 
     this.load.image('roca', 'roca.png');
+    this.load.image('frascohpdrop', 'frascohpdrop.png');
+    this.load.image('frascompdrop', 'frascompdrop.png');
     this.load.image('espada', 'espada.png'); 
     this.load.image('espadadrop', 'espadadrop.png');
     this.load.image('escudodrop', 'escudodrop.png');
@@ -2217,52 +2248,77 @@ setTimeout(() => {
     
     btnAttack.addEventListener('click', () => { if (window.simularAtaque) window.simularAtaque(); });
     
-    // SOCKET EVENTS
-    socket.on('currentPlayers', (ps) => { 
-        Object.keys(ps).forEach(id => { if (id !== socket.id) addOtherPlayer(this, ps[id]); }); 
-    }); 
-    
-    socket.on('newPlayer', (info) => { 
-        if (info.id !== socket.id) addOtherPlayer(this, info); 
-        mostrarMensaje(`📡 ${info.name} (${info.className || info.class})`, 'info'); 
-    }); 
-    
-    socket.on('playerMoved', (info) => { 
-        otherPlayers.getChildren().forEach(other => { 
-            if (info.id === other.id) { 
-                other.targetX = info.x; 
-                other.targetY = info.y; 
-                other.lastDir = info.dir; 
-                if (info.isMoving) other.play(other.pClass + '_walk_' + info.dir, true); 
-                else other.play(other.pClass + '_idle_' + info.dir, true); 
-            } 
-        }); 
-    }); 
-    
-    socket.on('playerDisconnected', (id) => { 
-        otherPlayers.getChildren().forEach(other => { if (id === other.id) other.destroy(); }); 
-    }); 
-    
-    socket.on('playerAttacked', (data) => { 
-        otherPlayers.getChildren().forEach(other => { 
-            if (other.id === data.id) { 
-                other.play(other.pClass + '_atk_' + data.dir, true); 
-                other.once('animationcomplete', () => { if (other.active) other.play(other.pClass + '_idle_' + data.dir, true); }); 
-            } 
-        }); 
-    }); 
+   // SOCKET EVENTS
+socket.on('currentPlayers', (ps) => { 
+    Object.keys(ps).forEach(id => { if (id !== socket.id) addOtherPlayer(this, ps[id]); }); 
+}); 
 
-   socket.on('crearMonedaServidor', (data) => {
+socket.on('newPlayer', (info) => { 
+    if (info.id !== socket.id) addOtherPlayer(this, info); 
+    mostrarMensaje(`📡 ${info.name} (${info.className || info.class})`, 'info'); 
+}); 
+
+socket.on('playerMoved', (info) => { 
+    otherPlayers.getChildren().forEach(other => { 
+        if (info.id === other.id) { 
+            other.targetX = info.x; 
+            other.targetY = info.y; 
+            other.lastDir = info.dir; 
+            if (info.isMoving) other.play(other.pClass + '_walk_' + info.dir, true); 
+            else other.play(other.pClass + '_idle_' + info.dir, true); 
+        } 
+    }); 
+}); 
+
+socket.on('playerDisconnected', (id) => { 
+    otherPlayers.getChildren().forEach(other => { if (id === other.id) other.destroy(); }); 
+}); 
+
+socket.on('playerAttacked', (data) => { 
+    otherPlayers.getChildren().forEach(other => { 
+        if (other.id === data.id) { 
+            other.play(other.pClass + '_atk_' + data.dir, true); 
+            other.once('animationcomplete', () => { if (other.active) other.play(other.pClass + '_idle_' + data.dir, true); }); 
+        } 
+    }); 
+}); 
+
+socket.on('crearMonedaServidor', (data) => {
     crearMonedaSuelo(data.x, data.y, data.cantidad);
 });
+
+socket.on('dropPocion', (data) => {
+    const imagen = data.tipo === 'hp' ? 'frascohpdrop' : 'frascompdrop';
+    const drop = currentScene.add.image(data.x, data.y, imagen);
+    drop.setScale(0.8);
+    drop.setDepth(data.y);
+    drop.tipo = data.tipo;
+    drop.cantidad = data.cantidad;
+    drop.recogida = false;
     
-    socket.on('playerStatsUpdate', (data) => { 
-        if (data.id === socket.id) { 
-            if (data.hp !== undefined) playerHP = data.hp; 
-            if (data.mana !== undefined) playerMana = data.mana; 
-            actualizarStatsUI(); 
-        } 
+    drop.setInteractive({ useHandCursor: true });
+    drop.on('pointerdown', () => {
+        if (!player || !player.isAlive) return;
+        if (drop.recogida) return;
+        
+        const dist = Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y);
+        if (dist < 60) {
+            recogerPocionSuelo(drop);
+        } else {
+            mostrarMensaje(`❌ Debes acercarte más para recoger la poción`, 'error');
+        }
     });
+    
+    dropsSuelo.push(drop);
+});
+
+socket.on('playerStatsUpdate', (data) => { 
+    if (data.id === socket.id) { 
+        if (data.hp !== undefined) playerHP = data.hp; 
+        if (data.mana !== undefined) playerMana = data.mana; 
+        actualizarStatsUI(); 
+    } 
+});
     
     socket.on('playerExpGain', (data) => { if (data.id === socket.id) ganarExp(data.exp); });
     
