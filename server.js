@@ -6,8 +6,8 @@ const path = require('path');
 
 const CONFIG = {
     PORT: 3000,
-    DEMONLORD: { MAX_HP: 5000, RESPAWN_TIME: 10000, SPEED: 15, ATTACK_COOLDOWN: 2000, ATTACK_DAMAGE: 45, VISION_RANGE: 350, EXP: 500 },
-    SKELETON: { MAX_HP: 200, RESPAWN_TIME: 60000, SPEED: 12, ATTACK_COOLDOWN: 1000, ATTACK_DAMAGE: 25, VISION_RANGE: 500, EXP: 50, DEFENSE: 0 },
+    DEMONLORD: { MAX_HP: 5000, RESPAWN_TIME: 10000, SPEED: 15, ATTACK_COOLDOWN: 2000, ATTACK_DAMAGE: 45, VISION_RANGE: 50, EXP: 500 },
+    SKELETON: { MAX_HP: 200, RESPAWN_TIME: 60000, SPEED: 12, ATTACK_COOLDOWN: 1000, ATTACK_DAMAGE: 25, VISION_RANGE: 50, EXP: 50, DEFENSE: 0 },
     PLAYER: { MAX_HP: 500, RESPAWN_TIME: 10000,
         BASE_STATS: {
             barbaro: { fuerza: 18, defensa: 8, agilidad: 8, vitalidad: 12, attackSpeed: 0.7, baseDamage: 60, mana: 50 },
@@ -77,13 +77,17 @@ function dañarEsqueleto(esqueleto, atacanteId, daño, esDistancia = false) {
     if (!esqueleto.attackers.includes(atacanteId)) esqueleto.attackers.push(atacanteId);
     esqueleto.hp = Math.max(0, esqueleto.hp - daño);
     io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: daño });
+    
     if (esqueleto.hp <= 0) {
         esqueleto.isAlive = false;
+        
+        // REPARTIR EXP
         if (esqueleto.attackers && esqueleto.attackers.length > 0) {
             esqueleto.attackers.forEach(attackerId => darExpAJugadorYEquipo(attackerId, CONFIG.SKELETON.EXP));
         } else {
             darExpAJugadorYEquipo(atacanteId, CONFIG.SKELETON.EXP);
         }
+        
         io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP, attackers: esqueleto.attackers || [] });
         respawnEsqueleto(esqueleto.id);
     }
@@ -261,20 +265,20 @@ io.on('connection', (socket) => {
     });
     
     socket.on('usarPocion', (data) => {
-    const jugador = players[socket.id];
-    if (!jugador) return;
-    const curacion = data.curacion || 20;
-    jugador.hp = Math.min(jugador.maxHp, jugador.hp + curacion);
-    io.emit('playerStatsUpdate', { id: socket.id, hp: jugador.hp });
-});
-
-socket.on('usarPocionMana', (data) => {
-    const jugador = players[socket.id];
-    if (jugador) {
-        jugador.mana = Math.min(jugador.maxMana, jugador.mana + data.restauracion);
-        io.emit('playerStatsUpdate', { id: socket.id, mana: jugador.mana });
-    }
-});
+        const jugador = players[socket.id];
+        if (!jugador) return;
+        const curacion = data.curacion || 20;
+        jugador.hp = Math.min(jugador.maxHp, jugador.hp + curacion);
+        io.emit('playerStatsUpdate', { id: socket.id, hp: jugador.hp });
+    });
+    
+    socket.on('usarPocionMana', (data) => {
+        const jugador = players[socket.id];
+        if (jugador) {
+            jugador.mana = Math.min(jugador.maxMana, jugador.mana + data.restauracion);
+            io.emit('playerStatsUpdate', { id: socket.id, mana: jugador.mana });
+        }
+    });
     
     socket.on('playerMovement', (data) => {
         let p = players[socket.id];
@@ -320,7 +324,7 @@ socket.on('usarPocionMana', (data) => {
         const finalDamage = Math.max(1, damage); 
         dañarEsqueleto(esqueleto, socket.id, finalDamage, true);
     });
-
+    
     socket.on('playerMurio', (data) => {
         const jugador = players[data.id];
         if (jugador && jugador.isAlive) {
@@ -743,78 +747,77 @@ setInterval(() => {
             if (isPlayer && closestTarget.hp <= 0) return;
             if (!isPlayer && !closestTarget.isAlive) return;
             
-           if (isPlayer) {
-    let offsetX = 0, offsetY = 0;
-switch(demonlord.dir) {
-    case 'Derecha': offsetX = 30; break;
-    case 'Izquierda': offsetX = -30; break;
-    case 'Arriba': offsetY = -30; break;
-    case 'Abajo': offsetY = 30; break;
-}
-const rectCenterX = demonlord.x + offsetX;
-const rectCenterY = demonlord.y + offsetY;
-
-let golpeado = false;
-const mediaAncho = 25;  // Más grande
-const mediaAlto = 25;   // Más grande
-const dxRect = Math.abs(closestTarget.x - rectCenterX);
-const dyRect = Math.abs(closestTarget.y - rectCenterY);
-if (dxRect < mediaAncho && dyRect < mediaAlto) {
-    golpeado = true;
-}
-    
-    // SIEMPRE mostrar el rectángulo (golpe o esquive)
-    io.emit('demonlordAttack', { targetId: closestTarget.id, damage: damage, x: demonlord.x, y: demonlord.y, dir: demonlord.dir });
-    
-    if (golpeado) {
-        damage = calcularDañoFinal(closestTarget.id, CONFIG.DEMONLORD.ATTACK_DAMAGE);
-        closestTarget.hp = Math.max(0, closestTarget.hp - damage);
-        io.emit('playerStatsUpdate', { id: closestTarget.id, hp: closestTarget.hp });
-        io.emit('enemyDamaged', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, dmg: damage });
-    } else {
-        io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `✨ ${closestTarget.name} esquivó el golpe!` });
-    }
-    
-    if (closestTarget.hp <= 0) {
-        closestTarget.isAlive = false;
-        io.emit('playerDeath', { id: closestTarget.id, name: closestTarget.name });
-        setTimeout(() => revivirJugador(closestTarget.id), CONFIG.PLAYER.RESPAWN_TIME);
-        demonlord.currentTarget = null;
-    }
-} else {
-    closestTarget.hp = Math.max(0, closestTarget.hp - damage);
-    io.emit('enemyDamaged', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, dmg: damage });
-    if (closestTarget.hp <= 0) {
-        closestTarget.isAlive = false;
-        io.emit('esqueletoDeath', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, exp: CONFIG.SKELETON.EXP, attackers: ['demonlord'] });
-        demonlord.currentTarget = null;
-        setTimeout(() => {
-            const idx = esqueletos.findIndex(e => e.id === closestTarget.id);
-            if (idx !== -1 && !esqueletos[idx].isAlive) {
-                esqueletos.splice(idx, 1);
-                const newEnemy = {
-                    id: 'esqueleto_' + nextSkeletonId++,
-                    x: Math.random() * 2800 + 100,
-                    y: Math.random() * 2800 + 100,
-                    hp: CONFIG.SKELETON.MAX_HP,
-                    maxHp: CONFIG.SKELETON.MAX_HP,
-                    isAlive: true,
-                    isAlly: false,
-                    ownerId: null,
-                    targetId: null,
-                    targetType: null,
-                    dir: 'Abajo',
-                    attackCooldown: 0,
-                    damageBonus: 0,
-                    baseDamage: CONFIG.SKELETON.ATTACK_DAMAGE,
-                    attackers: []
-                };
-                esqueletos.push(newEnemy);
-                io.emit('esqueletoNew', { id: newEnemy.id, x: newEnemy.x, y: newEnemy.y });
+            if (isPlayer) {
+                let offsetX = 0, offsetY = 0;
+                switch(demonlord.dir) {
+                    case 'Derecha': offsetX = 30; break;
+                    case 'Izquierda': offsetX = -30; break;
+                    case 'Arriba': offsetY = -30; break;
+                    case 'Abajo': offsetY = 30; break;
+                }
+                const rectCenterX = demonlord.x + offsetX;
+                const rectCenterY = demonlord.y + offsetY;
+                
+                let golpeado = false;
+                const mediaAncho = 25;
+                const mediaAlto = 25;
+                const dxRect = Math.abs(closestTarget.x - rectCenterX);
+                const dyRect = Math.abs(closestTarget.y - rectCenterY);
+                if (dxRect < mediaAncho && dyRect < mediaAlto) {
+                    golpeado = true;
+                }
+                
+                io.emit('demonlordAttack', { targetId: closestTarget.id, damage: damage, x: demonlord.x, y: demonlord.y, dir: demonlord.dir });
+                
+                if (golpeado) {
+                    damage = calcularDañoFinal(closestTarget.id, CONFIG.DEMONLORD.ATTACK_DAMAGE);
+                    closestTarget.hp = Math.max(0, closestTarget.hp - damage);
+                    io.emit('playerStatsUpdate', { id: closestTarget.id, hp: closestTarget.hp });
+                    io.emit('enemyDamaged', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, dmg: damage });
+                } else {
+                    io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `✨ ${closestTarget.name} esquivó el golpe!` });
+                }
+                
+                if (closestTarget.hp <= 0) {
+                    closestTarget.isAlive = false;
+                    io.emit('playerDeath', { id: closestTarget.id, name: closestTarget.name });
+                    setTimeout(() => revivirJugador(closestTarget.id), CONFIG.PLAYER.RESPAWN_TIME);
+                    demonlord.currentTarget = null;
+                }
+            } else {
+                closestTarget.hp = Math.max(0, closestTarget.hp - damage);
+                io.emit('enemyDamaged', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, dmg: damage });
+                if (closestTarget.hp <= 0) {
+                    closestTarget.isAlive = false;
+                    io.emit('esqueletoDeath', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, exp: CONFIG.SKELETON.EXP, attackers: ['demonlord'] });
+                    demonlord.currentTarget = null;
+                    setTimeout(() => {
+                        const idx = esqueletos.findIndex(e => e.id === closestTarget.id);
+                        if (idx !== -1 && !esqueletos[idx].isAlive) {
+                            esqueletos.splice(idx, 1);
+                            const newEnemy = {
+                                id: 'esqueleto_' + nextSkeletonId++,
+                                x: Math.random() * 2800 + 100,
+                                y: Math.random() * 2800 + 100,
+                                hp: CONFIG.SKELETON.MAX_HP,
+                                maxHp: CONFIG.SKELETON.MAX_HP,
+                                isAlive: true,
+                                isAlly: false,
+                                ownerId: null,
+                                targetId: null,
+                                targetType: null,
+                                dir: 'Abajo',
+                                attackCooldown: 0,
+                                damageBonus: 0,
+                                baseDamage: CONFIG.SKELETON.ATTACK_DAMAGE,
+                                attackers: []
+                            };
+                            esqueletos.push(newEnemy);
+                            io.emit('esqueletoNew', { id: newEnemy.id, x: newEnemy.x, y: newEnemy.y });
+                        }
+                    }, 2000);
+                }
             }
-        }, 2000);
-    }
-}
         }, 300);
     }
     
