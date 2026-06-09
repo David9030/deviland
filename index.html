@@ -1969,9 +1969,9 @@ function crearCirculoImpacto(x, y, dir) {
     
     const graphics = currentScene.add.graphics();
     graphics.lineStyle(3, 0xff0000, 1);
-    graphics.strokeCircle(circuloX, circuloY, 30);
+    graphics.strokeCircle(circuloX, circuloY, 18);
     graphics.fillStyle(0xff0000, 0.4);
-    graphics.fillCircle(circuloX, circuloY, 30);
+    graphics.fillCircle(circuloX, circuloY, 18);
     
     currentScene.time.delayedCall(400, () => {
         graphics.destroy();

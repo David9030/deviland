@@ -758,7 +758,7 @@ setInterval(() => {
         io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
     }
     
-    // ==========================================
+  // ==========================================
     // 5. Ataque
     // ==========================================
     if (demonlord.attackCooldown <= 0 && distance < 70) {
@@ -776,11 +776,27 @@ setInterval(() => {
             if (!isPlayer && !closestTarget.isAlive) return;
             
             if (isPlayer) {
-                damage = calcularDañoFinal(closestTarget.id, CONFIG.DEMONLORD.ATTACK_DAMAGE);
-                closestTarget.hp = Math.max(0, closestTarget.hp - damage);
-                io.emit('demonlordAttack', { targetId: closestTarget.id, damage: damage, x: demonlord.x, y: demonlord.y, dir: demonlord.dir });
-                io.emit('playerStatsUpdate', { id: closestTarget.id, hp: closestTarget.hp });
-                io.emit('enemyDamaged', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, dmg: damage });
+                let offsetX = 0, offsetY = 0;
+                switch(demonlord.dir) {
+                    case 'Derecha': offsetX = 60; break;
+                    case 'Izquierda': offsetX = -60; break;
+                    case 'Arriba': offsetY = -60; break;
+                    case 'Abajo': offsetY = 60; break;
+                }
+                const circuloX = demonlord.x + offsetX;
+                const circuloY = demonlord.y + offsetY;
+                const radioCirculo = 18;
+                const distToCircle = getDistance(closestTarget.x, closestTarget.y, circuloX, circuloY);
+                
+                if (distToCircle < radioCirculo) {
+                    damage = calcularDañoFinal(closestTarget.id, CONFIG.DEMONLORD.ATTACK_DAMAGE);
+                    closestTarget.hp = Math.max(0, closestTarget.hp - damage);
+                    io.emit('demonlordAttack', { targetId: closestTarget.id, damage: damage, x: demonlord.x, y: demonlord.y, dir: demonlord.dir });
+                    io.emit('playerStatsUpdate', { id: closestTarget.id, hp: closestTarget.hp });
+                    io.emit('enemyDamaged', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, dmg: damage });
+                } else {
+                    io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `✨ ${closestTarget.name} esquivó el golpe!` });
+                }
                 
                 if (closestTarget.hp <= 0) {
                     closestTarget.isAlive = false;
