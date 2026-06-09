@@ -1961,8 +1961,6 @@ function preload() {
     this.load.image('pino_1', 'pino_1.png'); 
     this.load.image('mina', 'mina.png'); 
     this.load.image('roca', 'roca.png');
-    this.load.image('desperfecto1', 'desperfecto1.png');
-    this.load.image('desperfecto2', 'desperfecto2.png');
     this.load.image('frascohpdrop', 'frascohpdrop.png');
     this.load.image('frascompdrop', 'frascompdrop.png');
     this.load.image('espada', 'espada.png'); 
@@ -2022,34 +2020,6 @@ function create() {
             chatInput.value = ""; 
         } 
     } 
-
-// ==========================================
-// GENERAR TEXTURAS DE SUELO (DESPERFECTOS)
-// ==========================================
-function generarDesperfectos(cantidad = 50) {
-    const desperfectosGrupo = this.add.group();
-    const imagenes = ['desperfecto1', 'desperfecto2'];
-    
-    for (let i = 0; i < cantidad; i++) {
-        // Posiciones aleatorias dentro del mapa (50 a 2950)
-        const x = Math.random() * 2800 + 100;
-        const y = Math.random() * 2800 + 100;
-        
-        // Elegir imagen aleatoria
-        const imgKey = imagenes[Math.floor(Math.random() * imagenes.length)];
-        
-        const desperfecto = this.add.image(x, y, imgKey);
-        desperfecto.setScale(0.8); // Ajusta el tamaño según necesites
-        desperfecto.setDepth(y); // Para que se vea en el suelo
-        desperfecto.setAlpha(0.7); // Un poco transparente para que no opaque
-        desperfectosGrupo.add(desperfecto);
-    }
-    
-    return desperfectosGrupo;
-}
-
-// Llamar a la función después de crear el suelo
-generarDesperfectos.call(this, 60); // 60 desperfectos dispersos
 
 // Función para crear círculo de impacto del demonlord (adelante de él)
 function crearCirculoImpacto(x, y, dir) {
