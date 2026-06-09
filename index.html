@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
+<head>socket.on('enemyDamaged', (data) => { 
+    if (data.id === 'demonlord') { 
+        // Esto muestra daño en demonlordinicializarInventario
+    }
+});
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DEVILAND</title>
@@ -1131,6 +1135,14 @@ function getImagenItem(icono) {
     return `/${nombreArchivo}.png`;
 }
 
+function inicializarInventario() { 
+    inventarioSlots = []; 
+    for (let i = 0; i < 36; i++) inventarioSlots.push(null); 
+    agregarItemAlInventario('pocion_1', 'pocion', 'Pocion de Vida', '❤️', 3);
+    agregarItemAlInventario('pocion_mana', 'pocion_mana', 'Poción de Maná', '💙', 3);
+    renderizarInventario(); 
+}
+
 function crearSlotElement(slot, index, origen) { 
     const d = document.createElement('div'); 
     d.className = 'slot'; 
@@ -1159,6 +1171,16 @@ function crearSlotElement(slot, index, origen) {
             img.onerror = function() { 
                 this.style.display = 'none'; 
                 this.parentElement.textContent = '❤️';
+            };
+            i.appendChild(img);
+        } else if (slot.id === 'pocion_mana' || slot.tipo === 'pocion_mana') {
+            const img = document.createElement('img');
+            img.src = 'frascomp.png';
+            img.style.width = '60px';
+            img.style.height = '60px';
+            img.onerror = function() { 
+                this.style.display = 'none'; 
+                this.parentElement.textContent = '💙';
             };
             i.appendChild(img);
         } else if (slot.id === 'roca') {
@@ -1227,7 +1249,7 @@ function crearSlotElement(slot, index, origen) {
             e.stopPropagation(); 
             if (slot.tipo === 'pocion') { 
                 if (playerHP < playerMaxHP) { 
-                    const curacion = 20; 
+                    const curacion = 50; 
                     const nuevaVida = Math.min(playerHP + curacion, playerMaxHP); 
                     const curado = nuevaVida - playerHP; 
                     playerHP = nuevaVida; 
@@ -1239,7 +1261,23 @@ function crearSlotElement(slot, index, origen) {
                     guardarPartida(); 
                     if (socket) socket.emit('usarPocion', { curacion: curacion }); 
                 } else { 
-                    mostrarMensaje(`❌ Vida al maximo`, 'error'); 
+                    mostrarMensaje(`❤️ Vida al máximo`, 'error'); 
+                } 
+            } else if (slot.tipo === 'pocion_mana') { 
+                if (playerMana < playerMaxMana) { 
+                    const restauracion = 30; 
+                    const nuevaMana = Math.min(playerMana + restauracion, playerMaxMana); 
+                    const restaurado = nuevaMana - playerMana; 
+                    playerMana = nuevaMana; 
+                    actualizarStatsUI(); 
+                    mostrarMensaje(`💙 +${restaurado} Maná`, 'exito'); 
+                    slot.cantidad -= 1; 
+                    if (slot.cantidad <= 0) inventarioSlots[index] = null; 
+                    renderizarInventario(); 
+                    guardarPartida(); 
+                    if (socket) socket.emit('usarPocionMana', { restauracion: restauracion }); 
+                } else { 
+                    mostrarMensaje(`💙 Maná al máximo`, 'error'); 
                 } 
             } else if (slot.tipo === 'espada') { 
                 if (equipamiento.arma === slot.id) desequiparItem('arma'); 
@@ -1298,7 +1336,6 @@ function crearSlotElement(slot, index, origen) {
     }); 
     return d; 
 }
-
 function renderizarInventario() { 
     const g = document.getElementById('inventario-grid'); 
     if (!g) return; 
@@ -1959,43 +1996,22 @@ function crearCirculoImpacto(x, y, dir) {
     let endX = x, endY = y;
     
     switch(dir) {
-        case 'Derecha': 
-            offsetX = 40; 
-            endX = x + offsetX;
-            break;
-        case 'Izquierda': 
-            offsetX = -40; 
-            endX = x + offsetX;
-            break;
-        case 'Arriba': 
-            offsetY = -40; 
-            endY = y + offsetY;
-            break;
-        case 'Abajo': 
-            offsetY = 40; 
-            endY = y + offsetY;
-            break;
-        default: 
-            offsetY = 40; 
-            endY = y + offsetY;
-            break;
+        case 'Derecha': offsetX = 30; endX = x + offsetX; break;
+        case 'Izquierda': offsetX = -30; endX = x + offsetX; break;
+        case 'Arriba': offsetY = -30; endY = y + offsetY; break;
+        case 'Abajo': offsetY = 30; endY = y + offsetY; break;
+        default: offsetY = 30; endY = y + offsetY; break;
     }
     
     const graphics = currentScene.add.graphics();
-    
-    // Línea desde demonlord hasta el impacto
-    graphics.lineStyle(4, 0xff0000, 0.8);
-    graphics.lineBetween(x, y, endX, endY);
-    
-    // Círculo pequeño al final
     graphics.lineStyle(2, 0xff0000, 1);
-    graphics.strokeCircle(endX, endY, 12);
     graphics.fillStyle(0xff0000, 0.5);
-    graphics.fillCircle(endX, endY, 12);
     
-    currentScene.time.delayedCall(350, () => {
-        graphics.destroy();
-    });
+    // Rectángulo de 50x50
+    graphics.fillRoundedRect(endX - 25, endY - 25, 50, 50, 5);
+    graphics.strokeRoundedRect(endX - 25, endY - 25, 50, 50, 5);
+    
+    currentScene.time.delayedCall(350, () => graphics.destroy());
 }
     
     if (chatSend) chatSend.addEventListener('click', enviarMensaje); 
@@ -2301,8 +2317,7 @@ setTimeout(() => {
     
     socket.on('demonlordRespawn', (data) => { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.setVisible(true); demonlord_sprite.clearTint(); demonlordHP = 5000; actualizarDemonlordHPBar(); crearTextoDmg(this, data.x, data.y, "RENACE", "#fff", "22px"); });
     
-    socket.on('enemyDamaged', (data) => { if (data.id === 'demonlord') { demonlordHP = data.hp; actualizarDemonlordHPBar(); crearTextoDmg(this, data.x, data.y, data.dmg, '#fff', '20px'); } else if (data.id === socket.id) { crearTextoDmg(this, player.x, player.y, data.dmg, '#fff', '20px'); } else { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { crearTextoDmg(this, data.x, data.y, data.dmg, '#fff', '16px'); } }); } } });
-    
+    socket.on('enemyDamaged', (data) => { if (data.id === socket.id) { crearTextoDmg(this, player.x, player.y, data.dmg, '#fff', '20px'); } else { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { crearTextoDmg(this, data.x, data.y, data.dmg, '#fff', '16px'); } }); } } });
     socket.on('esqueletosIniciales', (data) => { 
         if (!window.esqueletosGrupo) window.esqueletosGrupo = this.add.group(); 
         window.esqueletosGrupo.clear(true, true); 
