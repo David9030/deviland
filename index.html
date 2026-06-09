@@ -1956,24 +1956,44 @@ function create() {
 // Función para crear círculo de impacto del demonlord (adelante de él)
 function crearCirculoImpacto(x, y, dir) {
     let offsetX = 0, offsetY = 0;
+    let endX = x, endY = y;
+    
     switch(dir) {
-        case 'Derecha': offsetX = 60; break;
-        case 'Izquierda': offsetX = -60; break;
-        case 'Arriba': offsetY = -60; break;
-        case 'Abajo': offsetY = 60; break;
-        default: offsetY = 60; break;
+        case 'Derecha': 
+            offsetX = 40; 
+            endX = x + offsetX;
+            break;
+        case 'Izquierda': 
+            offsetX = -40; 
+            endX = x + offsetX;
+            break;
+        case 'Arriba': 
+            offsetY = -40; 
+            endY = y + offsetY;
+            break;
+        case 'Abajo': 
+            offsetY = 40; 
+            endY = y + offsetY;
+            break;
+        default: 
+            offsetY = 40; 
+            endY = y + offsetY;
+            break;
     }
     
-    const circuloX = x + offsetX;
-    const circuloY = y + offsetY;
-    
     const graphics = currentScene.add.graphics();
-    graphics.lineStyle(3, 0xff0000, 1);
-    graphics.strokeCircle(circuloX, circuloY, 18);
-    graphics.fillStyle(0xff0000, 0.4);
-    graphics.fillCircle(circuloX, circuloY, 18);
     
-    currentScene.time.delayedCall(400, () => {
+    // Línea desde demonlord hasta el impacto
+    graphics.lineStyle(4, 0xff0000, 0.8);
+    graphics.lineBetween(x, y, endX, endY);
+    
+    // Círculo pequeño al final
+    graphics.lineStyle(2, 0xff0000, 1);
+    graphics.strokeCircle(endX, endY, 12);
+    graphics.fillStyle(0xff0000, 0.5);
+    graphics.fillCircle(endX, endY, 12);
+    
+    currentScene.time.delayedCall(350, () => {
         graphics.destroy();
     });
 }
