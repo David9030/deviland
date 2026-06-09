@@ -1156,10 +1156,11 @@ function agregarItemAlInventarioEquipo(id, tipo, nombre, icono, cantidad, stats 
 
 function getImagenItem(icono) {
     const mapNombres = {
-        'espada_img': 'espada',
-        'escudo_madera_img': 'escudo_madera',
-        'armadura_de_cuero_img': 'armadura_de_cuero'
-    };
+    'espada_img': 'espada',
+    'escudo_madera_img': 'escudo_madera',
+    'armadura_de_cuero_img': 'armadura_de_cuero',
+    'hachadehierro_img': 'hachadehierro'
+};
     const nombreArchivo = mapNombres[icono] || icono.replace('_img', '');
     return `/${nombreArchivo}.png`;
 }
@@ -1963,7 +1964,9 @@ function preload() {
     this.load.image('roca', 'roca.png');
     this.load.image('frascohpdrop', 'frascohpdrop.png');
     this.load.image('frascompdrop', 'frascompdrop.png');
-    this.load.image('espada', 'espada.png'); 
+    this.load.image('espada', 'espada.png');
+    this.load.image('hachadehierro', 'hachadehierro.png');
+    this.load.image('hachadehierrodrop', 'hachadehierrodrop.png'); 
     this.load.image('espadadrop', 'espadadrop.png');
     this.load.image('escudodrop', 'escudodrop.png');
     this.load.image('armaduradrop', 'armaduradrop.png');

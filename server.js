@@ -6,7 +6,7 @@ const path = require('path');
 
 const CONFIG = {
     PORT: 3000,
-    DEMONLORD: { MAX_HP: 5000, RESPAWN_TIME: 10000, SPEED: 15, ATTACK_COOLDOWN: 2000, ATTACK_DAMAGE: 200, VISION_RANGE: 100, EXP: 500 },
+    DEMONLORD: { MAX_HP: 5000, RESPAWN_TIME: 10000, SPEED: 15, ATTACK_COOLDOWN: 2000, ATTACK_DAMAGE: 200, VISION_RANGE: 400, EXP: 500 },
     SKELETON: { MAX_HP: 200, RESPAWN_TIME: 60000, SPEED: 12, ATTACK_COOLDOWN: 1000, ATTACK_DAMAGE: 25, VISION_RANGE: 400, EXP: 50, DEFENSE: 0 },
     PLAYER: { MAX_HP: 500, RESPAWN_TIME: 10000,
         BASE_STATS: {
@@ -337,55 +337,68 @@ io.on('connection', (socket) => {
     
     socket.on('playerRespawn', (data) => { if (data.id === socket.id) revivirJugador(socket.id); });
     
-    socket.on('demonlordHit', (data) => {
-        if (!demonlord.isAlive) return;
-        const jugador = players[socket.id];
-        if (!jugador || !jugador.isAlive) return;
+   socket.on('demonlordHit', (data) => {
+    if (!demonlord.isAlive) return;
+    const jugador = players[socket.id];
+    if (!jugador || !jugador.isAlive) return;
+    
+    if (!demonlord.attackers) demonlord.attackers = [];
+    if (!demonlord.attackers.includes(socket.id)) demonlord.attackers.push(socket.id);
+    
+    let damage = jugador.ataqueFisico;
+    if (data.damageBonus) damage += data.damageBonus;
+    if (data.esCritico) damage *= 2;
+    
+    demonlord.hp = Math.max(0, demonlord.hp - damage);
+    
+    if (demonlord.hp <= 0) {
+        demonlord.isAlive = false;
         
-        if (!demonlord.attackers) demonlord.attackers = [];
-        if (!demonlord.attackers.includes(socket.id)) demonlord.attackers.push(socket.id);
-        
-        let damage = jugador.ataqueFisico;
-        if (data.damageBonus) damage += data.damageBonus;
-        if (data.esCritico) damage *= 2;
-        
-        demonlord.hp = Math.max(0, demonlord.hp - damage);
-        
-        if (demonlord.hp <= 0) {
-            demonlord.isAlive = false;
-            
-            if (demonlord.attackers && demonlord.attackers.length > 0) {
-                demonlord.attackers.forEach(attackerId => darExpAJugadorYEquipo(attackerId, CONFIG.DEMONLORD.EXP));
-            } else {
-                darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP);
-            }
-            
-            for (let i = 0; i < 8; i++) {
-                const angle = (i / 8) * Math.PI * 2;
-                const distancia = 60 + (Math.random() * 40);
-                const offsetX = Math.cos(angle) * distancia;
-                const offsetY = Math.sin(angle) * distancia;
-                const cantidadOro = Math.floor(Math.random() * 20) + 10;
-                io.emit('crearMonedaServidor', { x: demonlord.x + offsetX, y: demonlord.y + offsetY, cantidad: cantidadOro });
-            }
-            
-            io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
-            
-            setTimeout(() => {
-                generarEsqueletos(15);
-                io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `⚔️ ¡Han aparecido 15 esqueletos en el mapa!` });
-            }, 120000);
-            
-            setTimeout(() => {
-                demonlord.hp = CONFIG.DEMONLORD.MAX_HP;
-                demonlord.isAlive = true;
-                demonlord.x = 1500;
-                demonlord.y = 1500;
-                demonlord.attackers = [];
-                io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y });
-            }, CONFIG.DEMONLORD.RESPAWN_TIME);
+        if (demonlord.attackers && demonlord.attackers.length > 0) {
+            demonlord.attackers.forEach(attackerId => darExpAJugadorYEquipo(attackerId, CONFIG.DEMONLORD.EXP));
+        } else {
+            darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP);
         }
-    });
+        
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const distancia = 60 + (Math.random() * 40);
+            const offsetX = Math.cos(angle) * distancia;
+            const offsetY = Math.sin(angle) * distancia;
+            const cantidadOro = Math.floor(Math.random() * 20) + 10;
+            io.emit('crearMonedaServidor', { x: demonlord.x + offsetX, y: demonlord.y + offsetY, cantidad: cantidadOro });
+        }
+
+        // Drop de Hacha de Hierro (20% de probabilidad)
+        if (Math.random() < 0.2) {
+            io.emit('dropItemServidor', { 
+                x: demonlord.x, 
+                y: demonlord.y, 
+                tipo: 'hacha',
+                itemId: 'hachadehierro_1',
+                nombre: 'Hacha de Hierro',
+                icono: 'hachadehierro_img',
+                stats: { ataqueFisico: 25, velocidad: -10 }
+            });
+        }
+        
+        io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
+        
+        setTimeout(() => {
+            generarEsqueletos(15);
+            io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `⚔️ ¡Han aparecido 15 esqueletos en el mapa!` });
+        }, 120000);
+        
+        setTimeout(() => {
+            demonlord.hp = CONFIG.DEMONLORD.MAX_HP;
+            demonlord.isAlive = true;
+            demonlord.x = 1500;
+            demonlord.y = 1500;
+            demonlord.attackers = [];
+            io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y });
+        }, CONFIG.DEMONLORD.RESPAWN_TIME);
+    }
+});
     
     socket.on('solicitarDemonlordHP', () => {
         const jugador = players[socket.id];
