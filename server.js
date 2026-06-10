@@ -355,6 +355,11 @@ io.on('connection', (socket) => {
     
     demonlord.hp = Math.max(0, demonlord.hp - damage);
     
+    // ==========================================
+    // AGREGAR ESTA LÍNEA PARA MOSTRAR EL DAÑO
+    // ==========================================
+    io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: damage, hp: demonlord.hp });
+    
     if (demonlord.hp <= 0) {
         demonlord.isAlive = false;
         
@@ -372,7 +377,6 @@ io.on('connection', (socket) => {
             const cantidadOro = Math.floor(Math.random() * 20) + 10;
             io.emit('crearMonedaServidor', { x: demonlord.x + offsetX, y: demonlord.y + offsetY, cantidad: cantidadOro });
         }
-
         // Drop de Hacha de Hierro (20% de probabilidad)
         if (Math.random() < 0.2) {
             io.emit('dropItemServidor', { 

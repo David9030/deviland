@@ -2391,16 +2391,16 @@ if (guardado) {
     const btnAttack = document.getElementById('btn-attack'); 
     
     const actualizarIconoAtaque = () => { 
-        if (!player || !player.active) return; 
-        let arbol = false, mina = false, roca = false; 
-        if (window.arbolesGrupo) window.arbolesGrupo.getChildren().forEach(a => { if (a.active && Phaser.Math.Distance.Between(player.x, player.y, a.x, a.y) < 80) arbol = true; }); 
-        if (window.minasGrupo) window.minasGrupo.getChildren().forEach(m => { if (m.active && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 80) mina = true; }); 
-        if (window.rocasGrupo) window.rocasGrupo.getChildren().forEach(r => { if (r.active && Phaser.Math.Distance.Between(player.x, player.y, r.x, r.y) < 50) roca = true; }); 
-        if (roca) btnAttack.innerHTML = '🖐️'; 
-        else if (mina) btnAttack.innerHTML = '⛏️'; 
-        else if (arbol) btnAttack.innerHTML = '🪓'; 
-        else btnAttack.innerHTML = '⚔️'; 
-    }; 
+    if (!player || !player.active) return; 
+    let arbol = false, mina = false, roca = false; 
+    if (window.arbolesGrupo) window.arbolesGrupo.getChildren().forEach(a => { if (a.active && Phaser.Math.Distance.Between(player.x, player.y, a.x, a.y) < 80) arbol = true; }); 
+    if (window.minasGrupo) window.minasGrupo.getChildren().forEach(m => { if (m.active && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 80) mina = true; }); 
+    if (window.rocasGrupo) window.rocasGrupo.getChildren().forEach(r => { if (r.active && Phaser.Math.Distance.Between(player.x, player.y, r.x, r.y) < 50) roca = true; }); 
+    if (roca) btnAttack.innerHTML = '🖐️'; 
+    else if (mina) btnAttack.innerHTML = '⛏️'; 
+    else if (arbol) btnAttack.innerHTML = '🪓'; 
+    else btnAttack.innerHTML = '⚔️'; 
+};  // <--- CIERRA LA FUNCIÓN CORRECTAMENTE
 
 window.simularAtaque = () => { 
     if (window.ataqueEnProceso) return; 
@@ -2442,29 +2442,9 @@ window.simularAtaque = () => {
         const chanceCritico = 20 + Math.floor(playerStats.agilidad / 10); 
         const esCritico = Math.random() * 100 < chanceCritico; 
         
-        // ==========================================
-        // HABILIDAD DEL BÁRBARO (salto + círculo + daño x3) - Cooldown 15s
-        // ==========================================
-        let esHabilidadBarbaro = false;
-        let dañoMultiplicador = 1;
-        
-        if (pClassName === 'BARBARO' && !barbaroHabilidadEnCooldown) {
-            esHabilidadBarbaro = true;
-            dañoMultiplicador = 3;
-            barbaroHabilidadEnCooldown = true;
-            
-            setTimeout(() => {
-                barbaroHabilidadEnCooldown = false;
-                mostrarMensaje(`✅ Habilidad del Bárbaro recargada (15s)`, 'exito');
-            }, BARBARO_HABILIDAD_COOLDOWN);
-            
-            mostrarMensaje(`💥 ¡GOLPE DE ÁREA! Daño x3 💥`, 'exito');
-            if (player) player.setTint(0xff6600);
-            setTimeout(() => { if (player) player.clearTint(); }, 500);
-        }
-        
-        let damageBonus = ataqueFisicoTotal * dañoMultiplicador;
-        if (esCritico) damageBonus = Math.floor(ataqueFisicoTotal * 1.5 * dañoMultiplicador);
+        // Daño normal (sin habilidad automática)
+        let damageBonus = ataqueFisicoTotal;
+        if (esCritico) damageBonus = Math.floor(ataqueFisicoTotal * 1.5);
         
         socket.emit('playerAttack', { damageBonus: damageBonus }); 
         
@@ -2480,45 +2460,19 @@ window.simularAtaque = () => {
                     if (currentScene) { if (esCritico) crearTextoDmg(currentScene, demonlord_sprite.x, demonlord_sprite.y, "CRITICO!", "#ff4444", "18px"); else crearTextoDmg(currentScene, demonlord_sprite.x, demonlord_sprite.y, "⚔️", "#fff", "16px"); } 
                 } 
                 if (window.esqueletosGrupo) { 
-                    if (esHabilidadBarbaro) {
-    player.setVelocityY(-250);
-    
-    currentScene.time.delayedCall(400, () => {
-        const graphics = currentScene.add.graphics();
-        graphics.lineStyle(4, 0xff0000, 0);  // Borde invisible
-        graphics.strokeCircle(player.x, player.y, 50);
-        graphics.fillStyle(0xff0000, 0);      // Relleno invisible
-        graphics.fillCircle(player.x, player.y, 50);
-        
-        // El círculo existe pero es invisible
-        currentScene.time.delayedCall(350, () => graphics.destroy());
-        
-        currentScene.cameras.main.shake(80, 0.01);
-        
-        window.esqueletosGrupo.getChildren().forEach(esq => {
-            if (esq.active && !esq.isAlly) {
-                const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y);
-                if (dist < 70) {
-                    socket.emit('esqueletoHit', { id: esq.esqueletoId, damageBonus: damageBonus, esCritico: esCritico });
-                }
-            }
-        });
-    });
-}else {
-                        // Ataque normal
-                        let esqueletoMasCercano = null; 
-                        let distanciaMinima = Infinity; 
-                        window.esqueletosGrupo.getChildren().forEach(esq => { 
-                            if (esq.active && !esq.isAlly) { 
-                                const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y); 
-                                if (dist < 80 && dist < distanciaMinima) { 
-                                    distanciaMinima = dist; 
-                                    esqueletoMasCercano = esq; 
-                                } 
+                    // Ataque normal al esqueleto más cercano
+                    let esqueletoMasCercano = null; 
+                    let distanciaMinima = Infinity; 
+                    window.esqueletosGrupo.getChildren().forEach(esq => { 
+                        if (esq.active && !esq.isAlly) { 
+                            const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y); 
+                            if (dist < 80 && dist < distanciaMinima) { 
+                                distanciaMinima = dist; 
+                                esqueletoMasCercano = esq; 
                             } 
-                        }); 
-                        if (esqueletoMasCercano) socket.emit('esqueletoHit', { id: esqueletoMasCercano.esqueletoId, damageBonus: damageBonus, esCritico: esCritico }); 
-                    }
+                        } 
+                    }); 
+                    if (esqueletoMasCercano) socket.emit('esqueletoHit', { id: esqueletoMasCercano.esqueletoId, damageBonus: damageBonus, esCritico: esCritico }); 
                 } 
             } 
         }); 
@@ -2657,7 +2611,24 @@ socket.on('playerStatsUpdate', (data) => {
     
     socket.on('demonlordRespawn', (data) => { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.setVisible(true); demonlord_sprite.clearTint(); demonlordHP = 5000; actualizarDemonlordHPBar(); crearTextoDmg(this, data.x, data.y, "RENACE", "#fff", "22px"); });
     
-    socket.on('enemyDamaged', (data) => { if (data.id === socket.id) { crearTextoDmg(this, player.x, player.y, data.dmg, '#fff', '20px'); } else { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { crearTextoDmg(this, data.x, data.y, data.dmg, '#fff', '16px'); } }); } } });
+   socket.on('enemyDamaged', (data) => { 
+    if (data.id === 'demonlord') { 
+        demonlordHP = data.hp; 
+        actualizarDemonlordHPBar(); 
+        crearTextoDmg(currentScene, data.x, data.y, data.dmg, '#fff', '20px'); 
+    } else if (data.id === socket.id) { 
+        crearTextoDmg(currentScene, player.x, player.y, data.dmg, '#fff', '20px'); 
+    } else { 
+        if (window.esqueletosGrupo) { 
+            window.esqueletosGrupo.getChildren().forEach(esq => { 
+                if (esq.esqueletoId === data.id) { 
+                    crearTextoDmg(currentScene, data.x, data.y, data.dmg, '#fff', '16px'); 
+                } 
+            }); 
+        } 
+    } 
+});
+
     socket.on('esqueletosIniciales', (data) => { 
     if (!window.esqueletosGrupo) window.esqueletosGrupo = this.add.group(); 
     window.esqueletosGrupo.clear(true, true); 
