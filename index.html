@@ -1,11 +1,11 @@
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
-<head>crearMonedaServidor
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DEVILAND</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>socket.on
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         * { user-select: none; }
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
@@ -49,22 +49,22 @@
         .floating-tabs { position: fixed; top: 10px; left: 5px; display: flex; gap: 5px; z-index: 10000; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 15px; }
         .floating-tab { background: rgba(0,0,0,0.7); border: 1px solid #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; color: #fff; }
         
-      #inventario-ui {
-    position: fixed !important;
-    top: 45% !important;  /* Subir más (antes 50%) */
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    background: #000 !important;
-    border: 3px solid #fff !important;
-    padding: 10px !important;  /* Reducido de 15px a 10px */
-    z-index: 999999 !important;
-    width: auto !important;
-    max-width: 80vw !important;  /* Reducido de 85vw a 80vw */
-    max-height: 65vh !important; /* Reducido de 80vh a 65vh */
-    overflow-x: auto !important;
-    overflow-y: auto !important;
-    display: none;
-}
+        #inventario-ui {
+            position: fixed !important;
+            top: 45% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            background: #000 !important;
+            border: 3px solid #fff !important;
+            padding: 10px !important;
+            z-index: 999999 !important;
+            width: auto !important;
+            max-width: 80vw !important;
+            max-height: 65vh !important;
+            overflow-x: auto !important;
+            overflow-y: auto !important;
+            display: none;
+        }
         .inventario-grid { display: grid; grid-template-columns: repeat(6, 60px); gap: 5px; background: #111; padding: 10px; }
         .slot { background: #1a1a1a; border: 1px solid #444; width: 60px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; }
         .slot-icon { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 18px; position: relative; overflow: hidden; }
@@ -316,7 +316,6 @@
                     <div id="skills-grid-inline" class="skills-grid" style="max-height: 250px; overflow-y: auto;"></div>
                     <div style="margin-top: 10px; font-size: 9px; color: #666;">💡 Arrastra a la barra inferior</div>
                 </div>
-                <!-- Control de volumen -->
                 <div class="volumen-control" style="margin-top: 15px;">
                     <div class="section-title">🎵 VOLUMEN</div>
                     <div class="stat-row">
@@ -339,9 +338,7 @@
     <div id="context-menu" class="context-menu">
         <div class="context-menu-item" onclick="invitarJugadorSeleccionado()">🎮 Invitar al equipo</div>
     </div>
-
 <script>
-
 // ============================================
 // VARIABLES GLOBALES
 // ============================================
@@ -353,7 +350,7 @@ let barbaroContadorAsesinatos = 0;
 let barbaroHabilidadDisponible = true;
 let barbaroTieneHacha = false;
 let barbaroHabilidadEnCooldown = false;
-const BARBARO_HABILIDAD_COOLDOWN = 15000; // 15 segundos
+const BARBARO_HABILIDAD_COOLDOWN = 15000;
 let playerHP = 500;
 let playerMaxHP = 500;
 let playerMana = 100;
@@ -381,9 +378,9 @@ const COOLDOWN_ATAQUE_NORMAL = 1000;
 let ultimoGuardadoPosicionTime = 0;
 const DATA_VERSION = 3;
 
-// Variables de volumen global
 window.volumenFX = 0.6;
 window.volumenMusica = 0.3;
+
 const SKILLS_DATA = {
     'levantar_muerto': { 
         id: 'levantar_muerto', nombre: 'Levantar Muerto', 
@@ -404,15 +401,15 @@ const SKILLS_DATA = {
         soloNecromancer: true 
     },
     'golpe_brutal': { 
-    id: 'golpe_brutal', nombre: 'Golpe Brutal', 
-    descripcion: 'Salto y golpe de área con daño x3. Cooldown 15 segundos.', 
-    costo: '0 mana', icono: 'skills/hacha_impacto.png', 
-    soloBarbaro: true, clase: 'BARBARO' 
-}
+        id: 'golpe_brutal', nombre: 'Golpe Brutal', 
+        descripcion: 'Salto y golpe de área con daño x3. Cooldown 15 segundos.', 
+        costo: '20 mana', icono: 'skills/hacha_impacto.png', 
+        soloBarbaro: true, clase: 'BARBARO' 
+    }
 };
 
 const classStats = {
-    'BARBARO': { hp: 800, mana: 50, ataqueFisico: 80, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 120, attackSpeed: 0.7 },
+    'BARBARO': { hp: 800, mana: 100, ataqueFisico: 80, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 120, attackSpeed: 0.7 },
     'WARRIOR': { hp: 500, mana: 60, ataqueFisico: 50, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 150, attackSpeed: 1.0 },
     'CABALLERO': { hp: 500, mana: 60, ataqueFisico: 50, ataqueMagico: 0, defensaFisica: 100, defensaMagica: 0, velocidad: 130, attackSpeed: 0.9 },
     'MAGO': { hp: 300, mana: 150, ataqueFisico: 15, ataqueMagico: 50, defensaFisica: 0, defensaMagica: 40, velocidad: 180, attackSpeed: 1.0 },
@@ -481,10 +478,6 @@ function reproducirSonido(sonido, volumen = null) {
     sonido.setVolume(vol);
     sonido.play();
 }
-
-// ============================================
-// FUNCIONES AUXILIARES
-// ============================================
 
 function toggleChat() { 
     document.getElementById('chat-container').classList.toggle('chat-minimizado'); 
@@ -567,9 +560,7 @@ function desequiparItem(tipo) {
     } 
 }
 
-// SOLO UNA VEZ - CON LA RESTRICCIÓN
 function equiparItem(item, tipo) {
-    // Restricción: Hacha de Hierro solo para Bárbaro
     if (item.id === 'hachadehierro_1' && pClassName !== 'BARBARO') {
         mostrarMensaje(`❌ Solo los Bárbaros pueden equipar el Hacha de Hierro`, 'error');
         return;
@@ -749,9 +740,6 @@ function ocultarPantallaCarga() {
     document.getElementById('loading-ui').style.display = 'none'; 
 }
 
-// ============================================
-// FUNCIONES GLOBALES DEL MENU
-// ============================================
 window.nuevoJuego = function() { 
     borrarPartida(); 
     equipamiento = { arma: null, escudo: null, armadura: null }; 
@@ -814,7 +802,7 @@ window.continuarPartida = function() {
     } else {
         skillsEquipadas = g.skillsEquipadas || [];
     } 
-    if (skillsEquipadas.length > 3) skillsEquipadas = skillsEquipadas.slice(0, 3); 
+    if (skillsEquipadas.length > 5) skillsEquipadas = skillsEquipadas.slice(0, 5); 
     document.getElementById('menu-ui').style.display = 'none'; 
     mostrarPantallaCarga(); 
     setTimeout(() => { iniciarJuegoConCarga(g); }, 500);
@@ -1118,7 +1106,6 @@ function recogerDrop(drop) {
     actualizarStatsUI();
     guardarPartida();
 }
-
 // ============================================
 // INVENTARIO
 // ============================================
@@ -1178,11 +1165,11 @@ function agregarItemAlInventarioEquipo(id, tipo, nombre, icono, cantidad, stats 
 
 function getImagenItem(icono) {
     const mapNombres = {
-    'espada_img': 'espada',
-    'escudo_madera_img': 'escudo_madera',
-    'armadura_de_cuero_img': 'armadura_de_cuero',
-    'hachadehierro_img': 'hachadehierro'
-};
+        'espada_img': 'espada',
+        'escudo_madera_img': 'escudo_madera',
+        'armadura_de_cuero_img': 'armadura_de_cuero',
+        'hachadehierro_img': 'hachadehierro'
+    };
     const nombreArchivo = mapNombres[icono] || icono.replace('_img', '');
     return `/${nombreArchivo}.png`;
 }
@@ -1297,59 +1284,58 @@ function crearSlotElement(slot, index, origen) {
             }); 
         } 
         
-       d.addEventListener('dblclick', (e) => { 
-    e.stopPropagation(); 
-    if (slot.tipo === 'pocion') { 
-        if (playerHP < playerMaxHP) { 
-            const curacion = 50; 
-            const nuevaVida = Math.min(playerHP + curacion, playerMaxHP); 
-            const curado = nuevaVida - playerHP; 
-            playerHP = nuevaVida; 
-            actualizarStatsUI(); 
-            mostrarMensaje(`❤️ +${curado} HP`, 'exito'); 
-            slot.cantidad -= 1; 
-            if (slot.cantidad <= 0) inventarioSlots[index] = null; 
-            renderizarInventario(); 
-            guardarPartida(); 
-            if (socket) socket.emit('usarPocion', { curacion: curacion }); 
-        } else { 
-            mostrarMensaje(`❤️ Vida al máximo`, 'error'); 
-        } 
-    } else if (slot.tipo === 'pocion_mana') { 
-    if (playerMana < playerMaxMana) { 
-        const restauracion = 30; 
-        const nuevaMana = Math.min(playerMana + restauracion, playerMaxMana); 
-        const restaurado = nuevaMana - playerMana; 
-        playerMana = nuevaMana; 
-        actualizarStatsUI(); 
-        mostrarMensaje(`💙 +${restaurado} Maná`, 'exito'); 
-        slot.cantidad -= 1; 
-        if (slot.cantidad <= 0) inventarioSlots[index] = null; 
-        renderizarInventario(); 
-        guardarPartida(); 
-        if (socket) socket.emit('usarPocionMana', { restauracion: restauracion }); 
-    } else { 
-        mostrarMensaje(`💙 Maná al máximo`, 'error'); 
-    } 
-} else if (slot.tipo === 'espada') { 
-    // Restricción: Hacha de Hierro solo para Bárbaro
-    if (slot.id === 'hachadehierro_1' && pClassName !== 'BARBARO') {
-        mostrarMensaje(`❌ Solo los Bárbaros pueden equipar el Hacha de Hierro`, 'error');
-        return;
-    }
-    if (equipamiento.arma === slot.id) desequiparItem('arma'); 
-    else equiparItem(slot, 'arma'); 
-    renderizarInventario(); 
-} else if (slot.tipo === 'escudo') { 
-    if (equipamiento.escudo === slot.id) desequiparItem('escudo'); 
-    else equiparItem(slot, 'escudo'); 
-    renderizarInventario(); 
-} else if (slot.tipo === 'armadura') { 
-    if (equipamiento.armadura === slot.id) desequiparItem('armadura'); 
-    else equiparItem(slot, 'armadura'); 
-    renderizarInventario(); 
-}
-});
+        d.addEventListener('dblclick', (e) => { 
+            e.stopPropagation(); 
+            if (slot.tipo === 'pocion') { 
+                if (playerHP < playerMaxHP) { 
+                    const curacion = 50; 
+                    const nuevaVida = Math.min(playerHP + curacion, playerMaxHP); 
+                    const curado = nuevaVida - playerHP; 
+                    playerHP = nuevaVida; 
+                    actualizarStatsUI(); 
+                    mostrarMensaje(`❤️ +${curado} HP`, 'exito'); 
+                    slot.cantidad -= 1; 
+                    if (slot.cantidad <= 0) inventarioSlots[index] = null; 
+                    renderizarInventario(); 
+                    guardarPartida(); 
+                    if (socket) socket.emit('usarPocion', { curacion: curacion }); 
+                } else { 
+                    mostrarMensaje(`❤️ Vida al máximo`, 'error'); 
+                } 
+            } else if (slot.tipo === 'pocion_mana') { 
+                if (playerMana < playerMaxMana) { 
+                    const restauracion = 30; 
+                    const nuevaMana = Math.min(playerMana + restauracion, playerMaxMana); 
+                    const restaurado = nuevaMana - playerMana; 
+                    playerMana = nuevaMana; 
+                    actualizarStatsUI(); 
+                    mostrarMensaje(`💙 +${restaurado} Maná`, 'exito'); 
+                    slot.cantidad -= 1; 
+                    if (slot.cantidad <= 0) inventarioSlots[index] = null; 
+                    renderizarInventario(); 
+                    guardarPartida(); 
+                    if (socket) socket.emit('usarPocionMana', { restauracion: restauracion }); 
+                } else { 
+                    mostrarMensaje(`💙 Maná al máximo`, 'error'); 
+                } 
+            } else if (slot.tipo === 'espada') { 
+                if (slot.id === 'hachadehierro_1' && pClassName !== 'BARBARO') {
+                    mostrarMensaje(`❌ Solo los Bárbaros pueden equipar el Hacha de Hierro`, 'error');
+                    return;
+                }
+                if (equipamiento.arma === slot.id) desequiparItem('arma'); 
+                else equiparItem(slot, 'arma'); 
+                renderizarInventario(); 
+            } else if (slot.tipo === 'escudo') { 
+                if (equipamiento.escudo === slot.id) desequiparItem('escudo'); 
+                else equiparItem(slot, 'escudo'); 
+                renderizarInventario(); 
+            } else if (slot.tipo === 'armadura') { 
+                if (equipamiento.armadura === slot.id) desequiparItem('armadura'); 
+                else equiparItem(slot, 'armadura'); 
+                renderizarInventario(); 
+            }
+        });
     } else { 
         const e = document.createElement('div'); 
         e.style.fontSize = '12px'; 
@@ -1393,6 +1379,7 @@ function crearSlotElement(slot, index, origen) {
     }); 
     return d; 
 }
+
 function renderizarInventario() { 
     const g = document.getElementById('inventario-grid'); 
     if (!g) return; 
@@ -1402,13 +1389,6 @@ function renderizarInventario() {
         const d = crearSlotElement(s, i, 'inventario'); 
         g.appendChild(d); 
     } 
-}
-
-function inicializarInventario() { 
-    inventarioSlots = []; 
-    for (let i = 0; i < 36; i++) inventarioSlots.push(null); 
-    agregarItemAlInventario('pocion_1', 'pocion', 'Pocion de Vida', '❤️', 2);
-    renderizarInventario(); 
 }
 
 function actualizarStatsUI() {
@@ -1446,7 +1426,6 @@ function actualizarStatsUI() {
     if (playerHP > playerMaxHP) playerHP = playerMaxHP; 
     if (playerMana > playerMaxMana) playerMana = playerMaxMana; 
 
-    // Verificar si el bárbaro tiene el Hacha de Hierro equipada
     if (pClassName === 'BARBARO') {
         const armaEquipada = equipamiento.arma;
         const itemArma = encontrarItemPorId(armaEquipada);
@@ -1455,6 +1434,8 @@ function actualizarStatsUI() {
         
         if (!barbaroTieneHacha && teniaHacha) {
             mostrarMensaje(`❌ Habilidad de Bárbaro desactivada - Hacha de Hierro no equipada`, 'error');
+            barbaroContadorAsesinatos = 0;
+            barbaroHabilidadEnCooldown = false;
         }
     }
     
@@ -1479,7 +1460,7 @@ function actualizarStatsUI() {
     const expPercent = (playerStats.exp / playerStats.expNeeded) * 100; 
     const expFill = document.getElementById('exp-fill');
     if (expFill) expFill.style.width = expPercent + '%'; 
-    
+
     const hpPercent = playerHP / playerMaxHP;
     const hpFillVert = document.getElementById('hp-fill-vertical');
     if (hpFillVert) hpFillVert.style.transform = `scaleY(${hpPercent})`;
@@ -1492,7 +1473,7 @@ function actualizarStatsUI() {
     if (hpTextInline) hpTextInline.innerText = Math.floor(playerHP);
     const manaTextInline = document.getElementById('mana-text-inline');
     if (manaTextInline) manaTextInline.innerText = Math.floor(playerMana);
-    
+
     const RESPAWN_TIME = 10000; 
     if (playerHP <= 0 && player && player.isAlive === true && juegoIniciado) { 
         playerHP = 0; 
@@ -1518,7 +1499,7 @@ function actualizarStatsUI() {
                 if (socket && socket.emit) socket.emit('playerRespawn', { id: socket.id }); 
             } 
         }, RESPAWN_TIME); 
-    } 
+    }
 }
 
 function mostrarPreviewStats(item, tipo) { 
@@ -1624,7 +1605,6 @@ function cargarSkillsPorClase() {
         } 
     }); 
     
-    // Agregar skill del Bárbaro
     if (pClassName === 'BARBARO') {
         skillsDisponibles.push({ ...SKILLS_DATA['golpe_brutal'] });
     }
@@ -1675,21 +1655,18 @@ function renderizarSkillsInline() {
             div.appendChild(equippedSpan);
         }
         
-        // Click para mostrar detalles
         div.onclick = (e) => { e.stopPropagation(); mostrarDetalleSkill(skill); };
         
-        // Doble click para equipar
         div.ondblclick = (e) => {
             e.stopPropagation();
             if (skillsEquipadas.includes(skill.id)) {
                 mostrarMensaje(`❌ ${skill.nombre} ya está equipado`, 'error');
                 return;
             }
-            // Asegurar que skillsEquipadas tenga la longitud correcta
-while (skillsEquipadas.length < MAX_SKILLS) {
-    skillsEquipadas.push(null);
-}
-const emptySlotIndex = skillsEquipadas.findIndex(s => s === undefined || s === null || s === "");
+            while (skillsEquipadas.length < MAX_SKILLS) {
+                skillsEquipadas.push(null);
+            }
+            const emptySlotIndex = skillsEquipadas.findIndex(s => s === undefined || s === null || s === "");
             if (emptySlotIndex !== -1) {
                 skillsEquipadas[emptySlotIndex] = skill.id;
                 localStorage.setItem(SAVE_KEY + '_skills', JSON.stringify(skillsEquipadas));
@@ -1769,7 +1746,6 @@ function renderizarBarraSkills() {
                 }
             };
             
-            // Doble click para desequipar
             div.ondblclick = (e) => {
                 e.stopPropagation();
                 if (skill) {
@@ -1906,7 +1882,7 @@ function usarSkill(skillId) {
         let targetY = player.y; 
         switch(dir) { 
             case 'Derecha': targetX += 200; break; 
-            case 'Izquierda': targetX -= 200; break; 
+            case 'Izquierda': targetX -= 200; break;  
             case 'Arriba': targetY -= 200; break; 
             case 'Abajo': targetY += 200; break; 
             default: targetY += 200; 
@@ -1921,147 +1897,138 @@ function usarSkill(skillId) {
             } 
         }); 
     } else if (skillId === 'golpe_brutal') { 
-    if (pClassName !== 'BARBARO') {
-        mostrarMensaje(`❌ Solo los Bárbaros pueden usar Golpe Brutal`, 'error');
-        return;
-    }
-    if (barbaroHabilidadEnCooldown) {
-        mostrarMensaje(`⏳ Golpe Brutal en cooldown (15s)`, 'error');
-        return;
-    }
-    
-    barbaroHabilidadEnCooldown = true;
-    
-    const originalDir = player.lastDir;
-    const originalVelocityX = player.body.velocity.x;
-    const originalY = player.y;
-    
-    // ==========================================
-    // FRAMES DE ATAQUE POR DIRECCIÓN
-    // ==========================================
-    let frame0, frame1, frame2, frame3, frame4, frame5, frame6, frame7;
-    
-    switch(originalDir) {
-        case 'Derecha':
-            frame0 = 0; frame1 = 1; frame2 = 2; frame3 = 3; frame4 = 4; frame5 = 5; frame6 = 6; frame7 = 7;
-            break;
-        case 'Arriba':
-            frame0 = 8; frame1 = 9; frame2 = 10; frame3 = 11; frame4 = 12; frame5 = 13; frame6 = 14; frame7 = 15;
-            break;
-        case 'Abajo':
-            frame0 = 16; frame1 = 17; frame2 = 18; frame3 = 19; frame4 = 20; frame5 = 21; frame6 = 22; frame7 = 23;
-            break;
-        case 'Izquierda':
-            frame0 = 24; frame1 = 25; frame2 = 26; frame3 = 27; frame4 = 28; frame5 = 29; frame6 = 30; frame7 = 31;
-            break;
-        default:
-            frame0 = 0; frame1 = 1; frame2 = 2; frame3 = 3; frame4 = 4; frame5 = 5; frame6 = 6; frame7 = 7;
-    }
-    
-    // ==========================================
-    // ANIMACIÓN Y SALTO
-    // ==========================================
-    player.setFrame(frame0);
-    
-    let currentStep = 0;
-    
-    const nextFrame = () => {
-        currentStep++;
-        if (currentStep === 1) player.setFrame(frame1);
-        else if (currentStep === 2) player.setFrame(frame2);
-        else if (currentStep === 3) player.setFrame(frame3);
-        else if (currentStep === 4) {
-            player.setFrame(frame4);
+        if (pClassName !== 'BARBARO') {
+            mostrarMensaje(`❌ Solo los Bárbaros pueden usar Golpe Brutal`, 'error');
             return;
         }
-        if (currentStep < 4) {
-            setTimeout(nextFrame, 100);
+        
+        if (playerMana < 20) {
+            mostrarMensaje(`❌ Mana insuficiente (20) para Golpe Brutal`, 'error');
+            return;
         }
-    };
-    
-    nextFrame();
-    
-   // SALTO
-currentScene.tweens.add({
-    targets: player,
-    y: originalY - 80,
-    duration: 350,
-    ease: 'Power2',
-    onComplete: () => {
-        // TOCA EL SUELO
-        player.y = originalY;
         
-        // Congelar en frame 4
-        player.setFrame(frame4);
+        if (barbaroHabilidadEnCooldown) {
+            mostrarMensaje(`⏳ Golpe Brutal en cooldown (15s)`, 'error');
+            return;
+        }
         
-        // ==========================================
-        // SUELO ROTO (misma posición que el círculo)
-        // ==========================================
-        const rotosuelo = currentScene.add.image(player.x, player.y, 'rotosuelo');
-rotosuelo.setDepth(player.y - 10);
-rotosuelo.setScale(0.8);
-rotosuelo.setAlpha(0.8);
-currentScene.time.delayedCall(1000, () => {
-    rotosuelo.destroy();
-});
+        playerMana -= 20;
+        actualizarStatsUI();
         
-        // Círculo de impacto (invisible)
-        const graphics = currentScene.add.graphics();
-        graphics.lineStyle(4, 0xff0000, 0);
-        graphics.strokeCircle(player.x, player.y, 70);
-        graphics.fillStyle(0xff0000, 0);
-        graphics.fillCircle(player.x, player.y, 70);
-        currentScene.cameras.main.shake(80, 0.01);
+        barbaroHabilidadEnCooldown = true;
         
-        // Daño x3 en área
-        let ataqueFisicoTotal = classStats[pClassName].ataqueFisico + playerStats.fuerza;
-        const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null; 
-        if (armaItem && armaItem.ataqueFisico) ataqueFisicoTotal += armaItem.ataqueFisico;
-        const damageBonus = ataqueFisicoTotal * 3;
+        const originalDir = player.lastDir;
+        const originalVelocityX = player.body.velocity.x;
+        const originalY = player.y;
         
-        window.esqueletosGrupo.getChildren().forEach(esq => {
-            if (esq.active && !esq.isAlly) {
-                const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y);
-                if (dist < 70) {
-                    socket.emit('esqueletoHit', { id: esq.esqueletoId, damageBonus: damageBonus, esCritico: false });
+        let frame0, frame1, frame2, frame3, frame4, frame5, frame6, frame7;
+        
+        switch(originalDir) {
+            case 'Derecha':
+                frame0 = 0; frame1 = 1; frame2 = 2; frame3 = 3; frame4 = 4; frame5 = 5; frame6 = 6; frame7 = 7;
+                break;
+            case 'Arriba':
+                frame0 = 8; frame1 = 9; frame2 = 10; frame3 = 11; frame4 = 12; frame5 = 13; frame6 = 14; frame7 = 15;
+                break;
+            case 'Abajo':
+                frame0 = 16; frame1 = 17; frame2 = 18; frame3 = 19; frame4 = 20; frame5 = 21; frame6 = 22; frame7 = 23;
+                break;
+            case 'Izquierda':
+                frame0 = 24; frame1 = 25; frame2 = 26; frame3 = 27; frame4 = 28; frame5 = 29; frame6 = 30; frame7 = 31;
+                break;
+            default:
+                frame0 = 0; frame1 = 1; frame2 = 2; frame3 = 3; frame4 = 4; frame5 = 5; frame6 = 6; frame7 = 7;
+        }
+        
+        player.setFrame(frame0);
+        
+        let currentStep = 0;
+        
+        const nextFrame = () => {
+            currentStep++;
+            if (currentStep === 1) player.setFrame(frame1);
+            else if (currentStep === 2) player.setFrame(frame2);
+            else if (currentStep === 3) player.setFrame(frame3);
+            else if (currentStep === 4) {
+                player.setFrame(frame4);
+                return;
+            }
+            if (currentStep < 4) {
+                setTimeout(nextFrame, 100);
+            }
+        };
+        
+        nextFrame();
+        
+        currentScene.tweens.add({
+            targets: player,
+            y: originalY - 80,
+            duration: 350,
+            ease: 'Power2',
+            onComplete: () => {
+                player.y = originalY;
+                player.setFrame(frame4);
+                
+                const rotosuelo = currentScene.add.image(player.x, player.y, 'rotosuelo');
+                rotosuelo.setDepth(player.y - 10);
+                rotosuelo.setScale(0.8);
+                rotosuelo.setAlpha(0.8);
+                currentScene.time.delayedCall(1000, () => rotosuelo.destroy());
+                
+                const graphics = currentScene.add.graphics();
+                graphics.lineStyle(4, 0xff0000, 0);
+                graphics.strokeCircle(player.x, player.y, 70);
+                graphics.fillStyle(0xff0000, 0);
+                graphics.fillCircle(player.x, player.y, 70);
+                currentScene.cameras.main.shake(80, 0.01);
+                
+                let ataqueFisicoTotal = classStats[pClassName].ataqueFisico + playerStats.fuerza;
+                const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null; 
+                if (armaItem && armaItem.ataqueFisico) ataqueFisicoTotal += armaItem.ataqueFisico;
+                const damageBonus = ataqueFisicoTotal * 3;
+                
+                if (window.esqueletosGrupo) {
+                    window.esqueletosGrupo.getChildren().forEach(esq => {
+                        if (esq.active && !esq.isAlly) {
+                            const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y);
+                            if (dist < 70) {
+                                socket.emit('esqueletoHit', { id: esq.esqueletoId, damageBonus: damageBonus, esCritico: false });
+                            }
+                        }
+                    });
                 }
+                
+                currentScene.time.delayedCall(350, () => {
+                    graphics.destroy();
+                    
+                    setTimeout(() => {
+                        player.setFrame(frame5);
+                        setTimeout(() => {
+                            player.setFrame(frame6);
+                            setTimeout(() => {
+                                player.setFrame(frame7);
+                                setTimeout(() => {
+                                    if (originalVelocityX === 0) {
+                                        player.play(pClass + '_idle_' + originalDir, true);
+                                    } else {
+                                        player.play(pClass + '_walk_' + originalDir, true);
+                                    }
+                                    player.setVelocity(originalVelocityX, 0);
+                                }, 100);
+                            }, 100);
+                        }, 100);
+                    }, 100);
+                });
             }
         });
         
-        // El círculo dura 350ms, luego continuar animación
-        currentScene.time.delayedCall(350, () => {
-            graphics.destroy();
-            
-            // Continuar con frames 5,6,7
-            setTimeout(() => {
-                player.setFrame(frame5);
-                setTimeout(() => {
-                    player.setFrame(frame6);
-                    setTimeout(() => {
-                        player.setFrame(frame7);
-                        setTimeout(() => {
-                            // Volver a idle o walk
-                            if (originalVelocityX === 0) {
-                                player.play(pClass + '_idle_' + originalDir, true);
-                            } else {
-                                player.play(pClass + '_walk_' + originalDir, true);
-                            }
-                            player.setVelocity(originalVelocityX, 0);
-                        }, 100);
-                    }, 100);
-                }, 100);
-            }, 100);
-        });
+        setTimeout(() => {
+            barbaroHabilidadEnCooldown = false;
+            mostrarMensaje(`✅ Golpe Brutal recargado (15s)`, 'exito');
+        }, 15000);
+        
+        mostrarMensaje(`💥 ¡GOLPE BRUTAL! Salto y daño x3 en área 💥`, 'exito');
     }
-});
-    
-    setTimeout(() => {
-        barbaroHabilidadEnCooldown = false;
-        mostrarMensaje(`✅ Golpe Brutal recargado (15s)`, 'exito');
-    }, BARBARO_HABILIDAD_COOLDOWN);
-    
-    mostrarMensaje(`💥 ¡GOLPE BRUTAL! Salto y daño x3 en área 💥`, 'exito');
-}
 }
 
 function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = true) { 
@@ -2166,9 +2133,6 @@ function crearTextoDmg(esc, x, y, txt, col, sz) {
     esc.tweens.add({ targets: t, y: y - 50, alpha: 0, duration: 600, onComplete: () => t.destroy() }); 
 }
 
-// ============================================
-// PHASER: PRELOAD
-// ============================================
 function preload() { 
     this.load.on('progress', (value) => {
         const porcentaje = Math.floor(value * 100);
@@ -2202,9 +2166,9 @@ function preload() {
     this.load.audio('sonidoMoneda', 'moneda.mp3');
     
     for (let i = 0; i <= 55; i++) { 
-    const frameNum = i.toString().padStart(4, '0'); 
-    this.load.image(`fireball_${frameNum}`, `fireball/${frameNum}.png`); 
-}
+        const frameNum = i.toString().padStart(4, '0'); 
+        this.load.image(`fireball_${frameNum}`, `fireball/${frameNum}.png`); 
+    }
     
     this.load.audio('sonidoTalar', 'talar.mp3'); 
     this.load.audio('sonidoMina', 'mina.mp3'); 
@@ -2217,11 +2181,8 @@ function preload() {
         const frameNum = i.toString().padStart(4, '0'); 
         this.load.image(`gold_${frameNum}`, `gold/${frameNum}.png`); 
     }
-} 
+}
 
-// ============================================
-// PHASER: CREATE
-// ============================================ 
 function create() { 
     actualizarBarraCarga(100);
     
@@ -2246,31 +2207,28 @@ function create() {
             socket.emit('chatMessage', msg); 
             chatInput.value = ""; 
         } 
-    } 
-
-// Función para crear círculo de impacto del demonlord (adelante de él)
-function crearCirculoImpacto(x, y, dir) {
-    let offsetX = 0, offsetY = 0;
-    let endX = x, endY = y;
-    
-    switch(dir) {
-        case 'Derecha': offsetX = 30; endX = x + offsetX; break;
-        case 'Izquierda': offsetX = -30; endX = x + offsetX; break;
-        case 'Arriba': offsetY = -30; endY = y + offsetY; break;
-        case 'Abajo': offsetY = 30; endY = y + offsetY; break;
-        default: offsetY = 30; endY = y + offsetY; break;
     }
     
-    const graphics = currentScene.add.graphics();
-    graphics.lineStyle(2, 0xff0000, 1);
-    graphics.fillStyle(0xff0000, 0.5);
-    
-    // Rectángulo de 50x50
-    graphics.fillRoundedRect(endX - 25, endY - 25, 50, 50, 5);
-    graphics.strokeRoundedRect(endX - 25, endY - 25, 50, 50, 5);
-    
-    currentScene.time.delayedCall(350, () => graphics.destroy());
-}
+    function crearCirculoImpacto(x, y, dir) {
+        let offsetX = 0, offsetY = 0;
+        let endX = x, endY = y;
+        
+        switch(dir) {
+            case 'Derecha': offsetX = 30; endX = x + offsetX; break;
+            case 'Izquierda': offsetX = -30; endX = x + offsetX; break;
+            case 'Arriba': offsetY = -30; endY = y + offsetY; break;
+            case 'Abajo': offsetY = 30; endY = y + offsetY; break;
+            default: offsetY = 30; endY = y + offsetY; break;
+        }
+        
+        const graphics = currentScene.add.graphics();
+        graphics.lineStyle(2, 0xff0000, 1);
+        graphics.fillStyle(0xff0000, 0.5);
+        graphics.fillRoundedRect(endX - 25, endY - 25, 50, 50, 5);
+        graphics.strokeRoundedRect(endX - 25, endY - 25, 50, 50, 5);
+        
+        currentScene.time.delayedCall(350, () => graphics.destroy());
+    }
     
     if (chatSend) chatSend.addEventListener('click', enviarMensaje); 
     if (chatInput) chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') enviarMensaje(); }); 
@@ -2282,11 +2240,9 @@ function crearCirculoImpacto(x, y, dir) {
     keys = this.input.keyboard.addKeys('W,A,S,D,SPACE,SHIFT,R,I,T'); 
     otherPlayers = this.add.group();
     
-    // Inicializar volumen de música
     const musica = this.sound.add('musicaFondo', { loop: true, volume: window.volumenMusica }); 
     musica.play(); 
     
-    // Inicializar controles de volumen
     initControlesVolumen();
     
     const dirs = ['Derecha', 'Arriba', 'Abajo', 'Izquierda'];
@@ -2349,9 +2305,21 @@ function crearCirculoImpacto(x, y, dir) {
         this.anims.create({ key: `mago_sprite_atk_${anim.dir}`, frames: [{ key: 'mago_sprite', frame: anim.atk1 }, { key: 'mago_sprite', frame: anim.atk2 }], frameRate: 12, repeat: 0 }); 
         const dieFrames = []; 
         for (let i = 0; i < anim.dieCount; i++) dieFrames.push({ key: 'mago_sprite', frame: anim.dieStart + i }); 
-    this.anims.create({ key: `mago_sprite_die_${anim.dir}`, frames: dieFrames, frameRate: 8 }); 
+        this.anims.create({ key: `mago_sprite_die_${anim.dir}`, frames: dieFrames, frameRate: 8 }); 
     });
-   this.anims.create({ key: 'dl_idle_Derecha', frames: this.anims.generateFrameNumbers('demonlord', { start: 0, end: 7 }), frameRate: 10, repeat: -1 }); this.anims.create({ key: 'dl_idle_Arriba', frames: this.anims.generateFrameNumbers('demonlord', { start: 8, end: 15 }), frameRate: 10, repeat: -1 }); this.anims.create({ key: 'dl_idle_Abajo', frames: this.anims.generateFrameNumbers('demonlord', { start: 16, end: 23 }), frameRate: 10, repeat: -1 }); this.anims.create({ key: 'dl_idle_Izquierda', frames: this.anims.generateFrameNumbers('demonlord', { start: 24, end: 31 }), frameRate: 10, repeat: -1 }); this.anims.create({ key: 'dl_walk_Derecha', frames: this.anims.generateFrameNumbers('demonlord', { start: 32, end: 39 }), frameRate: 10, repeat: -1 }); this.anims.create({ key: 'dl_walk_Arriba', frames: this.anims.generateFrameNumbers('demonlord', { start: 40, end: 47 }), frameRate: 10, repeat: -1 }); this.anims.create({ key: 'dl_walk_Abajo', frames: this.anims.generateFrameNumbers('demonlord', { start: 48, end: 55 }), frameRate: 10, repeat: -1 }); this.anims.create({ key: 'dl_walk_Izquierda', frames: this.anims.generateFrameNumbers('demonlord', { start: 56, end: 63 }), frameRate: 10, repeat: -1 }); this.anims.create({ key: 'dl_ataque_Derecha', frames: this.anims.generateFrameNumbers('demonlord', { start: 161, end: 168 }), frameRate: 16, repeat: 0 }); this.anims.create({ key: 'dl_ataque_Arriba', frames: this.anims.generateFrameNumbers('demonlord', { start: 169, end: 176 }), frameRate: 16, repeat: 0 }); this.anims.create({ key: 'dl_ataque_Abajo', frames: this.anims.generateFrameNumbers('demonlord', { start: 177, end: 184 }), frameRate: 16, repeat: 0 }); this.anims.create({ key: 'dl_ataque_Izquierda', frames: this.anims.generateFrameNumbers('demonlord', { start: 185, end: 192 }), frameRate: 16, repeat: 0 }); console.log("✅ Animaciones demonlord creadas");
+    
+    this.anims.create({ key: 'dl_idle_Derecha', frames: this.anims.generateFrameNumbers('demonlord', { start: 0, end: 7 }), frameRate: 10, repeat: -1 }); 
+    this.anims.create({ key: 'dl_idle_Arriba', frames: this.anims.generateFrameNumbers('demonlord', { start: 8, end: 15 }), frameRate: 10, repeat: -1 }); 
+    this.anims.create({ key: 'dl_idle_Abajo', frames: this.anims.generateFrameNumbers('demonlord', { start: 16, end: 23 }), frameRate: 10, repeat: -1 }); 
+    this.anims.create({ key: 'dl_idle_Izquierda', frames: this.anims.generateFrameNumbers('demonlord', { start: 24, end: 31 }), frameRate: 10, repeat: -1 }); 
+    this.anims.create({ key: 'dl_walk_Derecha', frames: this.anims.generateFrameNumbers('demonlord', { start: 32, end: 39 }), frameRate: 10, repeat: -1 }); 
+    this.anims.create({ key: 'dl_walk_Arriba', frames: this.anims.generateFrameNumbers('demonlord', { start: 40, end: 47 }), frameRate: 10, repeat: -1 }); 
+    this.anims.create({ key: 'dl_walk_Abajo', frames: this.anims.generateFrameNumbers('demonlord', { start: 48, end: 55 }), frameRate: 10, repeat: -1 }); 
+    this.anims.create({ key: 'dl_walk_Izquierda', frames: this.anims.generateFrameNumbers('demonlord', { start: 56, end: 63 }), frameRate: 10, repeat: -1 }); 
+    this.anims.create({ key: 'dl_ataque_Derecha', frames: this.anims.generateFrameNumbers('demonlord', { start: 161, end: 168 }), frameRate: 16, repeat: 0 }); 
+    this.anims.create({ key: 'dl_ataque_Arriba', frames: this.anims.generateFrameNumbers('demonlord', { start: 169, end: 176 }), frameRate: 16, repeat: 0 }); 
+    this.anims.create({ key: 'dl_ataque_Abajo', frames: this.anims.generateFrameNumbers('demonlord', { start: 177, end: 184 }), frameRate: 16, repeat: 0 }); 
+    this.anims.create({ key: 'dl_ataque_Izquierda', frames: this.anims.generateFrameNumbers('demonlord', { start: 185, end: 192 }), frameRate: 16, repeat: 0 });
     
     let escalaJugador = (pClassName === 'NECROMANCER' || pClassName === 'MAGO') ? 0.3 : 2;
     player = this.physics.add.sprite(512, 512, pClass).setScale(escalaJugador).setCollideWorldBounds(true); 
@@ -2363,23 +2331,23 @@ function crearCirculoImpacto(x, y, dir) {
     demonlord_sprite = this.physics.add.sprite(1500, 1500, 'demonlord').setScale(2.5).setDepth(1500); 
     demonlord_sprite.cDir = 'Abajo';
     
-   const guardado = window.guardadoPendiente || null; 
-if (guardado) { 
-    if (guardado.inventarioSlots) inventarioSlots = guardado.inventarioSlots; 
-    else { inventarioSlots = []; for (let i = 0; i < 36; i++) inventarioSlots.push(null); }
-    equipamiento = guardado.equipamiento || { arma: null, escudo: null, armadura: null }; 
-    playerStats = guardado.playerStats || { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 }; 
-    if (guardado.ultimaPosicion) player.setPosition(guardado.ultimaPosicion.x, guardado.ultimaPosicion.y); 
-    attackSpeedModifier = classStats[pClassName]?.attackSpeed || 1.0; 
-    if (guardado.skillsEquipadas) skillsEquipadas = guardado.skillsEquipadas; 
-    if (skillsEquipadas.length > 3) skillsEquipadas = skillsEquipadas.slice(0, 3); 
-} else { 
-    inicializarInventario(); 
-    let statsBase = classStats[pClassName] || classStats['WARRIOR']; 
-    playerHP = statsBase.hp; 
-    playerMana = statsBase.mana; 
-    attackSpeedModifier = statsBase.attackSpeed || 1.0; 
-}
+    const guardado = window.guardadoPendiente || null; 
+    if (guardado) { 
+        if (guardado.inventarioSlots) inventarioSlots = guardado.inventarioSlots; 
+        else { inventarioSlots = []; for (let i = 0; i < 36; i++) inventarioSlots.push(null); }
+        equipamiento = guardado.equipamiento || { arma: null, escudo: null, armadura: null }; 
+        playerStats = guardado.playerStats || { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 }; 
+        if (guardado.ultimaPosicion) player.setPosition(guardado.ultimaPosicion.x, guardado.ultimaPosicion.y); 
+        attackSpeedModifier = classStats[pClassName]?.attackSpeed || 1.0; 
+        if (guardado.skillsEquipadas) skillsEquipadas = guardado.skillsEquipadas; 
+        if (skillsEquipadas.length > 5) skillsEquipadas = skillsEquipadas.slice(0, 5); 
+    } else { 
+        inicializarInventario(); 
+        let statsBase = classStats[pClassName] || classStats['WARRIOR']; 
+        playerHP = statsBase.hp; 
+        playerMana = statsBase.mana; 
+        attackSpeedModifier = statsBase.attackSpeed || 1.0; 
+    }
 
     forzarIconosCorrectos();
     actualizarStatsUI(); 
@@ -2391,172 +2359,208 @@ if (guardado) {
     const btnAttack = document.getElementById('btn-attack'); 
     
     const actualizarIconoAtaque = () => { 
-    if (!player || !player.active) return; 
-    let arbol = false, mina = false, roca = false; 
-    if (window.arbolesGrupo) window.arbolesGrupo.getChildren().forEach(a => { if (a.active && Phaser.Math.Distance.Between(player.x, player.y, a.x, a.y) < 80) arbol = true; }); 
-    if (window.minasGrupo) window.minasGrupo.getChildren().forEach(m => { if (m.active && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 80) mina = true; }); 
-    if (window.rocasGrupo) window.rocasGrupo.getChildren().forEach(r => { if (r.active && Phaser.Math.Distance.Between(player.x, player.y, r.x, r.y) < 50) roca = true; }); 
-    if (roca) btnAttack.innerHTML = '🖐️'; 
-    else if (mina) btnAttack.innerHTML = '⛏️'; 
-    else if (arbol) btnAttack.innerHTML = '🪓'; 
-    else btnAttack.innerHTML = '⚔️'; 
-};  // <--- CIERRA LA FUNCIÓN CORRECTAMENTE
-
-window.simularAtaque = () => { 
-    if (window.ataqueEnProceso) return; 
-    if (!player.attacking && player.body.enable && player.isAlive) { 
-        const ahora = Date.now(); 
-        if (ahora - ultimoAtaqueNormal < COOLDOWN_ATAQUE_NORMAL) { 
-            const tiempoRestante = ((COOLDOWN_ATAQUE_NORMAL - (ahora - ultimoAtaqueNormal)) / 1000).toFixed(1); 
-            mostrarMensaje(`⏳ Espera ${tiempoRestante}s para atacar`, 'error'); 
-            return; 
-        } 
-        window.ataqueEnProceso = true; 
-        ultimoAtaqueNormal = ahora; 
-        let arbol = false, mina = false, roca = false, aC = null, mC = null, rC = null; 
-        
-        if (window.arbolesGrupo) window.arbolesGrupo.getChildren().forEach(ab => { if (ab.active && Phaser.Math.Distance.Between(player.x, player.y, ab.x, ab.y) < 80) { arbol = true; aC = ab; } }); 
-        if (window.minasGrupo) window.minasGrupo.getChildren().forEach(mn => { if (mn.active && Phaser.Math.Distance.Between(player.x, player.y, mn.x, mn.y) < 80) { mina = true; mC = mn; } }); 
-        if (window.rocasGrupo) window.rocasGrupo.getChildren().forEach(rc => { if (rc.active && Phaser.Math.Distance.Between(player.x, player.y, rc.x, rc.y) < 50) { roca = true; rC = rc; } }); 
-        
-        player.attacking = true;
-        player.setVelocity(0, 0);
-        player.play(pClass + '_atk_' + player.lastDir, true);
-
-        setTimeout(() => {
-            player.attacking = false;
-            window.ataqueEnProceso = false;
-            console.log("Ataque reset por timeout");
-        }, 400);
-        
-        if (currentScene) {
-            const sonidoAtq = currentScene.sound.get('sonidoAtaque');
-            if (sonidoAtq) reproducirSonido(sonidoAtq, window.volumenFX);
-            else currentScene.sound.play('sonidoAtaque', { volume: window.volumenFX });
-        }
-        
-        let ataqueFisicoBase = classStats[pClassName].ataqueFisico; 
-        let ataqueFisicoTotal = ataqueFisicoBase + playerStats.fuerza; 
-        const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null; 
-        if (armaItem && armaItem.ataqueFisico) ataqueFisicoTotal += armaItem.ataqueFisico; 
-        const chanceCritico = 20 + Math.floor(playerStats.agilidad / 10); 
-        const esCritico = Math.random() * 100 < chanceCritico; 
-        
-        // Daño normal (sin habilidad automática)
-        let damageBonus = ataqueFisicoTotal;
-        if (esCritico) damageBonus = Math.floor(ataqueFisicoTotal * 1.5);
-        
-        socket.emit('playerAttack', { damageBonus: damageBonus }); 
-        
-        player.once('animationcomplete', (anim) => { 
-            if (anim.key === pClass + '_atk_' + player.lastDir) { 
-                player.attacking = false; 
-                window.ataqueEnProceso = false; 
-                if (roca && rC) { socket.emit('recogerRoca', { x: player.x, y: player.y }); rC.destroy(); } 
-                else if (mina && mC) { socket.emit('minarMina', { x: player.x, y: player.y }); if (currentScene) { const sonidoMina = currentScene.sound.get('sonidoMina'); if (sonidoMina) reproducirSonido(sonidoMina, window.volumenFX); else currentScene.sound.play('sonidoMina', { volume: window.volumenFX }); } } 
-                else if (arbol && aC) { socket.emit('talarArbol', { x: player.x, y: player.y }); if (currentScene) { const sonidoTalar = currentScene.sound.get('sonidoTalar'); if (sonidoTalar) reproducirSonido(sonidoTalar, window.volumenFX); else currentScene.sound.play('sonidoTalar', { volume: window.volumenFX }); } } 
-                else if (demonlord_sprite && demonlord_sprite.visible && Phaser.Math.Distance.Between(player.x, player.y, demonlord_sprite.x, demonlord_sprite.y) < 135) { 
-                    socket.emit('demonlordHit', { damageBonus: damageBonus, esCritico: esCritico }); 
-                    if (currentScene) { if (esCritico) crearTextoDmg(currentScene, demonlord_sprite.x, demonlord_sprite.y, "CRITICO!", "#ff4444", "18px"); else crearTextoDmg(currentScene, demonlord_sprite.x, demonlord_sprite.y, "⚔️", "#fff", "16px"); } 
-                } 
-                if (window.esqueletosGrupo) { 
-                    // Ataque normal al esqueleto más cercano
-                    let esqueletoMasCercano = null; 
-                    let distanciaMinima = Infinity; 
-                    window.esqueletosGrupo.getChildren().forEach(esq => { 
-                        if (esq.active && !esq.isAlly) { 
-                            const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y); 
-                            if (dist < 80 && dist < distanciaMinima) { 
-                                distanciaMinima = dist; 
-                                esqueletoMasCercano = esq; 
-                            } 
-                        } 
-                    }); 
-                    if (esqueletoMasCercano) socket.emit('esqueletoHit', { id: esqueletoMasCercano.esqueletoId, damageBonus: damageBonus, esCritico: esCritico }); 
-                } 
+        if (!player || !player.active) return; 
+        let arbol = false, mina = false, roca = false; 
+        if (window.arbolesGrupo) window.arbolesGrupo.getChildren().forEach(a => { if (a.active && Phaser.Math.Distance.Between(player.x, player.y, a.x, a.y) < 80) arbol = true; }); 
+        if (window.minasGrupo) window.minasGrupo.getChildren().forEach(m => { if (m.active && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 80) mina = true; }); 
+        if (window.rocasGrupo) window.rocasGrupo.getChildren().forEach(r => { if (r.active && Phaser.Math.Distance.Between(player.x, player.y, r.x, r.y) < 50) roca = true; }); 
+        if (roca) btnAttack.innerHTML = '🖐️'; 
+        else if (mina) btnAttack.innerHTML = '⛏️'; 
+        else if (arbol) btnAttack.innerHTML = '🪓'; 
+        else btnAttack.innerHTML = '⚔️'; 
+    };
+    
+    window.simularAtaque = () => { 
+        if (window.ataqueEnProceso) return; 
+        if (!player.attacking && player.body.enable && player.isAlive) { 
+            const ahora = Date.now(); 
+            if (ahora - ultimoAtaqueNormal < COOLDOWN_ATAQUE_NORMAL) { 
+                const tiempoRestante = ((COOLDOWN_ATAQUE_NORMAL - (ahora - ultimoAtaqueNormal)) / 1000).toFixed(1); 
+                mostrarMensaje(`⏳ Espera ${tiempoRestante}s para atacar`, 'error'); 
+                return; 
             } 
-        }); 
-    } 
-};
+            window.ataqueEnProceso = true; 
+            ultimoAtaqueNormal = ahora; 
+            let arbol = false, mina = false, roca = false, aC = null, mC = null, rC = null; 
+            
+            if (window.arbolesGrupo) window.arbolesGrupo.getChildren().forEach(ab => { if (ab.active && Phaser.Math.Distance.Between(player.x, player.y, ab.x, ab.y) < 80) { arbol = true; aC = ab; } }); 
+            if (window.minasGrupo) window.minasGrupo.getChildren().forEach(mn => { if (mn.active && Phaser.Math.Distance.Between(player.x, player.y, mn.x, mn.y) < 80) { mina = true; mC = mn; } }); 
+            if (window.rocasGrupo) window.rocasGrupo.getChildren().forEach(rc => { if (rc.active && Phaser.Math.Distance.Between(player.x, player.y, rc.x, rc.y) < 50) { roca = true; rC = rc; } }); 
+            
+            player.attacking = true;
+            player.setVelocity(0, 0);
+            player.play(pClass + '_atk_' + player.lastDir, true);
+            
+            setTimeout(() => {
+                player.attacking = false;
+                window.ataqueEnProceso = false;
+            }, 400);
+            
+            if (currentScene) {
+                const sonidoAtq = currentScene.sound.get('sonidoAtaque');
+                if (sonidoAtq) reproducirSonido(sonidoAtq, window.volumenFX);
+                else currentScene.sound.play('sonidoAtaque', { volume: window.volumenFX });
+            }
+            
+            let ataqueFisicoBase = classStats[pClassName].ataqueFisico; 
+            let ataqueFisicoTotal = ataqueFisicoBase + playerStats.fuerza; 
+            const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null; 
+            if (armaItem && armaItem.ataqueFisico) ataqueFisicoTotal += armaItem.ataqueFisico; 
+            const chanceCritico = 20 + Math.floor(playerStats.agilidad / 10); 
+            const esCritico = Math.random() * 100 < chanceCritico; 
+            
+            let damageBonus = ataqueFisicoTotal;
+            if (esCritico) damageBonus = Math.floor(ataqueFisicoTotal * 1.5);
+
+            if (pClassName === 'BARBARO' && barbaroTieneHacha && barbaroContadorAsesinatos >= 10) {
+                console.log('🔥 GOLPE X3 - Contador antes:', barbaroContadorAsesinatos);
+                damageBonus = ataqueFisicoTotal * 3;
+                mostrarMensaje(`💥 ¡GOLPE X3! Has usado tu habilidad especial 💥`, 'exito');
+                barbaroContadorAsesinatos = 0;
+                if (player) player.clearTint();
+                mostrarMensaje(`🔄 Contador reiniciado a 0/10`, 'info');
+            }
+
+            if (pClassName === 'BARBARO' && barbaroContadorAsesinatos > 10) {
+                console.log('⚠️ Reiniciando contador excedido a:', barbaroContadorAsesinatos);
+                barbaroContadorAsesinatos = 0;
+                if (player) player.clearTint();
+            }
+            
+            socket.emit('playerAttack', { damageBonus: damageBonus });
+            
+            player.once('animationcomplete', (anim) => { 
+                if (anim.key === pClass + '_atk_' + player.lastDir) { 
+                    player.attacking = false; 
+                    window.ataqueEnProceso = false; 
+                    if (roca && rC) { socket.emit('recogerRoca', { x: player.x, y: player.y }); rC.destroy(); } 
+                    else if (mina && mC) { socket.emit('minarMina', { x: player.x, y: player.y }); if (currentScene) { const sonidoMina = currentScene.sound.get('sonidoMina'); if (sonidoMina) reproducirSonido(sonidoMina, window.volumenFX); else currentScene.sound.play('sonidoMina', { volume: window.volumenFX }); } } 
+                    else if (arbol && aC) { socket.emit('talarArbol', { x: player.x, y: player.y }); if (currentScene) { const sonidoTalar = currentScene.sound.get('sonidoTalar'); if (sonidoTalar) reproducirSonido(sonidoTalar, window.volumenFX); else currentScene.sound.play('sonidoTalar', { volume: window.volumenFX }); } } 
+                    else if (demonlord_sprite && demonlord_sprite.visible && Phaser.Math.Distance.Between(player.x, player.y, demonlord_sprite.x, demonlord_sprite.y) < 135) { 
+                        socket.emit('demonlordHit', { damageBonus: damageBonus, esCritico: esCritico }); 
+                        if (currentScene) { if (esCritico) crearTextoDmg(currentScene, demonlord_sprite.x, demonlord_sprite.y, "CRITICO!", "#ff4444", "18px"); else crearTextoDmg(currentScene, demonlord_sprite.x, demonlord_sprite.y, "⚔️", "#fff", "16px"); } 
+                    } 
+                    if (window.esqueletosGrupo) { 
+                        let esqueletoMasCercano = null; 
+                        let distanciaMinima = Infinity; 
+                        window.esqueletosGrupo.getChildren().forEach(esq => { 
+                            if (esq.active && !esq.isAlly) { 
+                                const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y); 
+                                if (dist < 80 && dist < distanciaMinima) { 
+                                    distanciaMinima = dist; 
+                                    esqueletoMasCercano = esq; 
+                                } 
+                            } 
+                        }); 
+                        if (esqueletoMasCercano) socket.emit('esqueletoHit', { id: esqueletoMasCercano.esqueletoId, damageBonus: damageBonus, esCritico: esCritico }); 
+                    } 
+                } 
+            }); 
+        } 
+    };
     
     btnAttack.addEventListener('click', () => { if (window.simularAtaque) window.simularAtaque(); });
     
-   // SOCKET EVENTS
-socket.on('currentPlayers', (ps) => { 
-    Object.keys(ps).forEach(id => { if (id !== socket.id) addOtherPlayer(this, ps[id]); }); 
-}); 
-
-socket.on('newPlayer', (info) => { 
-    if (info.id !== socket.id) addOtherPlayer(this, info); 
-    mostrarMensaje(`📡 ${info.name} (${info.className || info.class})`, 'info'); 
-}); 
-
-socket.on('playerMoved', (info) => { 
-    otherPlayers.getChildren().forEach(other => { 
-        if (info.id === other.id) { 
-            other.targetX = info.x; 
-            other.targetY = info.y; 
-            other.lastDir = info.dir; 
-            if (info.isMoving) other.play(other.pClass + '_walk_' + info.dir, true); 
-            else other.play(other.pClass + '_idle_' + info.dir, true); 
-        } 
+    socket.on('currentPlayers', (ps) => { 
+        Object.keys(ps).forEach(id => { if (id !== socket.id) addOtherPlayer(this, ps[id]); }); 
     }); 
-}); 
-
-socket.on('playerDisconnected', (id) => { 
-    otherPlayers.getChildren().forEach(other => { if (id === other.id) other.destroy(); }); 
-}); 
-
-socket.on('playerAttacked', (data) => { 
-    otherPlayers.getChildren().forEach(other => { 
-        if (other.id === data.id) { 
-            other.play(other.pClass + '_atk_' + data.dir, true); 
-            other.once('animationcomplete', () => { if (other.active) other.play(other.pClass + '_idle_' + data.dir, true); }); 
-        } 
-    }); 
-}); 
-
-socket.on('crearMonedaServidor', (data) => {
-    crearMonedaSuelo(data.x, data.y, data.cantidad);
-});
-
-socket.on('dropPocion', (data) => {
-    const imagen = data.tipo === 'hp' ? 'frascohpdrop' : 'frascompdrop';
-    const drop = currentScene.add.image(data.x, data.y, imagen);
-    drop.setScale(0.8);
-    drop.setDepth(data.y);
-    drop.tipo = data.tipo;
-    drop.cantidad = data.cantidad;
-    drop.recogida = false;
     
-    drop.setInteractive({ useHandCursor: true });
-    drop.on('pointerdown', () => {
-        if (!player || !player.isAlive) return;
-        if (drop.recogida) return;
-        
-        const dist = Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y);
-        if (dist < 60) {
-            recogerPocionSuelo(drop);
-        } else {
-            mostrarMensaje(`❌ Debes acercarte más para recoger la poción`, 'error');
-        }
+    socket.on('newPlayer', (info) => { 
+        if (info.id !== socket.id) addOtherPlayer(this, info); 
+        mostrarMensaje(`📡 ${info.name} (${info.className || info.class})`, 'info'); 
+    }); 
+    
+    socket.on('playerMoved', (info) => { 
+        otherPlayers.getChildren().forEach(other => { 
+            if (info.id === other.id) { 
+                other.targetX = info.x; 
+                other.targetY = info.y; 
+                other.lastDir = info.dir; 
+                if (info.isMoving) other.play(other.pClass + '_walk_' + info.dir, true); 
+                else other.play(other.pClass + '_idle_' + info.dir, true); 
+            } 
+        }); 
+    }); 
+    
+    socket.on('playerDisconnected', (id) => { 
+        otherPlayers.getChildren().forEach(other => { if (id === other.id) other.destroy(); }); 
+    }); 
+    
+    socket.on('playerAttacked', (data) => { 
+        otherPlayers.getChildren().forEach(other => { 
+            if (other.id === data.id) { 
+                other.play(other.pClass + '_atk_' + data.dir, true); 
+                other.once('animationcomplete', () => { if (other.active) other.play(other.pClass + '_idle_' + data.dir, true); }); 
+            } 
+        }); 
+    }); 
+    
+    socket.on('crearMonedaServidor', (data) => {
+        crearMonedaSuelo(data.x, data.y, data.cantidad);
     });
     
-    dropsSuelo.push(drop);
-});
-
-socket.on('barbaroAsesinato', (data) => {
-    // No es necesario hacer nada aquí porque la habilidad ahora es por cooldown
-    console.log("Evento barbaroAsesinato recibido:", data);
-});
-
-socket.on('playerStatsUpdate', (data) => { 
-    if (data.id === socket.id) { 
-        if (data.hp !== undefined) playerHP = data.hp; 
-        if (data.mana !== undefined) playerMana = data.mana; 
-        actualizarStatsUI(); 
-    } 
-});
+    socket.on('dropPocion', (data) => {
+        const imagen = data.tipo === 'hp' ? 'frascohpdrop' : 'frascompdrop';
+        const drop = currentScene.add.image(data.x, data.y, imagen);
+        drop.setScale(0.8);
+        drop.setDepth(data.y);
+        drop.tipo = data.tipo;
+        drop.cantidad = data.cantidad;
+        drop.recogida = false;
+        
+        drop.setInteractive({ useHandCursor: true });
+        drop.on('pointerdown', () => {
+            if (!player || !player.isAlive) return;
+            if (drop.recogida) return;
+            
+            const dist = Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y);
+            if (dist < 60) {
+                recogerPocionSuelo(drop);
+            } else {
+                mostrarMensaje(`❌ Debes acercarte más para recoger la poción`, 'error');
+            }
+        });
+        
+        dropsSuelo.push(drop);
+    });
+    
+    socket.on('barbaroAsesinato', (data) => { 
+        if (data.playerId === socket.id && barbaroTieneHacha && pClassName === 'BARBARO') { 
+            if (barbaroContadorAsesinatos < 10) {
+                barbaroContadorAsesinatos++;
+            }
+            
+            if (barbaroContadorAsesinatos > 10) {
+                console.log('⚠️ CAPA 2: Contador era', barbaroContadorAsesinatos, '→ forzado a 10');
+                barbaroContadorAsesinatos = 10;
+            }
+            
+            if (barbaroContadorAsesinatos > 10) {
+                console.log('⚠️ CAPA 3: Reiniciando contador a 0');
+                barbaroContadorAsesinatos = 0;
+                if (player) player.clearTint();
+            }
+            
+            mostrarMensaje(`🗡️ Bárbaro: ${barbaroContadorAsesinatos}/10 asesinatos`, 'info'); 
+            
+            if (barbaroContadorAsesinatos >= 10) { 
+                mostrarMensaje(`🔥 ¡HABILIDAD ESPECIAL DISPONIBLE! Tu próximo ataque hará daño x3 🔥`, 'exito'); 
+                if (player) { 
+                    player.setTint(0xff6600); 
+                } 
+            } 
+            
+            console.log('📊 Contador FINAL:', barbaroContadorAsesinatos);
+        } 
+    });
+    
+    socket.on('playerStatsUpdate', (data) => { 
+        if (data.id === socket.id) { 
+            if (data.hp !== undefined) playerHP = data.hp; 
+            if (data.mana !== undefined) playerMana = data.mana; 
+            actualizarStatsUI(); 
+        } 
+    });
     
     socket.on('playerExpGain', (data) => { if (data.id === socket.id) ganarExp(data.exp); });
     
@@ -2611,56 +2615,57 @@ socket.on('playerStatsUpdate', (data) => {
     
     socket.on('demonlordRespawn', (data) => { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.setVisible(true); demonlord_sprite.clearTint(); demonlordHP = 5000; actualizarDemonlordHPBar(); crearTextoDmg(this, data.x, data.y, "RENACE", "#fff", "22px"); });
     
-   socket.on('enemyDamaged', (data) => { 
-    if (data.id === 'demonlord') { 
-        demonlordHP = data.hp; 
-        actualizarDemonlordHPBar(); 
-        crearTextoDmg(currentScene, data.x, data.y, data.dmg, '#fff', '20px'); 
-    } else if (data.id === socket.id) { 
-        crearTextoDmg(currentScene, player.x, player.y, data.dmg, '#fff', '20px'); 
-    } else { 
-        if (window.esqueletosGrupo) { 
-            window.esqueletosGrupo.getChildren().forEach(esq => { 
-                if (esq.esqueletoId === data.id) { 
-                    crearTextoDmg(currentScene, data.x, data.y, data.dmg, '#fff', '16px'); 
-                } 
-            }); 
+    socket.on('enemyDamaged', (data) => { 
+        if (data.id === 'demonlord') { 
+            demonlordHP = data.hp; 
+            actualizarDemonlordHPBar(); 
+            crearTextoDmg(currentScene, data.x, data.y, data.dmg, '#fff', '20px'); 
+        } else if (data.id === socket.id) { 
+            crearTextoDmg(currentScene, player.x, player.y, data.dmg, '#fff', '20px'); 
+        } else { 
+            if (window.esqueletosGrupo) { 
+                window.esqueletosGrupo.getChildren().forEach(esq => { 
+                    if (esq.esqueletoId === data.id) { 
+                        crearTextoDmg(currentScene, data.x, data.y, data.dmg, '#fff', '16px'); 
+                    } 
+                }); 
+            } 
         } 
-    } 
-});
-
+    });
+    
     socket.on('esqueletosIniciales', (data) => { 
-    if (!window.esqueletosGrupo) window.esqueletosGrupo = this.add.group(); 
-    window.esqueletosGrupo.clear(true, true); 
-    data.forEach(esqueleto => { 
-        if (esqueleto.isAlive !== false) { 
-            const img = this.physics.add.sprite(esqueleto.x, esqueleto.y, 'esqueleto').setScale(0.3).setDepth(esqueleto.y); 
-            img.esqueletoId = esqueleto.id; 
-            img.isAlly = esqueleto.isAlly || false; 
-            img.setCollideWorldBounds(true); 
-            img.setSize(50, 50);
-            img.setOffset(100, 100);
-            img.body.setImmovable(true);
-            img.play('esqueleto_idle_Abajo', true); 
-            img.setInteractive(); 
-            img.on('pointerdown', () => { ultimoEsqueletoClickeado = esqueleto.id; mostrarMensaje(`💀 Esqueleto ${esqueleto.isAlly ? 'aliado' : 'enemigo'} seleccionado`, 'info'); }); 
-            if (window.esqueletosGrupo) window.esqueletosGrupo.add(img); 
-        } 
-    }); 
-    // Agregar colisiones entre esqueletos
-    window.esqueletosGrupo.getChildren().forEach(esq1 => { 
-        window.esqueletosGrupo.getChildren().forEach(esq2 => { 
-            if (esq1 !== esq2) { 
-                this.physics.add.collider(esq1, esq2); 
+        if (!window.esqueletosGrupo) window.esqueletosGrupo = this.add.group(); 
+        window.esqueletosGrupo.clear(true, true); 
+        data.forEach(esqueleto => { 
+            if (esqueleto.isAlive !== false) { 
+                const img = this.physics.add.sprite(esqueleto.x, esqueleto.y, 'esqueleto').setScale(0.3).setDepth(esqueleto.y); 
+                img.esqueletoId = esqueleto.id; 
+                img.isAlly = esqueleto.isAlly || false; 
+                img.setCollideWorldBounds(true); 
+                img.setSize(50, 50);
+                img.setOffset(100, 100);
+                img.body.setImmovable(true);
+                img.play('esqueleto_idle_Abajo', true); 
+                img.setInteractive(); 
+                img.on('pointerdown', () => { ultimoEsqueletoClickeado = esqueleto.id; mostrarMensaje(`💀 Esqueleto ${esqueleto.isAlly ? 'aliado' : 'enemigo'} seleccionado`, 'info'); }); 
+                if (window.esqueletosGrupo) window.esqueletosGrupo.add(img); 
             } 
         }); 
-    }); 
-});
+        window.esqueletosGrupo.getChildren().forEach(esq1 => { 
+            window.esqueletosGrupo.getChildren().forEach(esq2 => { 
+                if (esq1 !== esq2) { 
+                    this.physics.add.collider(esq1, esq2); 
+                } 
+            }); 
+        }); 
+    });
     
     socket.on('esqueletoMoved', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.setPosition(data.x, data.y); esq.setDepth(data.y); if (data.isMoving) esq.play(`esqueleto_walk_${data.dir}`, true); else esq.play(`esqueleto_idle_${data.dir}`, true); } }); } });
     
-   socket.on('esqueletoAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); mostrarMensaje(`💀 Recibiste ${data.damage} de daño`, 'combate'); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play(`esqueleto_atk_${data.dir}`, true); setTimeout(() => { if (esq.active) esq.play(`esqueleto_idle_${data.dir}`, true); }, 300); } }); } });
-   socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('esqueletoMuere'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('esqueletoMuere', { volume: window.volumenFX }); } if (Math.random() < 0.3) { crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5); } if (Math.random() < 0.05) { crearDropEspada(data.x, data.y, 'espada_1', 'Espada', 'espada', 'espada_img', { ataqueFisico: 15, velocidad: -15 }); } if (Math.random() < 0.05) { crearDropEscudo(data.x, data.y, 'escudo_1', 'Escudo', 'escudo', 'escudo_madera_img', { defensaFisica: 20, velocidad: -15 }); } if (Math.random() < 0.03) { crearDropArmadura(data.x, data.y, 'armadura_1', 'Armadura', 'armadura', 'armadura_de_cuero_img', { defensaFisica: 15, velocidad: -20 }); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play('esqueleto_die_Abajo'); esq.once('animationcomplete', () => { if (esq && esq.active) { esq.stop(); esq.setFrame(55); esq.body.enable = false; esq.setVisible(true); setTimeout(() => { if (esq && esq.active) esq.destroy(); }, 60000); } }); if (data.exp > 0 && data.attackers && data.attackers.includes(socket.id)) { ganarExp(data.exp); } return; } }); } });
+    socket.on('esqueletoAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); mostrarMensaje(`💀 Recibiste ${data.damage} de daño`, 'combate'); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play(`esqueleto_atk_${data.dir}`, true); setTimeout(() => { if (esq.active) esq.play(`esqueleto_idle_${data.dir}`, true); }, 300); } }); } });
+    
+    socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('esqueletoMuere'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('esqueletoMuere', { volume: window.volumenFX }); } if (Math.random() < 0.3) { crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5); } if (Math.random() < 0.05) { crearDropEspada(data.x, data.y, 'espada_1', 'Espada', 'espada', 'espada_img', { ataqueFisico: 15, velocidad: -15 }); } if (Math.random() < 0.05) { crearDropEscudo(data.x, data.y, 'escudo_1', 'Escudo', 'escudo', 'escudo_madera_img', { defensaFisica: 20, velocidad: -15 }); } if (Math.random() < 0.03) { crearDropArmadura(data.x, data.y, 'armadura_1', 'Armadura', 'armadura', 'armadura_de_cuero_img', { defensaFisica: 15, velocidad: -20 }); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play('esqueleto_die_Abajo'); esq.once('animationcomplete', () => { if (esq && esq.active) { esq.stop(); esq.setFrame(55); esq.body.enable = false; esq.setVisible(true); setTimeout(() => { if (esq && esq.active) esq.destroy(); }, 60000); } }); if (data.exp > 0 && data.attackers && data.attackers.includes(socket.id)) { ganarExp(data.exp); } return; } }); } });
+    
     socket.on('esqueletoDestroy', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) esq.destroy(); }); } });
     
     socket.on('esqueletoNew', (data) => { if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('esqueletoLevanta'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('esqueletoLevanta', { volume: window.volumenFX }); } const img = this.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3).setDepth(data.y); img.esqueletoId = data.id; img.isAlly = false; img.setCollideWorldBounds(true); img.setSize(50, 50); img.setOffset(100, 100); img.body.setImmovable(true); img.play('esqueleto_idle_Abajo', true); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto enemigo seleccionado.`, 'info'); }); window.esqueletosGrupo.add(img); window.esqueletosGrupo.getChildren().forEach(other => { if (other !== img) { this.physics.add.collider(img, other); } }); });
@@ -2672,11 +2677,9 @@ socket.on('playerStatsUpdate', (data) => {
     socket.on('furiaNecroticaEnd', (data) => { if (data.playerId === socket.id && window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.isAlly) esq.setTint(0x88ff88); }); } });
     
     socket.on('proyectilCreado', (data) => { crearProyectil(data.origenX, data.origenY, data.targetX, data.targetY, data.damage, false); });
-socket.on('barbaroAsesinato', (data) => { if (data.playerId === socket.id && barbaroTieneHacha && pClassName === 'BARBARO') { barbaroContadorAsesinatos++; mostrarMensaje(`🗡️ Bárbaro: ${barbaroContadorAsesinatos}/10 asesinatos para habilidad especial`, 'info'); if (barbaroContadorAsesinatos >= 10 && barbaroHabilidadDisponible) { barbaroHabilidadDisponible = false; mostrarMensaje(`🔥 ¡HABILIDAD ESPECIAL DISPONIBLE! El próximo ataque será un golpe de área x3 🔥`, 'exito'); if (player) { player.setTint(0xff6600); setTimeout(() => player.clearTint(), 3000); } } } });
     
     socket.on('invitacionRecibida', (data) => { mostrarMensaje(`🎮 ${data.from} te invitó al equipo "${data.teamName}". Escribe /aceptar para unirte`, 'exito'); });
     
-    // RECURSOS
     socket.on('arbolesIniciales', (data) => { data.forEach(a => { if (a.activo !== false) { const img = this.add.image(a.x, a.y, 'pino_1').setScale(1.5).setDepth(a.y); img.arbolId = a.id; if (window.arbolesGrupo) window.arbolesGrupo.add(img); } }); });
     socket.on('maderaObtenida', () => { agregarItemAlInventario('madera', 'material', 'Madera', '🌲', 1, true); });
     socket.on('arbolTalado', (data) => { if (data.taladoPor !== pName && currentScene) { const sonido = currentScene.sound.get('sonidoTalar'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('sonidoTalar', { volume: window.volumenFX }); } });
@@ -2693,10 +2696,8 @@ socket.on('barbaroAsesinato', (data) => { if (data.playerId === socket.id && bar
     socket.on('rocaObtenida', () => { agregarItemAlInventario('roca', 'material', 'Roca', '🪨', 1, true); });
     socket.on('rocaRespawn', (data) => { const img = this.add.image(data.x, data.y, 'roca').setScale(0.8).setDepth(data.y); img.rocaId = data.id; if (window.rocasGrupo) window.rocasGrupo.add(img); });
     socket.on('rocaDesaparece', (data) => { if (window.rocasGrupo) window.rocasGrupo.getChildren().forEach(r => { if (r.rocaId === data.id) r.destroy(); }); });
-    
     socket.on('rocaRecogida', (data) => { if (data.recolectadoPor !== pName && currentScene) { const sonido = currentScene.sound.get('sonidoMina'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('sonidoMina', { volume: window.volumenFX }); } });
     
-    // ZOOM
     let zoomActivo = false;
     const ZOOM_NORMAL = 1, ZOOM_CERCA = 1.5;
     this.input.on('pointerdown', (pointer) => { if (pointer.doubleClick) { zoomActivo = !zoomActivo; this.cameras.main.setZoom(zoomActivo ? ZOOM_CERCA : ZOOM_NORMAL); } });
@@ -2720,7 +2721,6 @@ socket.on('barbaroAsesinato', (data) => { if (data.playerId === socket.id && bar
     
     setInterval(() => { if (socket && socket.id && juegoIniciado) socket.emit('solicitarEsqueletos'); }, 10000);
     
-    // TECLAS PARA SKILLS
     this.input.keyboard.on('keydown-ONE', () => { if (skillsEquipadas[0]) usarSkill(skillsEquipadas[0]); });
     this.input.keyboard.on('keydown-TWO', () => { if (skillsEquipadas[1]) usarSkill(skillsEquipadas[1]); });
     this.input.keyboard.on('keydown-THREE', () => { if (skillsEquipadas[2]) usarSkill(skillsEquipadas[2]); });
