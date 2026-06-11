@@ -336,8 +336,9 @@
     
     <div id="stat-preview" class="stat-preview" style="display:none;"></div>
     <div id="context-menu" class="context-menu">
-        <div class="context-menu-item" onclick="invitarJugadorSeleccionado()">🎮 Invitar al equipo</div>
-    </div>
+    <div id="menu-invitar" class="context-menu-item" onclick="invitarJugadorSeleccionado()">Invitar al equipo</div>
+    <div id="menu-salir" class="context-menu-item" onclick="salirDelEquipo()" style="display:none;">Salir del equipo</div>
+</div>
 
 <script>
 // ============================================
@@ -494,10 +495,26 @@ function toggleInventario() {
 
 function invitarJugadorSeleccionado() { 
     if (jugadorSeleccionadoId && socket) { 
-        socket.emit('invitarJugador', { playerId: jugadorSeleccionadoId }); 
+        let nombreJugador = "Jugador";
+        if (window.otherPlayers) {
+            const otro = window.otherPlayers.getChildren().find(p => p.id === jugadorSeleccionadoId);
+            if (otro && otro.pName) nombreJugador = otro.pName;
+        }
+        const confirmar = confirm(`¿Invitar a ${nombreJugador} a tu equipo?`);
+        if (confirmar) {
+            socket.emit('invitarJugador', { playerId: jugadorSeleccionadoId }); 
+            mostrarMensaje(`📨 Invitación enviada a ${nombreJugador}`, 'exito');
+        }
         document.getElementById('context-menu').style.display = 'none'; 
         jugadorSeleccionadoId = null; 
     } 
+}
+
+function salirDelEquipo() {
+    if (confirm("¿Seguro que querés salir del equipo?")) {
+        socket.emit('salirEquipo');
+        document.getElementById('context-menu').style.display = 'none';
+    }
 }
 
 function mostrarMensaje(m, t = 'info') { 
@@ -2595,7 +2612,7 @@ function create() {
     
     socket.on('proyectilCreado', (data) => { crearProyectil(data.origenX, data.origenY, data.targetX, data.targetY, data.damage, false); });
     
-    socket.on('invitacionRecibida', (data) => { mostrarMensaje(`🎮 ${data.from} te invitó al equipo "${data.teamName}". Escribe /aceptar para unirte`, 'exito'); });
+    socket.on('invitacionRecibida', (data) => { const confirmar = confirm(`${data.from} te invitó al equipo "${data.teamName}". ¿Aceptar?`); if (confirmar) { socket.emit('aceptarInvitacion', { from: data.from }); mostrarMensaje(`✅ Te uniste al equipo "${data.teamName}"`, 'exito'); } else { socket.emit('rechazarInvitacion', { from: data.from }); mostrarMensaje(`❌ Rechazaste la invitación`, 'info'); } });
     
     socket.on('arbolesIniciales', (data) => { data.forEach(a => { if (a.activo !== false) { const img = this.add.image(a.x, a.y, 'pino_1').setScale(1.5).setDepth(a.y); img.arbolId = a.id; if (window.arbolesGrupo) window.arbolesGrupo.add(img); } }); });
     socket.on('maderaObtenida', () => { agregarItemAlInventario('madera', 'material', 'Madera', '🌲', 1, true); });

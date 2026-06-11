@@ -83,18 +83,49 @@ function dañarEsqueleto(esqueleto, atacanteId, daño, esDistancia = false) {
         io.emit('barbaroAsesinato', { playerId: atacanteId });
     }
     
-    // ==========================================
-    // DROP DE POCIONES (10% de probabilidad)
-    // ==========================================
-    if (Math.random() < 0.1) {
-        const tipoPocion = Math.random() < 0.5 ? 'hp' : 'mana';
-        io.emit('dropPocion', {
-            x: esqueleto.x,
-            y: esqueleto.y,
-            tipo: tipoPocion,
-            cantidad: 1
-        });
-    }
+    // Dentro de dañarEsqueleto, cuando el esqueleto muere (hp <= 0)
+
+// Verificar si el atacante tiene equipo
+const teamId = playerTeam[atacanteId];
+let destinatarios = [];
+
+if (teamId && teams[teamId]) {
+    destinatarios = teams[teamId].miembros; // Todo el equipo
+} else {
+    destinatarios = [atacanteId]; // Solo el atacante
+}
+
+function enviarDrop(evento, datos) {
+    destinatarios.forEach(destinatario => {
+        io.to(destinatario).emit(evento, datos);
+    });
+}
+
+// Drops (mantener las mismas probabilidades)
+if (Math.random() < 0.1) {
+    const tipoPocion = Math.random() < 0.5 ? 'hp' : 'mana';
+    enviarDrop('dropPocion', {
+        x: esqueleto.x, y: esqueleto.y, tipo: tipoPocion, cantidad: 1
+    });
+}
+if (Math.random() < 0.05) {
+    enviarDrop('dropItem', {
+        x: esqueleto.x, y: esqueleto.y, itemId: 'espada_1', nombre: 'Espada',
+        tipo: 'espada', icono: 'espada_img', stats: { ataqueFisico: 15, velocidad: -15 }
+    });
+}
+if (Math.random() < 0.05) {
+    enviarDrop('dropItem', {
+        x: esqueleto.x, y: esqueleto.y, itemId: 'escudo_1', nombre: 'Escudo',
+        tipo: 'escudo', icono: 'escudo_madera_img', stats: { defensaFisica: 20, velocidad: -15 }
+    });
+}
+if (Math.random() < 0.03) {
+    enviarDrop('dropItem', {
+        x: esqueleto.x, y: esqueleto.y, itemId: 'armadura_1', nombre: 'Armadura',
+        tipo: 'armadura', icono: 'armadura_de_cuero_img', stats: { defensaFisica: 15, velocidad: -20 }
+    });
+}
     
     // REPARTIR EXP
     if (esqueleto.attackers && esqueleto.attackers.length > 0) {
@@ -359,46 +390,60 @@ io.on('connection', (socket) => {
         io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: damage, hp: demonlord.hp });
         
         if (demonlord.hp <= 0) {
-            demonlord.isAlive = false;
-            
-            if (demonlord.attackers && demonlord.attackers.length > 0) {
-                demonlord.attackers.forEach(attackerId => darExpAJugadorYEquipo(attackerId, CONFIG.DEMONLORD.EXP));
-            } else {
-                darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP);
-            }
-            
-            for (let i = 0; i < 8; i++) {
-                const angle = (i / 8) * Math.PI * 2;
-                const distancia = 60 + (Math.random() * 40);
-                const offsetX = Math.cos(angle) * distancia;
-                const offsetY = Math.sin(angle) * distancia;
-                const cantidadOro = Math.floor(Math.random() * 20) + 10;
-                io.emit('crearMonedaServidor', { x: demonlord.x + offsetX, y: demonlord.y + offsetY, cantidad: cantidadOro });
-            }
-            
-            if (Math.random() < 0.2) {
-                io.emit('dropItemServidor', { 
-                    x: demonlord.x, 
-                    y: demonlord.y, 
-                    tipo: 'hacha',
-                    itemId: 'hachadehierro_1',
-                    nombre: 'Hacha de Hierro',
-                    icono: 'hachadehierro_img',
-                    stats: { ataqueFisico: 25, velocidad: -10 }
-                });
-            }
-            
-            io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
-            
-            setTimeout(() => {
-                demonlord.hp = CONFIG.DEMONLORD.MAX_HP;
-                demonlord.isAlive = true;
-                demonlord.x = 1500;
-                demonlord.y = 1500;
-                demonlord.attackers = [];
-                io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y });
-            }, CONFIG.DEMONLORD.RESPAWN_TIME);
+    demonlord.isAlive = false;
+    
+    if (demonlord.attackers && demonlord.attackers.length > 0) {
+        demonlord.attackers.forEach(attackerId => darExpAJugadorYEquipo(attackerId, CONFIG.DEMONLORD.EXP));
+    } else {
+        darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP);
+    }
+    
+    // ==========================================
+    // DROPS DE DEMONLORD (INDIVIDUALES PARA CADA PARTICIPANTE)
+    // ==========================================
+    
+    // Oro: CADA participante recibe su propio oro (8 monedas por participante)
+    demonlord.attackers.forEach(attackerId => {
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const distancia = 60 + (Math.random() * 40);
+            const offsetX = Math.cos(angle) * distancia;
+            const offsetY = Math.sin(angle) * distancia;
+            const cantidadOro = Math.floor(Math.random() * 20) + 10;
+            io.to(attackerId).emit('crearMonedaServidor', { 
+                x: demonlord.x + offsetX, 
+                y: demonlord.y + offsetY, 
+                cantidad: cantidadOro 
+            });
         }
+    });
+    
+    // Hacha de Hierro: 20% de probabilidad para CADA participante (individual)
+    demonlord.attackers.forEach(attackerId => {
+        if (Math.random() < 0.2) {
+            io.to(attackerId).emit('dropItem', { 
+                x: demonlord.x + (Math.random() - 0.5) * 80, 
+                y: demonlord.y + (Math.random() - 0.5) * 80, 
+                itemId: 'hachadehierro_1',
+                nombre: 'Hacha de Hierro',
+                tipo: 'espada',
+                icono: 'hachadehierro_img',
+                stats: { ataqueFisico: 25, velocidad: -10 }
+            });
+        }
+    });
+    
+    io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
+    
+    setTimeout(() => {
+        demonlord.hp = CONFIG.DEMONLORD.MAX_HP;
+        demonlord.isAlive = true;
+        demonlord.x = 1500;
+        demonlord.y = 1500;
+        demonlord.attackers = [];
+        io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y });
+    }, CONFIG.DEMONLORD.RESPAWN_TIME);
+}
     });
     
     socket.on('solicitarDemonlordHP', () => {
@@ -471,95 +516,81 @@ io.on('connection', (socket) => {
         } 
     });
     
-    socket.on('chatMessage', (msg) => {
-        if (!msg.startsWith('/')) {
-            const jugador = players[socket.id];
-            if (jugador) io.emit('chatMessage', { type: 'user', name: jugador.name, msg: msg });
-            return;
-        }
-        const parts = msg.slice(1).split(' ');
-        const cmd = parts[0].toLowerCase();
-        const args = parts.slice(1);
-        const jugador = players[socket.id];
-        if (!jugador) return;
-        
-        switch(cmd) {
-            case 'crear':
-                const nombreTeam = args.join(' ');
-                if (!nombreTeam) { socket.emit('mensaje', '❌ Usa: /crear [nombre del equipo]'); return; }
-                if (playerTeam[socket.id]) { socket.emit('mensaje', '❌ Ya estás en un equipo. Usa /salir primero'); return; }
-                const teamId = 'team_' + Date.now() + '_' + socket.id;
-                teams[teamId] = { id: teamId, nombre: nombreTeam, lider: socket.id, miembros: [socket.id], fechaCreacion: Date.now() };
-                playerTeam[socket.id] = teamId;
-                jugador.team = nombreTeam;
-                io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `✨ ${jugador.name} creó el equipo "${nombreTeam}"` });
-                break;
-            case 'equipo':
-                const miTeamId = playerTeam[socket.id];
-                if (!miTeamId || !teams[miTeamId]) { socket.emit('mensaje', '❌ No estás en ningún equipo'); return; }
-                const miTeam = teams[miTeamId];
-                let miembrosLista = '';
-                miTeam.miembros.forEach(mId => { const p = players[mId]; if(p) miembrosLista += `\n   ${miTeam.lider === mId ? '👑 ' : ''}${p.name}`; });
-                socket.emit('mensaje', `📋 EQUIPO "${miTeam.nombre}"\n👑 Líder: ${players[miTeam.lider]?.name}\n👥 Miembros (${miTeam.miembros.length}):${miembrosLista}`);
-                break;
-            case 'salir':
-                const salirTeamId = playerTeam[socket.id];
-                if (!salirTeamId || !teams[salirTeamId]) { socket.emit('mensaje', '❌ No estás en ningún equipo'); return; }
-                const teamSalir = teams[salirTeamId];
-                const indexMiembro = teamSalir.miembros.indexOf(socket.id);
-                if (indexMiembro !== -1) teamSalir.miembros.splice(indexMiembro, 1);
-                delete playerTeam[socket.id];
-                jugador.team = 'Sin Team';
-                if (teamSalir.miembros.length === 0) delete teams[salirTeamId];
-                else if (teamSalir.lider === socket.id) teamSalir.lider = teamSalir.miembros[0];
-                socket.emit('mensaje', `👋 Has salido del equipo "${teamSalir.nombre}"`);
-                break;
-            case 'invitar':
-                if (!playerTeam[socket.id]) { socket.emit('mensaje', '❌ Primero crea un equipo con /crear'); return; }
-                const targetName = args.join(' ');
-                let targetId = null;
-                for (let [id, p] of Object.entries(players)) { if (p.name.toLowerCase() === targetName.toLowerCase() && id !== socket.id) { targetId = id; break; } }
-                if (!targetId) { socket.emit('mensaje', `❌ Jugador "${targetName}" no encontrado`); return; }
-                if (playerTeam[targetId]) { socket.emit('mensaje', `❌ ${players[targetId].name} ya está en un equipo`); return; }
-                invitacionesPendientes[targetId] = { from: socket.id, teamId: playerTeam[socket.id], fromName: jugador.name, teamName: teams[playerTeam[socket.id]].nombre };
-                io.to(targetId).emit('invitacionRecibida', { from: jugador.name, teamName: teams[playerTeam[socket.id]].nombre });
-                break;
-            case 'aceptar':
-                const invitacion = invitacionesPendientes[socket.id];
-                if (!invitacion) { socket.emit('mensaje', '❌ No tienes invitaciones pendientes'); return; }
-                const teamAceptar = teams[invitacion.teamId];
-                if (!teamAceptar) { socket.emit('mensaje', '❌ El equipo ya no existe'); delete invitacionesPendientes[socket.id]; return; }
-                if (playerTeam[socket.id]) { socket.emit('mensaje', '❌ Ya estás en un equipo'); return; }
-                teamAceptar.miembros.push(socket.id);
-                playerTeam[socket.id] = teamAceptar.id;
-                players[socket.id].team = teamAceptar.nombre;
-                delete invitacionesPendientes[socket.id];
-                io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🎉 ${players[socket.id].name} se unió al equipo "${teamAceptar.nombre}"` });
-                break;
-            case 'rechazar':
-                delete invitacionesPendientes[socket.id];
-                socket.emit('mensaje', '❌ Invitación rechazada');
-                break;
-            case 'ayuda':
-                socket.emit('mensaje', '📖 COMANDOS:\n/crear [nombre] - Crear equipo\n/equipo - Ver mi equipo\n/salir - Salir del equipo\n/invitar [nombre] - Invitar jugador\n/aceptar - Aceptar invitación\n/rechazar - Rechazar invitación\n/ayuda - Este mensaje');
-                break;
-            default: socket.emit('mensaje', `❌ Comando desconocido: /${cmd}. Usa /ayuda`);
-        }
-    });
+   socket.on('chatMessage', (msg) => {
+    // Solo chat normal, sin comandos
+    const jugador = players[socket.id];
+    if (jugador) {
+        io.emit('chatMessage', { type: 'user', name: jugador.name, msg: msg });
+    }
+});
+
+// ==========================================
+// AGREGAR SALIR EQUIPO AQUI
+// ==========================================
+socket.on('salirEquipo', () => {
+    const teamId = playerTeam[socket.id];
+    if (!teamId || !teams[teamId]) {
+        socket.emit('mensaje', 'No estas en ningun equipo');
+        return;
+    }
+    const team = teams[teamId];
+    const index = team.miembros.indexOf(socket.id);
+    if (index !== -1) team.miembros.splice(index, 1);
+    delete playerTeam[socket.id];
+    players[socket.id].team = 'Sin Team';
     
-    socket.on('invitarJugador', (data) => {
-        const invitador = players[socket.id];
-        const invitado = players[data.playerId];
-        if (!invitador || !invitado) return;
-        if (!playerTeam[socket.id]) { socket.emit('mensaje', '❌ Primero crea un equipo con /crear'); return; }
-        const team = teams[playerTeam[socket.id]];
-        if (team.lider !== socket.id) { socket.emit('mensaje', '❌ Solo el líder puede invitar'); return; }
-        if (playerTeam[data.playerId]) { socket.emit('mensaje', `❌ ${invitado.name} ya está en un equipo`); return; }
-        invitacionesPendientes[data.playerId] = { from: socket.id, teamId: team.id, fromName: invitador.name, teamName: team.nombre };
-        io.to(data.playerId).emit('invitacionRecibida', { from: invitador.name, teamName: team.nombre });
-    });
+    if (team.miembros.length === 0) {
+        delete teams[teamId];
+    } else if (team.lider === socket.id) {
+        team.lider = team.miembros[0];
+    }
     
-    socket.on('talarArbol', (data) => {
+    socket.emit('mensaje', 'Has salido del equipo');
+    io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${players[socket.id].name} salio del equipo` });
+});
+
+// ==========================================
+// ACEPTAR INVITACION
+// ==========================================
+socket.on('aceptarInvitacion', (data) => {
+    const invitacion = invitacionesPendientes[socket.id];
+    if (!invitacion) {
+        socket.emit('mensaje', 'No tienes invitaciones pendientes');
+        return;
+    }
+    
+    const team = teams[invitacion.teamId];
+    if (!team) {
+        socket.emit('mensaje', 'El equipo ya no existe');
+        delete invitacionesPendientes[socket.id];
+        return;
+    }
+    
+    if (playerTeam[socket.id]) {
+        socket.emit('mensaje', 'Ya estas en un equipo');
+        return;
+    }
+    
+    team.miembros.push(socket.id);
+    playerTeam[socket.id] = team.id;
+    players[socket.id].team = team.nombre;
+    
+    delete invitacionesPendientes[socket.id];
+    
+    io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${players[socket.id].name} se unio al equipo "${team.nombre}"` });
+});
+
+// ==========================================
+// RECHAZAR INVITACION
+// ==========================================
+socket.on('rechazarInvitacion', (data) => {
+    delete invitacionesPendientes[socket.id];
+    socket.emit('mensaje', 'Invitacion rechazada');
+});
+
+
+    
+     socket.on('talarArbol', (data) => {
         let jugador = players[socket.id];
         if(!jugador || !jugador.isAlive) return;
         let arbol = arboles.find(a => a.activo && getDistance(data.x, data.y, a.x, a.y) < 80);
