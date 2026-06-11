@@ -338,6 +338,7 @@
     <div id="context-menu" class="context-menu">
         <div class="context-menu-item" onclick="invitarJugadorSeleccionado()">🎮 Invitar al equipo</div>
     </div>
+
 <script>
 // ============================================
 // VARIABLES GLOBALES
@@ -357,7 +358,6 @@ let playerMana = 100;
 let playerMaxMana = 100;
 let demonlordHP = 5000;
 let demonlordMaxHP = 5000;
-let monedasSuelo = [];
 let juegoIniciado = false;
 let ultimoEnvioMovimiento = 0;
 const INTERVALO_ENVIO = 50;
@@ -377,6 +377,8 @@ let ultimoAtaqueNormal = 0;
 const COOLDOWN_ATAQUE_NORMAL = 1000;
 let ultimoGuardadoPosicionTime = 0;
 const DATA_VERSION = 3;
+let dropsSuelo = [];
+let monedasSuelo = [];
 
 window.volumenFX = 0.6;
 window.volumenMusica = 0.3;
@@ -417,7 +419,7 @@ const classStats = {
 };
 
 // ============================================
-// FUNCIONES DE VOLUMEN
+// FUNCIONES DE VOLUMEN Y AUXILIARES
 // ============================================
 function initControlesVolumen() {
     const musicaInput = document.getElementById('volumen-musica');
@@ -860,18 +862,13 @@ function iniciarJuegoConCarga(g) {
         forzarIconosCorrectos();
     }, 500);
 }
-
 // ============================================
-// SISTEMA DE ORO Y DROPS
+// FUNCIONES DE DROPS
 // ============================================
-
-let dropsSuelo = [];
 
 function crearDropEscudo(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStats = {}) {
     if (!currentScene) return;
-    
     const uniqueId = itemId + '_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
-    
     const drop = currentScene.add.image(x, y, 'escudodrop');
     drop.setScale(0.8);
     drop.setDepth(y);
@@ -883,61 +880,27 @@ function crearDropEscudo(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStat
     drop.recogida = false;
     drop.id = 'drop_' + Date.now() + '_' + Math.random();
     
+    const texto = currentScene.add.text(x, y - 22, itemNombre, {
+        fontSize: '9px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000000', strokeThickness: 2
+    }).setOrigin(0.5).setDepth(y + 5);
+    texto.setVisible(false);
+    drop.texto = texto;
+    
     drop.setInteractive({ useHandCursor: true });
     drop.on('pointerdown', () => {
         if (!player || !player.isAlive) return;
         if (drop.recogida) return;
-        
         const dist = Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y);
-        if (dist < 60) {
-            recogerDrop(drop);
-        } else {
-            mostrarMensaje(`❌ Debes acercarte más para recoger ${drop.itemNombre}`, 'error');
-        }
+        if (dist < 60) recogerDrop(drop);
+        else mostrarMensaje(`❌ Debes acercarte más para recoger ${drop.itemNombre}`, 'error');
     });
-    
     dropsSuelo.push(drop);
     return drop;
 }
 
-function recogerPocionSuelo(drop) {
-    if (!drop || !drop.active) return;
-    if (drop.recogida) return;
-    drop.recogida = true;
-    
-    if (drop.tipo === 'hp') {
-        agregarItemAlInventario('pocion_1', 'pocion', 'Poción de Vida', '❤️', 1, true);
-    } else {
-        agregarItemAlInventario('pocion_mana', 'pocion_mana', 'Poción de Maná', '💙', 1, true);
-    }
-    
-    if (currentScene && currentScene.sound) {
-        const sonido = currentScene.sound.get('sonidoMoneda');
-        if (sonido) reproducirSonido(sonido, window.volumenFX);
-        else currentScene.sound.play('sonidoMoneda', { volume: window.volumenFX });
-    }
-    
-    currentScene.tweens.add({
-        targets: drop,
-        scale: 0,
-        alpha: 0,
-        duration: 200,
-        onComplete: () => {
-            drop.destroy();
-            const index = dropsSuelo.indexOf(drop);
-            if (index !== -1) dropsSuelo.splice(index, 1);
-        }
-    });
-    
-    actualizarStatsUI();
-    guardarPartida();
-}
-
 function crearDropArmadura(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStats = {}) {
     if (!currentScene) return;
-    
     const uniqueId = itemId + '_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
-    
     const drop = currentScene.add.image(x, y, 'armaduradrop');
     drop.setScale(0.8);
     drop.setDepth(y);
@@ -949,105 +912,27 @@ function crearDropArmadura(x, y, itemId, itemNombre, itemTipo, itemIcono, itemSt
     drop.recogida = false;
     drop.id = 'drop_' + Date.now() + '_' + Math.random();
     
+    const texto = currentScene.add.text(x, y - 22, itemNombre, {
+        fontSize: '9px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000000', strokeThickness: 2
+    }).setOrigin(0.5).setDepth(y + 5);
+    texto.setVisible(false);
+    drop.texto = texto;
+    
     drop.setInteractive({ useHandCursor: true });
     drop.on('pointerdown', () => {
         if (!player || !player.isAlive) return;
         if (drop.recogida) return;
-        
         const dist = Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y);
-        if (dist < 60) {
-            recogerDrop(drop);
-        } else {
-            mostrarMensaje(`❌ Debes acercarte más para recoger ${drop.itemNombre}`, 'error');
-        }
+        if (dist < 60) recogerDrop(drop);
+        else mostrarMensaje(`❌ Debes acercarte más para recoger ${drop.itemNombre}`, 'error');
     });
-    
     dropsSuelo.push(drop);
     return drop;
-}
- 
-function crearMonedaSuelo(x, y, cantidad = 1) {
-    if (!currentScene) return;
-    
-    const moneda = currentScene.add.sprite(x, y, 'gold_0000');
-    moneda.setScale(0.8);
-    moneda.setDepth(y);
-    moneda.cantidad = cantidad;
-    moneda.id = 'moneda_' + Date.now() + '_' + Math.random();
-    moneda.recogida = false;
-    
-    let frameIndex = 0;
-    const animInterval = setInterval(() => {
-        if (!moneda || !moneda.active) {
-            clearInterval(animInterval);
-            return;
-        }
-        frameIndex++;
-        if (frameIndex <= 7) {
-            const frameNum = frameIndex.toString().padStart(4, '0');
-            moneda.setTexture(`gold_${frameNum}`);
-        } else {
-            clearInterval(animInterval);
-        }
-    }, 100);
-    
-    moneda.animInterval = animInterval;
-    
-    moneda.setInteractive({ useHandCursor: true });
-    moneda.on('pointerdown', () => {
-        if (!player || !player.isAlive) return;
-        if (moneda.recogida) return;
-        
-        const dist = Phaser.Math.Distance.Between(player.x, player.y, moneda.x, moneda.y);
-        if (dist < 60) {
-            recogerMoneda(moneda);
-        } else {
-            mostrarMensaje(`❌ Debes acercarte más para recoger el oro`, 'error');
-        }
-    });
-    
-    monedasSuelo.push(moneda);
-    return moneda;
-}
-
-function recogerMoneda(moneda) {
-    if (!moneda || !moneda.active) return;
-    if (moneda.recogida) return;
-    moneda.recogida = true;
-    
-    agregarItemAlInventario('oro', 'moneda', 'Oro', '💰', moneda.cantidad, true);
-    
-    mostrarMensaje(`💰 +${moneda.cantidad} ORO`, 'exito');
-    
-    if (currentScene && currentScene.sound) {
-        const sonido = currentScene.sound.get('sonidoMoneda');
-        if (sonido) reproducirSonido(sonido, window.volumenFX);
-        else currentScene.sound.play('sonidoMoneda', { volume: window.volumenFX });
-    }
-    
-    if (moneda.animInterval) clearInterval(moneda.animInterval);
-    
-    currentScene.tweens.add({
-        targets: moneda,
-        scale: 0,
-        alpha: 0,
-        duration: 200,
-        onComplete: () => {
-            moneda.destroy();
-            const index = monedasSuelo.indexOf(moneda);
-            if (index !== -1) monedasSuelo.splice(index, 1);
-        }
-    });
-    
-    actualizarStatsUI();
-    guardarPartida();
 }
 
 function crearDropEspada(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStats = {}) {
     if (!currentScene) return;
-    
     const uniqueId = itemId + '_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
-    
     const drop = currentScene.add.image(x, y, 'espadadrop');
     drop.setScale(0.8);
     drop.setDepth(y);
@@ -1059,53 +944,145 @@ function crearDropEspada(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStat
     drop.recogida = false;
     drop.id = 'drop_' + Date.now() + '_' + Math.random();
     
+    const texto = currentScene.add.text(x, y - 22, itemNombre, {
+        fontSize: '9px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000000', strokeThickness: 2
+    }).setOrigin(0.5).setDepth(y + 5);
+    texto.setVisible(false);
+    drop.texto = texto;
+    
     drop.setInteractive({ useHandCursor: true });
     drop.on('pointerdown', () => {
         if (!player || !player.isAlive) return;
         if (drop.recogida) return;
-        
         const dist = Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y);
-        if (dist < 60) {
-            recogerDrop(drop);
-        } else {
-            mostrarMensaje(`❌ Debes acercarte más para recoger ${drop.itemNombre}`, 'error');
-        }
+        if (dist < 60) recogerDrop(drop);
+        else mostrarMensaje(`❌ Debes acercarte más para recoger ${drop.itemNombre}`, 'error');
     });
-    
     dropsSuelo.push(drop);
     return drop;
+}
+
+function crearDropHachaDeHierro(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStats = {}) {
+    if (!currentScene) return;
+    const uniqueId = itemId + '_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+    const drop = currentScene.add.image(x, y, 'hachadehierrodrop');
+    drop.setScale(0.8);
+    drop.setDepth(y);
+    drop.itemId = uniqueId;
+    drop.itemNombre = itemNombre;
+    drop.itemTipo = itemTipo;
+    drop.itemIcono = itemIcono;
+    drop.itemStats = itemStats;
+    drop.recogida = false;
+    drop.id = 'drop_' + Date.now() + '_' + Math.random();
+    
+    const texto = currentScene.add.text(x, y - 22, itemNombre, {
+        fontSize: '9px', fill: '#88ff88', fontFamily: 'monospace', stroke: '#000000', strokeThickness: 2
+    }).setOrigin(0.5).setDepth(y + 5);
+    texto.setVisible(false);
+    drop.texto = texto;
+    
+    drop.setInteractive({ useHandCursor: true });
+    drop.on('pointerdown', () => {
+        if (!player || !player.isAlive) return;
+        if (drop.recogida) return;
+        const dist = Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y);
+        if (dist < 60) recogerDrop(drop);
+        else mostrarMensaje(`❌ Debes acercarte más para recoger ${drop.itemNombre}`, 'error');
+    });
+    dropsSuelo.push(drop);
+    return drop;
+}
+
+function crearMonedaSuelo(x, y, cantidad = 1) {
+    if (!currentScene) return;
+    const moneda = currentScene.add.sprite(x, y, 'gold_0000');
+    moneda.setScale(0.8);
+    moneda.setDepth(y);
+    moneda.cantidad = cantidad;
+    moneda.id = 'moneda_' + Date.now() + '_' + Math.random();
+    moneda.recogida = false;
+    
+    let frameIndex = 0;
+    const animInterval = setInterval(() => {
+        if (!moneda || !moneda.active) { clearInterval(animInterval); return; }
+        frameIndex++;
+        if (frameIndex <= 7) {
+            const frameNum = frameIndex.toString().padStart(4, '0');
+            moneda.setTexture(`gold_${frameNum}`);
+        } else { clearInterval(animInterval); }
+    }, 100);
+    moneda.animInterval = animInterval;
+    
+    const texto = currentScene.add.text(x, y - 22, `${cantidad} Oro`, {
+        fontSize: '9px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000000', strokeThickness: 2
+    }).setOrigin(0.5).setDepth(y + 5);
+    texto.setVisible(false);
+    moneda.texto = texto;
+    
+    moneda.setInteractive({ useHandCursor: true });
+    moneda.on('pointerdown', () => {
+        if (!player || !player.isAlive) return;
+        if (moneda.recogida) return;
+        const dist = Phaser.Math.Distance.Between(player.x, player.y, moneda.x, moneda.y);
+        if (dist < 60) recogerMoneda(moneda);
+        else mostrarMensaje(`❌ Debes acercarte más para recoger el oro`, 'error');
+    });
+    monedasSuelo.push(moneda);
+    return moneda;
+}
+
+function recogerMoneda(moneda) {
+    if (!moneda || !moneda.active) return;
+    if (moneda.recogida) return;
+    moneda.recogida = true;
+    agregarItemAlInventario('oro', 'moneda', 'Oro', '💰', moneda.cantidad, true);
+    mostrarMensaje(`💰 +${moneda.cantidad} ORO`, 'exito');
+    if (currentScene && currentScene.sound) {
+        const sonido = currentScene.sound.get('sonidoMoneda');
+        if (sonido) reproducirSonido(sonido, window.volumenFX);
+        else currentScene.sound.play('sonidoMoneda', { volume: window.volumenFX });
+    }
+    if (moneda.animInterval) clearInterval(moneda.animInterval);
+    if (moneda.texto) moneda.texto.destroy();
+    currentScene.tweens.add({ targets: moneda, scale: 0, alpha: 0, duration: 200, onComplete: () => { moneda.destroy(); const index = monedasSuelo.indexOf(moneda); if (index !== -1) monedasSuelo.splice(index, 1); } });
+    actualizarStatsUI(); guardarPartida();
+}
+
+function recogerPocionSuelo(drop) {
+    if (!drop || !drop.active) return;
+    if (drop.recogida) return;
+    drop.recogida = true;
+    if (drop.tipo === 'hp') agregarItemAlInventario('pocion_1', 'pocion', 'Poción de Vida', '❤️', 1, true);
+    else agregarItemAlInventario('pocion_mana', 'pocion_mana', 'Poción de Maná', '💙', 1, true);
+    if (currentScene && currentScene.sound) {
+        const sonido = currentScene.sound.get('sonidoUpbag');
+        if (sonido) reproducirSonido(sonido, window.volumenFX);
+        else currentScene.sound.play('sonidoUpbag', { volume: window.volumenFX });
+    }
+    if (drop.texto) drop.texto.destroy();
+    currentScene.tweens.add({ targets: drop, scale: 0, alpha: 0, duration: 200, onComplete: () => { drop.destroy(); const index = dropsSuelo.indexOf(drop); if (index !== -1) dropsSuelo.splice(index, 1); } });
+    actualizarStatsUI(); guardarPartida();
 }
 
 function recogerDrop(drop) {
     if (!drop || !drop.active) return;
     if (drop.recogida) return;
     drop.recogida = true;
-    
-    agregarItemAlInventarioEquipo(drop.itemId, drop.itemTipo, drop.itemNombre, drop.itemIcono, 1, drop.itemStats);
-    
+    let baseId = drop.itemId.split('_')[0] + '_1';
+    if (drop.itemIcono === 'hachadehierro_img') baseId = 'hachadehierro_1';
+    agregarItemAlInventarioEquipo(baseId, drop.itemTipo, drop.itemNombre, drop.itemIcono, 1, drop.itemStats);
     mostrarMensaje(`⚔️ +${drop.itemNombre}`, 'exito');
-    
     if (currentScene && currentScene.sound) {
-        const sonido = currentScene.sound.get('sonidoMoneda');
+        const sonido = currentScene.sound.get('sonidoUpbag');
         if (sonido) reproducirSonido(sonido, window.volumenFX);
-        else currentScene.sound.play('sonidoMoneda', { volume: window.volumenFX });
+        else currentScene.sound.play('sonidoUpbag', { volume: window.volumenFX });
     }
-    
-    currentScene.tweens.add({
-        targets: drop,
-        scale: 0,
-        alpha: 0,
-        duration: 200,
-        onComplete: () => {
-            drop.destroy();
-            const index = dropsSuelo.indexOf(drop);
-            if (index !== -1) dropsSuelo.splice(index, 1);
-        }
-    });
-    
-    actualizarStatsUI();
-    guardarPartida();
+    if (drop.texto) drop.texto.destroy();
+    currentScene.tweens.add({ targets: drop, scale: 0, alpha: 0, duration: 200, onComplete: () => { drop.destroy(); const index = dropsSuelo.indexOf(drop); if (index !== -1) dropsSuelo.splice(index, 1); } });
+    actualizarStatsUI(); guardarPartida();
 }
+
 // ============================================
 // INVENTARIO
 // ============================================
@@ -1197,58 +1174,40 @@ function crearSlotElement(slot, index, origen) {
             img.src = 'oroinv.png';
             img.style.width = '70px';
             img.style.height = '70px';
-            img.onerror = function() { 
-                this.style.display = 'none'; 
-                this.parentElement.textContent = '💰';
-            };
+            img.onerror = function() { this.style.display = 'none'; this.parentElement.textContent = '💰'; };
             i.appendChild(img);
         } else if (slot.id === 'pocion_1' || slot.tipo === 'pocion') {
             const img = document.createElement('img');
             img.src = 'frascohp.png';
             img.style.width = '60px';
             img.style.height = '60px';
-            img.onerror = function() { 
-                this.style.display = 'none'; 
-                this.parentElement.textContent = '❤️';
-            };
+            img.onerror = function() { this.style.display = 'none'; this.parentElement.textContent = '❤️'; };
             i.appendChild(img);
         } else if (slot.id === 'pocion_mana' || slot.tipo === 'pocion_mana') {
             const img = document.createElement('img');
             img.src = 'frascomp.png';
             img.style.width = '60px';
             img.style.height = '60px';
-            img.onerror = function() { 
-                this.style.display = 'none'; 
-                this.parentElement.textContent = '💙';
-            };
+            img.onerror = function() { this.style.display = 'none'; this.parentElement.textContent = '💙'; };
             i.appendChild(img);
         } else if (slot.id === 'roca') {
             const img = document.createElement('img');
             img.src = 'roca.png';
             img.style.width = '5px';
             img.style.height = '5px';
-            img.onerror = function() { 
-                this.style.display = 'none'; 
-                this.parentElement.textContent = '🪨';
-            };
+            img.onerror = function() { this.style.display = 'none'; this.parentElement.textContent = '🪨'; };
             i.appendChild(img);
         } else if (slot.id === 'madera') {
             const img = document.createElement('img');
             img.src = 'pino_1.png';
             img.style.width = '50px';
             img.style.height = '50px';
-            img.onerror = function() { 
-                this.style.display = 'none'; 
-                this.parentElement.textContent = '🌲';
-            };
+            img.onerror = function() { this.style.display = 'none'; this.parentElement.textContent = '🌲'; };
             i.appendChild(img);
         } else if (slot.icono && (slot.icono.includes('_img') || slot.icono === 'pocion_img')) { 
             const img = document.createElement('img'); 
             img.src = getImagenItem(slot.icono);
-            img.onerror = function() { 
-                this.style.display = 'none'; 
-                this.parentElement.textContent = '🗡️';
-            };
+            img.onerror = function() { this.style.display = 'none'; this.parentElement.textContent = '🗡️'; };
             i.appendChild(img); 
         } else { 
             i.textContent = slot.icono; 
@@ -2164,6 +2123,7 @@ function preload() {
     this.load.spritesheet('demonlord', 'demonlord.png', { frameWidth: 128, frameHeight: 128 }); 
     this.load.spritesheet('esqueleto', 'esqueleto.png', { frameWidth: 255, frameHeight: 255 }); 
     this.load.audio('sonidoMoneda', 'moneda.mp3');
+    this.load.audio('sonidoUpbag', 'upbag.mp3');
     
     for (let i = 0; i <= 55; i++) { 
         const frameNum = i.toString().padStart(4, '0'); 
@@ -2507,50 +2467,34 @@ function create() {
         drop.tipo = data.tipo;
         drop.cantidad = data.cantidad;
         drop.recogida = false;
+        drop.itemNombre = data.tipo === 'hp' ? 'Pocion de Vida' : 'Pocion de Mana';
+        
+        const texto = currentScene.add.text(data.x, data.y - 22, drop.itemNombre, {
+            fontSize: '9px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(data.y + 5);
+        texto.setVisible(false);
+        drop.texto = texto;
         
         drop.setInteractive({ useHandCursor: true });
         drop.on('pointerdown', () => {
             if (!player || !player.isAlive) return;
             if (drop.recogida) return;
-            
             const dist = Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y);
-            if (dist < 60) {
-                recogerPocionSuelo(drop);
-            } else {
-                mostrarMensaje(`❌ Debes acercarte más para recoger la poción`, 'error');
-            }
+            if (dist < 60) recogerPocionSuelo(drop);
+            else mostrarMensaje(`❌ Debes acercarte más para recoger la pocion`, 'error');
         });
-        
         dropsSuelo.push(drop);
     });
     
     socket.on('barbaroAsesinato', (data) => { 
         if (data.playerId === socket.id && barbaroTieneHacha && pClassName === 'BARBARO') { 
-            if (barbaroContadorAsesinatos < 10) {
-                barbaroContadorAsesinatos++;
-            }
-            
-            if (barbaroContadorAsesinatos > 10) {
-                console.log('⚠️ CAPA 2: Contador era', barbaroContadorAsesinatos, '→ forzado a 10');
-                barbaroContadorAsesinatos = 10;
-            }
-            
-            if (barbaroContadorAsesinatos > 10) {
-                console.log('⚠️ CAPA 3: Reiniciando contador a 0');
-                barbaroContadorAsesinatos = 0;
-                if (player) player.clearTint();
-            }
-            
+            if (barbaroContadorAsesinatos < 10) barbaroContadorAsesinatos++;
+            if (barbaroContadorAsesinatos > 10) barbaroContadorAsesinatos = 10;
             mostrarMensaje(`🗡️ Bárbaro: ${barbaroContadorAsesinatos}/10 asesinatos`, 'info'); 
-            
             if (barbaroContadorAsesinatos >= 10) { 
                 mostrarMensaje(`🔥 ¡HABILIDAD ESPECIAL DISPONIBLE! Tu próximo ataque hará daño x3 🔥`, 'exito'); 
-                if (player) { 
-                    player.setTint(0xff6600); 
-                } 
+                if (player) player.setTint(0xff6600); 
             } 
-            
-            console.log('📊 Contador FINAL:', barbaroContadorAsesinatos);
         } 
     });
     
@@ -2577,14 +2521,10 @@ function create() {
             for (let i = 0; i < data.items.length; i++) { 
                 const item = data.items[i]; 
                 if (item && item.slot !== undefined && item.slot < inventarioSlots.length) { 
-                    inventarioSlots[item.slot] = { 
-                        id: item.id, tipo: item.tipo, nombre: item.nombre, 
-                        icono: item.icono, cantidad: item.cantidad, slotIndex: item.slot 
-                    }; 
+                    inventarioSlots[item.slot] = { id: item.id, tipo: item.tipo, nombre: item.nombre, icono: item.icono, cantidad: item.cantidad, slotIndex: item.slot }; 
                 } 
             } 
-            renderizarInventario(); 
-            guardarPartida(); 
+            renderizarInventario(); guardarPartida(); 
         } 
     });
     
@@ -2592,22 +2532,18 @@ function create() {
         const hpBar = document.getElementById('demonlord-hp-bar'); 
         const hpText = document.getElementById('demonlord-hp-text'); 
         if (data.visible) { 
-            demonlordHP = data.hp; 
-            demonlordMaxHP = data.maxHp; 
-            actualizarDemonlordHPBar(); 
-            hpBar.style.display = 'block'; 
-            hpText.style.display = 'block'; 
+            demonlordHP = data.hp; demonlordMaxHP = data.maxHp; actualizarDemonlordHPBar(); 
+            hpBar.style.display = 'block'; hpText.style.display = 'block'; 
         } else { 
-            hpBar.style.display = 'none'; 
-            hpText.style.display = 'none'; 
+            hpBar.style.display = 'none'; hpText.style.display = 'none'; 
         } 
     });
     
-    socket.on('demonlordAtkVisual', (d) => { if (demonlord_sprite && demonlord_sprite.active) { demonlord_sprite.play(`dl_ataque_${d.dir}`, true); demonlord_sprite.once('animationcomplete', () => { if (demonlord_sprite && demonlord_sprite.active) { demonlord_sprite.play(`dl_idle_${d.dir}`, true); } }); if (d.esFuerte) { demonlord_sprite.setTint(0x888888); setTimeout(() => demonlord_sprite.clearTint(), 500); } } });
+    socket.on('demonlordAtkVisual', (d) => { if (demonlord_sprite && demonlord_sprite.active) { demonlord_sprite.play(`dl_ataque_${d.dir}`, true); demonlord_sprite.once('animationcomplete', () => { if (demonlord_sprite && demonlord_sprite.active) demonlord_sprite.play(`dl_idle_${d.dir}`, true); }); if (d.esFuerte) { demonlord_sprite.setTint(0x888888); setTimeout(() => demonlord_sprite.clearTint(), 500); } } });
     
     socket.on('demonlordState', (d) => { demonlordHP = d.hp; demonlordMaxHP = 5000; actualizarDemonlordHPBar(); if (d.isAlive === false) demonlord_sprite.setVisible(false); else demonlord_sprite.setVisible(true); });
     
-    socket.on('demonlordMoved', (data) => { if (demonlord_sprite) { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.setDepth(data.y); demonlord_sprite.cDir = data.dir; const isAttacking = demonlord_sprite.anims.isPlaying && demonlord_sprite.anims.currentAnim && demonlord_sprite.anims.currentAnim.key.includes('ataque'); if (!isAttacking) { if (data.isMoving) { demonlord_sprite.play('dl_walk_' + data.dir, true); } else { demonlord_sprite.play('dl_idle_' + data.dir, true); } } } });
+    socket.on('demonlordMoved', (data) => { if (demonlord_sprite) { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.setDepth(data.y); demonlord_sprite.cDir = data.dir; const isAttacking = demonlord_sprite.anims.isPlaying && demonlord_sprite.anims.currentAnim && demonlord_sprite.anims.currentAnim.key.includes('ataque'); if (!isAttacking) { if (data.isMoving) demonlord_sprite.play('dl_walk_' + data.dir, true); else demonlord_sprite.play('dl_idle_' + data.dir, true); } } });
     
     socket.on('demonlordAttack', (data) => { crearCirculoImpacto(data.x, data.y, data.dir); if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); mostrarMensaje(`💀 -${data.damage}`, 'combate'); } });
     
@@ -2616,19 +2552,11 @@ function create() {
     socket.on('demonlordRespawn', (data) => { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.setVisible(true); demonlord_sprite.clearTint(); demonlordHP = 5000; actualizarDemonlordHPBar(); crearTextoDmg(this, data.x, data.y, "RENACE", "#fff", "22px"); });
     
     socket.on('enemyDamaged', (data) => { 
-        if (data.id === 'demonlord') { 
-            demonlordHP = data.hp; 
-            actualizarDemonlordHPBar(); 
-            crearTextoDmg(currentScene, data.x, data.y, data.dmg, '#fff', '20px'); 
-        } else if (data.id === socket.id) { 
-            crearTextoDmg(currentScene, player.x, player.y, data.dmg, '#fff', '20px'); 
+        if (data.id === 'demonlord') { demonlordHP = data.hp; actualizarDemonlordHPBar(); crearTextoDmg(currentScene, data.x, data.y, data.dmg, '#fff', '20px'); 
+        } else if (data.id === socket.id) { crearTextoDmg(currentScene, player.x, player.y, data.dmg, '#fff', '20px'); 
         } else { 
             if (window.esqueletosGrupo) { 
-                window.esqueletosGrupo.getChildren().forEach(esq => { 
-                    if (esq.esqueletoId === data.id) { 
-                        crearTextoDmg(currentScene, data.x, data.y, data.dmg, '#fff', '16px'); 
-                    } 
-                }); 
+                window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) crearTextoDmg(currentScene, data.x, data.y, data.dmg, '#fff', '16px'); }); 
             } 
         } 
     });
@@ -2639,42 +2567,31 @@ function create() {
         data.forEach(esqueleto => { 
             if (esqueleto.isAlive !== false) { 
                 const img = this.physics.add.sprite(esqueleto.x, esqueleto.y, 'esqueleto').setScale(0.3).setDepth(esqueleto.y); 
-                img.esqueletoId = esqueleto.id; 
-                img.isAlly = esqueleto.isAlly || false; 
-                img.setCollideWorldBounds(true); 
-                img.setSize(50, 50);
-                img.setOffset(100, 100);
-                img.body.setImmovable(true);
-                img.play('esqueleto_idle_Abajo', true); 
-                img.setInteractive(); 
+                img.esqueletoId = esqueleto.id; img.isAlly = esqueleto.isAlly || false; 
+                img.setCollideWorldBounds(true); img.setSize(50, 50); img.setOffset(100, 100); img.body.setImmovable(true); 
+                img.play('esqueleto_idle_Abajo', true); img.setInteractive(); 
                 img.on('pointerdown', () => { ultimoEsqueletoClickeado = esqueleto.id; mostrarMensaje(`💀 Esqueleto ${esqueleto.isAlly ? 'aliado' : 'enemigo'} seleccionado`, 'info'); }); 
                 if (window.esqueletosGrupo) window.esqueletosGrupo.add(img); 
             } 
         }); 
-        window.esqueletosGrupo.getChildren().forEach(esq1 => { 
-            window.esqueletosGrupo.getChildren().forEach(esq2 => { 
-                if (esq1 !== esq2) { 
-                    this.physics.add.collider(esq1, esq2); 
-                } 
-            }); 
-        }); 
+        window.esqueletosGrupo.getChildren().forEach(esq1 => { window.esqueletosGrupo.getChildren().forEach(esq2 => { if (esq1 !== esq2) this.physics.add.collider(esq1, esq2); }); }); 
     });
     
     socket.on('esqueletoMoved', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.setPosition(data.x, data.y); esq.setDepth(data.y); if (data.isMoving) esq.play(`esqueleto_walk_${data.dir}`, true); else esq.play(`esqueleto_idle_${data.dir}`, true); } }); } });
     
     socket.on('esqueletoAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); mostrarMensaje(`💀 Recibiste ${data.damage} de daño`, 'combate'); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play(`esqueleto_atk_${data.dir}`, true); setTimeout(() => { if (esq.active) esq.play(`esqueleto_idle_${data.dir}`, true); }, 300); } }); } });
     
-    socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('esqueletoMuere'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('esqueletoMuere', { volume: window.volumenFX }); } if (Math.random() < 0.3) { crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5); } if (Math.random() < 0.05) { crearDropEspada(data.x, data.y, 'espada_1', 'Espada', 'espada', 'espada_img', { ataqueFisico: 15, velocidad: -15 }); } if (Math.random() < 0.05) { crearDropEscudo(data.x, data.y, 'escudo_1', 'Escudo', 'escudo', 'escudo_madera_img', { defensaFisica: 20, velocidad: -15 }); } if (Math.random() < 0.03) { crearDropArmadura(data.x, data.y, 'armadura_1', 'Armadura', 'armadura', 'armadura_de_cuero_img', { defensaFisica: 15, velocidad: -20 }); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play('esqueleto_die_Abajo'); esq.once('animationcomplete', () => { if (esq && esq.active) { esq.stop(); esq.setFrame(55); esq.body.enable = false; esq.setVisible(true); setTimeout(() => { if (esq && esq.active) esq.destroy(); }, 60000); } }); if (data.exp > 0 && data.attackers && data.attackers.includes(socket.id)) { ganarExp(data.exp); } return; } }); } });
+    socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('esqueletoMuere'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('esqueletoMuere', { volume: window.volumenFX }); } if (Math.random() < 0.3) crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5); if (Math.random() < 0.05) crearDropEspada(data.x, data.y, 'espada_1', 'Espada', 'espada', 'espada_img', { ataqueFisico: 15, velocidad: -15 }); if (Math.random() < 0.05) crearDropEscudo(data.x, data.y, 'escudo_1', 'Escudo', 'escudo', 'escudo_madera_img', { defensaFisica: 20, velocidad: -15 }); if (Math.random() < 0.03) crearDropArmadura(data.x, data.y, 'armadura_1', 'Armadura', 'armadura', 'armadura_de_cuero_img', { defensaFisica: 15, velocidad: -20 }); if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play('esqueleto_die_Abajo'); esq.once('animationcomplete', () => { if (esq && esq.active) { esq.stop(); esq.setFrame(55); esq.body.enable = false; esq.setVisible(true); setTimeout(() => { if (esq && esq.active) esq.destroy(); }, 60000); } }); if (data.exp > 0 && data.attackers && data.attackers.includes(socket.id)) ganarExp(data.exp); return; } }); } });
     
-    socket.on('esqueletoDestroy', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) esq.destroy(); }); } });
+    socket.on('esqueletoDestroy', (data) => { if (window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) esq.destroy(); }); });
     
-    socket.on('esqueletoNew', (data) => { if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('esqueletoLevanta'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('esqueletoLevanta', { volume: window.volumenFX }); } const img = this.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3).setDepth(data.y); img.esqueletoId = data.id; img.isAlly = false; img.setCollideWorldBounds(true); img.setSize(50, 50); img.setOffset(100, 100); img.body.setImmovable(true); img.play('esqueleto_idle_Abajo', true); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto enemigo seleccionado.`, 'info'); }); window.esqueletosGrupo.add(img); window.esqueletosGrupo.getChildren().forEach(other => { if (other !== img) { this.physics.add.collider(img, other); } }); });
+    socket.on('esqueletoNew', (data) => { if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('esqueletoLevanta'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('esqueletoLevanta', { volume: window.volumenFX }); } const img = this.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3).setDepth(data.y); img.esqueletoId = data.id; img.isAlly = false; img.setCollideWorldBounds(true); img.setSize(50, 50); img.setOffset(100, 100); img.body.setImmovable(true); img.play('esqueleto_idle_Abajo', true); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto enemigo seleccionado.`, 'info'); }); window.esqueletosGrupo.add(img); window.esqueletosGrupo.getChildren().forEach(other => { if (other !== img) this.physics.add.collider(img, other); }); });
     
-    socket.on('esqueletoRevive', (data) => { if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('esqueletoLevanta'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('esqueletoLevanta', { volume: window.volumenFX }); } const img = this.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3).setDepth(data.y); img.esqueletoId = data.id; img.isAlly = true; img.setCollideWorldBounds(true); img.setSize(50, 50); img.setOffset(100, 100); img.body.setImmovable(true); img.play('esqueleto_idle_Abajo', true); img.setTint(0x88ff88); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto aliado seleccionado`, 'info'); }); window.esqueletosGrupo.add(img); window.esqueletosGrupo.getChildren().forEach(other => { if (other !== img) { this.physics.add.collider(img, other); } }); mostrarMensaje(`💀 ¡Esqueleto aliado revivido!`, 'exito'); });
+    socket.on('esqueletoRevive', (data) => { if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('esqueletoLevanta'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('esqueletoLevanta', { volume: window.volumenFX }); } const img = this.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3).setDepth(data.y); img.esqueletoId = data.id; img.isAlly = true; img.setCollideWorldBounds(true); img.setSize(50, 50); img.setOffset(100, 100); img.body.setImmovable(true); img.play('esqueleto_idle_Abajo', true); img.setTint(0x88ff88); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto aliado seleccionado`, 'info'); }); window.esqueletosGrupo.add(img); window.esqueletosGrupo.getChildren().forEach(other => { if (other !== img) this.physics.add.collider(img, other); }); mostrarMensaje(`💀 ¡Esqueleto aliado revivido!`, 'exito'); });
     
-    socket.on('furiaNecroticaEffect', (data) => { if (data.playerId === socket.id) { mostrarMensaje(`🔥 ¡Furia Necrótica! Tus esqueletos están potenciados por 10 segundos (+${Math.floor(data.bonusPorcentaje * 100)}% daño)`, 'exito'); if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (data.esqueletosIds.includes(esq.esqueletoId)) esq.setTint(0xff3333); }); } setTimeout(() => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (data.esqueletosIds.includes(esq.esqueletoId)) { esq.clearTint(); if (esq.isAlly) esq.setTint(0x88ff88); } }); } }, 10000); } });
+    socket.on('furiaNecroticaEffect', (data) => { if (data.playerId === socket.id) { mostrarMensaje(`🔥 ¡Furia Necrótica! Tus esqueletos están potenciados por 10 segundos (+${Math.floor(data.bonusPorcentaje * 100)}% daño)`, 'exito'); if (window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (data.esqueletosIds.includes(esq.esqueletoId)) esq.setTint(0xff3333); }); setTimeout(() => { if (window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (data.esqueletosIds.includes(esq.esqueletoId)) { esq.clearTint(); if (esq.isAlly) esq.setTint(0x88ff88); } }); }, 10000); } });
     
-    socket.on('furiaNecroticaEnd', (data) => { if (data.playerId === socket.id && window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.isAlly) esq.setTint(0x88ff88); }); } });
+    socket.on('furiaNecroticaEnd', (data) => { if (data.playerId === socket.id && window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.isAlly) esq.setTint(0x88ff88); }); });
     
     socket.on('proyectilCreado', (data) => { crearProyectil(data.origenX, data.origenY, data.targetX, data.targetY, data.damage, false); });
     
@@ -2698,19 +2615,20 @@ function create() {
     socket.on('rocaDesaparece', (data) => { if (window.rocasGrupo) window.rocasGrupo.getChildren().forEach(r => { if (r.rocaId === data.id) r.destroy(); }); });
     socket.on('rocaRecogida', (data) => { if (data.recolectadoPor !== pName && currentScene) { const sonido = currentScene.sound.get('sonidoMina'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('sonidoMina', { volume: window.volumenFX }); } });
     
+    // Mostrar textos de items cuando el jugador está cerca
+    setInterval(() => {
+        if (!player || !player.isAlive) return;
+        if (monedasSuelo) monedasSuelo.forEach(moneda => { if (moneda && moneda.texto) { const dist = Phaser.Math.Distance.Between(player.x, player.y, moneda.x, moneda.y); moneda.texto.setVisible(dist < 100); } });
+        if (dropsSuelo) dropsSuelo.forEach(drop => { if (drop && drop.texto) { const dist = Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y); drop.texto.setVisible(dist < 100); } });
+    }, 100);
+    
     let zoomActivo = false;
     const ZOOM_NORMAL = 1, ZOOM_CERCA = 1.5;
     this.input.on('pointerdown', (pointer) => { if (pointer.doubleClick) { zoomActivo = !zoomActivo; this.cameras.main.setZoom(zoomActivo ? ZOOM_CERCA : ZOOM_NORMAL); } });
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => { let nz = this.cameras.main.zoom; if (deltaY < 0) nz = Math.min(nz + 0.1, 2); else if (deltaY > 0) nz = Math.max(nz - 0.1, 0.5); this.cameras.main.setZoom(nz); });
     
     this.events.on('update', () => { 
-        otherPlayers.getChildren().forEach(other => { 
-            if (other.targetX !== undefined && other.targetY !== undefined) { 
-                other.x += (other.targetX - other.x) * 0.25; 
-                other.y += (other.targetY - other.y) * 0.25; 
-                other.setDepth(other.y); 
-            } 
-        }); 
+        otherPlayers.getChildren().forEach(other => { if (other.targetX !== undefined && other.targetY !== undefined) { other.x += (other.targetX - other.x) * 0.25; other.y += (other.targetY - other.y) * 0.25; other.setDepth(other.y); } }); 
         if (player && player.active && btnAttack) actualizarIconoAtaque(); 
     }); 
     
@@ -2767,21 +2685,11 @@ function update() {
     let spd = keys.SHIFT.isDown ? velocidadActual * 1.8 : velocidadActual; 
     let vx = 0, vy = 0; 
     
-    if (keys.A.isDown) { 
-        vx = -spd; 
-        player.lastDir = 'Izquierda'; 
-    } else if (keys.D.isDown) { 
-        vx = spd; 
-        player.lastDir = 'Derecha'; 
-    } 
+    if (keys.A.isDown) { vx = -spd; player.lastDir = 'Izquierda'; } 
+    else if (keys.D.isDown) { vx = spd; player.lastDir = 'Derecha'; } 
     
-    if (keys.W.isDown) { 
-        vy = -spd; 
-        player.lastDir = 'Arriba'; 
-    } else if (keys.S.isDown) { 
-        vy = spd; 
-        player.lastDir = 'Abajo'; 
-    } 
+    if (keys.W.isDown) { vy = -spd; player.lastDir = 'Arriba'; } 
+    else if (keys.S.isDown) { vy = spd; player.lastDir = 'Abajo'; } 
     
     player.setVelocity(vx, vy); 
     let moviendo = (Math.abs(vx) > 5 || Math.abs(vy) > 5); 
