@@ -336,9 +336,9 @@
     
     <div id="stat-preview" class="stat-preview" style="display:none;"></div>
     <div id="context-menu" class="context-menu">
-    <div id="menu-invitar" class="context-menu-item" onclick="invitarJugadorSeleccionado()">Invitar al equipo</div>
-    <div id="menu-salir" class="context-menu-item" onclick="salirDelEquipo()" style="display:none;">Salir del equipo</div>
-</div>
+        <div id="menu-invitar" class="context-menu-item" onclick="invitarJugadorSeleccionado()">Invitar al equipo</div>
+        <div id="menu-salir" class="context-menu-item" onclick="salirDelEquipo()" style="display:none;">Salir del equipo</div>
+    </div>
 
 <script>
 // ============================================
@@ -381,6 +381,9 @@ const DATA_VERSION = 3;
 let dropsSuelo = [];
 let monedasSuelo = [];
 
+// Control de sonidos para evitar saturación
+let reproduccionesEsqueletoMuere = 0;
+
 window.volumenFX = 0.6;
 window.volumenMusica = 0.3;
 
@@ -420,7 +423,7 @@ const classStats = {
 };
 
 // ============================================
-// FUNCIONES DE VOLUMEN Y AUXILIARES
+// FUNCIONES DE VOLUMEN
 // ============================================
 function initControlesVolumen() {
     const musicaInput = document.getElementById('volumen-musica');
@@ -477,9 +480,22 @@ function initControlesVolumen() {
 
 function reproducirSonido(sonido, volumen = null) {
     if (!sonido) return;
+    if (!currentScene || !currentScene.sound) return;
     const vol = volumen !== null ? volumen : window.volumenFX;
-    sonido.setVolume(vol);
-    sonido.play();
+    try {
+        if (sonido && typeof sonido.setVolume === 'function') {
+            sonido.setVolume(vol);
+            sonido.play();
+        }
+    } catch(e) {}
+}
+
+function reproducirSonidoEsqueletoMuere(sonido) {
+    if (!sonido) return;
+    if (reproduccionesEsqueletoMuere >= 4) return;
+    reproduccionesEsqueletoMuere++;
+    reproducirSonido(sonido, window.volumenFX);
+    setTimeout(() => { reproduccionesEsqueletoMuere--; }, 500);
 }
 
 function toggleChat() { 
@@ -528,7 +544,8 @@ function mostrarMensaje(m, t = 'info') {
 
 function encontrarItemPorId(id) { 
     for (let i = 0; i < inventarioSlots.length; i++) { 
-        if (inventarioSlots[i] && inventarioSlots[i].id === id) return inventarioSlots[i]; 
+        if (inventarioSlots[i] && (inventarioSlots[i].id === id || inventarioSlots[i].idBase === id)) 
+            return inventarioSlots[i]; 
     } 
     return null; 
 }
@@ -580,7 +597,7 @@ function desequiparItem(tipo) {
 }
 
 function equiparItem(item, tipo) {
-    if (item.id === 'hachadehierro_1' && pClassName !== 'BARBARO') {
+    if (item.idBase === 'hachadehierro_1' && pClassName !== 'BARBARO') {
         mostrarMensaje(`❌ Solo los Bárbaros pueden equipar el Hacha de Hierro`, 'error');
         return;
     }
@@ -588,7 +605,7 @@ function equiparItem(item, tipo) {
     if (equipamiento[tipo]) { 
         desequiparItem(tipo); 
     }
-    equipamiento[tipo] = item.id; 
+    equipamiento[tipo] = item.id;
     mostrarMensaje(`🔨 ${item.nombre} equipado!`, 'exito'); 
     actualizarStatsUI(); 
     renderizarInventario(); 
@@ -890,6 +907,7 @@ function crearDropEscudo(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStat
     drop.setScale(0.8);
     drop.setDepth(y);
     drop.itemId = uniqueId;
+    drop.idBase = itemId;
     drop.itemNombre = itemNombre;
     drop.itemTipo = itemTipo;
     drop.itemIcono = itemIcono;
@@ -922,6 +940,7 @@ function crearDropArmadura(x, y, itemId, itemNombre, itemTipo, itemIcono, itemSt
     drop.setScale(0.8);
     drop.setDepth(y);
     drop.itemId = uniqueId;
+    drop.idBase = itemId;
     drop.itemNombre = itemNombre;
     drop.itemTipo = itemTipo;
     drop.itemIcono = itemIcono;
@@ -954,6 +973,7 @@ function crearDropEspada(x, y, itemId, itemNombre, itemTipo, itemIcono, itemStat
     drop.setScale(0.8);
     drop.setDepth(y);
     drop.itemId = uniqueId;
+    drop.idBase = itemId;
     drop.itemNombre = itemNombre;
     drop.itemTipo = itemTipo;
     drop.itemIcono = itemIcono;
@@ -986,6 +1006,7 @@ function crearDropHachaDeHierro(x, y, itemId, itemNombre, itemTipo, itemIcono, i
     drop.setScale(0.8);
     drop.setDepth(y);
     drop.itemId = uniqueId;
+    drop.idBase = itemId;
     drop.itemNombre = itemNombre;
     drop.itemTipo = itemTipo;
     drop.itemIcono = itemIcono;
@@ -1019,6 +1040,7 @@ function crearMonedaSuelo(x, y, cantidad = 1) {
     moneda.cantidad = cantidad;
     moneda.id = 'moneda_' + Date.now() + '_' + Math.random();
     moneda.recogida = false;
+    moneda.timestamp = Date.now();
     
     let frameIndex = 0;
     const animInterval = setInterval(() => {
@@ -1086,7 +1108,7 @@ function recogerDrop(drop) {
     if (!drop || !drop.active) return;
     if (drop.recogida) return;
     drop.recogida = true;
-    let baseId = drop.itemId.split('_')[0] + '_1';
+    let baseId = drop.idBase || drop.itemId.split('_')[0] + '_1';
     if (drop.itemIcono === 'hachadehierro_img') baseId = 'hachadehierro_1';
     agregarItemAlInventarioEquipo(baseId, drop.itemTipo, drop.itemNombre, drop.itemIcono, 1, drop.itemStats);
     mostrarMensaje(`⚔️ +${drop.itemNombre}`, 'exito');
@@ -1136,11 +1158,18 @@ function agregarItemAlInventario(id, tipo, nombre, icono, cantidad, mostrarMsg =
     return false; 
 }
 
-function agregarItemAlInventarioEquipo(id, tipo, nombre, icono, cantidad, stats = {}) {
+function agregarItemAlInventarioEquipo(idBase, tipo, nombre, icono, cantidad, stats = {}) {
     for (let i = 0; i < inventarioSlots.length; i++) { 
         if (inventarioSlots[i] === null) { 
+            const uniqueId = idBase + '_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
             inventarioSlots[i] = { 
-                id, tipo, nombre, icono, cantidad: 1, slotIndex: i,
+                id: uniqueId,
+                idBase: idBase,
+                tipo: tipo,
+                nombre: nombre,
+                icono: icono,
+                cantidad: 1,
+                slotIndex: i,
                 ataqueFisico: stats.ataqueFisico || 0,
                 ataqueMagico: stats.ataqueMagico || 0,
                 defensaFisica: stats.defensaFisica || 0,
@@ -1295,7 +1324,7 @@ function crearSlotElement(slot, index, origen) {
                     mostrarMensaje(`💙 Maná al máximo`, 'error'); 
                 } 
             } else if (slot.tipo === 'espada') { 
-                if (slot.id === 'hachadehierro_1' && pClassName !== 'BARBARO') {
+                if (slot.idBase === 'hachadehierro_1' && pClassName !== 'BARBARO') {
                     mostrarMensaje(`❌ Solo los Bárbaros pueden equipar el Hacha de Hierro`, 'error');
                     return;
                 }
@@ -1406,7 +1435,7 @@ function actualizarStatsUI() {
         const armaEquipada = equipamiento.arma;
         const itemArma = encontrarItemPorId(armaEquipada);
         const teniaHacha = barbaroTieneHacha;
-        barbaroTieneHacha = (itemArma && itemArma.id === 'hachadehierro_1');
+        barbaroTieneHacha = (itemArma && itemArma.idBase === 'hachadehierro_1');
         
         if (!barbaroTieneHacha && teniaHacha) {
             mostrarMensaje(`❌ Habilidad de Bárbaro desactivada - Hacha de Hierro no equipada`, 'error');
@@ -1945,8 +1974,33 @@ function usarSkill(skillId) {
                 player.y = originalY;
                 player.setFrame(frame4);
                 
-                const rotosuelo = currentScene.add.image(player.x, player.y, 'rotosuelo');
-                rotosuelo.setDepth(player.y - 10);
+                // ==========================================
+                // POSICIÓN DEL ROTOSUELO SEGÚN DIRECCIÓN
+                // ==========================================
+                let rotosueloX = player.x;
+                let rotosueloY = player.y;
+                
+               switch(originalDir) {
+    case 'Derecha':
+        rotosueloX = player.x + 40;
+        rotosueloY = player.y + 15;
+        break;
+    case 'Izquierda':
+        rotosueloX = player.x - 40;
+        rotosueloY = player.y + 15;
+        break;
+    case 'Abajo':
+        rotosueloX = player.x;
+        rotosueloY = player.y + 50;
+        break;
+    case 'Arriba':
+        rotosueloX = player.x;
+        rotosueloY = player.y - 40;
+        break;
+}
+                
+                const rotosuelo = currentScene.add.image(rotosueloX, rotosueloY, 'rotosuelo');
+                rotosuelo.setDepth(10000);
                 rotosuelo.setScale(0.8);
                 rotosuelo.setAlpha(0.8);
                 currentScene.time.delayedCall(1000, () => rotosuelo.destroy());
@@ -2151,8 +2205,11 @@ function preload() {
     this.load.audio('sonidoMina', 'mina.mp3'); 
     this.load.audio('sonidoAtaque', 'ataque.mp3'); 
     this.load.audio('musicaFondo', 'musica1.mp3'); 
-    this.load.audio('esqueletoMuere', 'esqueleto_muere.mp3'); 
-    this.load.audio('esqueletoLevanta', 'esqueleto_levanta.mp3'); 
+    this.load.audio('esqueletoMuere', 'esqueleto_muere.mp3');
+
+    this.load.on('filecomplete-audio-esqueletoMuere', () => {
+        console.log('✅ Sonido esqueletoMuere cargado correctamente');
+    });
     
     for (let i = 0; i <= 7; i++) { 
         const frameNum = i.toString().padStart(4, '0'); 
@@ -2169,6 +2226,12 @@ function create() {
     
     currentScene = this; 
     socket = io();
+    
+    // Forzar carga del sonido si no existe
+    if (!this.sound.get('esqueletoMuere')) {
+        this.sound.add('esqueletoMuere', 'esqueleto_muere.mp3');
+        console.log('✅ Sonido esqueletoMuere cargado manualmente');
+    }
     
     window.arbolesGrupo = this.add.group();
     window.minasGrupo = this.add.group();
@@ -2485,6 +2548,7 @@ function create() {
         drop.cantidad = data.cantidad;
         drop.recogida = false;
         drop.itemNombre = data.tipo === 'hp' ? 'Pocion de Vida' : 'Pocion de Mana';
+        drop.timestamp = Date.now();
         
         const texto = currentScene.add.text(data.x, data.y - 22, drop.itemNombre, {
             fontSize: '9px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000000', strokeThickness: 2
@@ -2538,7 +2602,7 @@ function create() {
             for (let i = 0; i < data.items.length; i++) { 
                 const item = data.items[i]; 
                 if (item && item.slot !== undefined && item.slot < inventarioSlots.length) { 
-                    inventarioSlots[item.slot] = { id: item.id, tipo: item.tipo, nombre: item.nombre, icono: item.icono, cantidad: item.cantidad, slotIndex: item.slot }; 
+                    inventarioSlots[item.slot] = { id: item.id, idBase: item.idBase, tipo: item.tipo, nombre: item.nombre, icono: item.icono, cantidad: item.cantidad, slotIndex: item.slot, ataqueFisico: item.ataqueFisico, defensaFisica: item.defensaFisica, velocidad: item.velocidad }; 
                 } 
             } 
             renderizarInventario(); guardarPartida(); 
@@ -2585,7 +2649,7 @@ function create() {
             if (esqueleto.isAlive !== false) { 
                 const img = this.physics.add.sprite(esqueleto.x, esqueleto.y, 'esqueleto').setScale(0.3).setDepth(esqueleto.y); 
                 img.esqueletoId = esqueleto.id; img.isAlly = esqueleto.isAlly || false; 
-                img.setCollideWorldBounds(true); img.setSize(50, 50); img.setOffset(100, 100); img.body.setImmovable(true); 
+                img.setCollideWorldBounds(true); img.setSize(40, 40); img.setOffset(110, 110); img.body.setImmovable(true); 
                 img.play('esqueleto_idle_Abajo', true); img.setInteractive(); 
                 img.on('pointerdown', () => { ultimoEsqueletoClickeado = esqueleto.id; mostrarMensaje(`💀 Esqueleto ${esqueleto.isAlly ? 'aliado' : 'enemigo'} seleccionado`, 'info'); }); 
                 if (window.esqueletosGrupo) window.esqueletosGrupo.add(img); 
@@ -2598,13 +2662,40 @@ function create() {
     
     socket.on('esqueletoAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); mostrarMensaje(`💀 Recibiste ${data.damage} de daño`, 'combate'); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play(`esqueleto_atk_${data.dir}`, true); setTimeout(() => { if (esq.active) esq.play(`esqueleto_idle_${data.dir}`, true); }, 300); } }); } });
     
-    socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('esqueletoMuere'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('esqueletoMuere', { volume: window.volumenFX }); } if (Math.random() < 0.3) crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5); if (Math.random() < 0.05) crearDropEspada(data.x, data.y, 'espada_1', 'Espada', 'espada', 'espada_img', { ataqueFisico: 15, velocidad: -15 }); if (Math.random() < 0.05) crearDropEscudo(data.x, data.y, 'escudo_1', 'Escudo', 'escudo', 'escudo_madera_img', { defensaFisica: 20, velocidad: -15 }); if (Math.random() < 0.03) crearDropArmadura(data.x, data.y, 'armadura_1', 'Armadura', 'armadura', 'armadura_de_cuero_img', { defensaFisica: 15, velocidad: -20 }); if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.play('esqueleto_die_Abajo'); esq.once('animationcomplete', () => { if (esq && esq.active) { esq.stop(); esq.setFrame(55); esq.body.enable = false; esq.setVisible(true); setTimeout(() => { if (esq && esq.active) esq.destroy(); }, 60000); } }); if (data.exp > 0 && data.attackers && data.attackers.includes(socket.id)) ganarExp(data.exp); return; } }); } });
+    socket.on('esqueletoDeath', (data) => { 
+        if (currentScene && currentScene.sound) { 
+            const sonido = currentScene.sound.get('esqueletoMuere'); 
+            if (sonido) { sonido.setVolume(window.volumenFX); sonido.play(); } 
+        } 
+        if (Math.random() < 0.3) crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5); 
+        if (Math.random() < 0.05) crearDropEspada(data.x, data.y, 'espada_1', 'Espada', 'espada', 'espada_img', { ataqueFisico: 15, velocidad: -15 }); 
+        if (Math.random() < 0.05) crearDropEscudo(data.x, data.y, 'escudo_1', 'Escudo', 'escudo', 'escudo_madera_img', { defensaFisica: 20, velocidad: -15 }); 
+        if (Math.random() < 0.03) crearDropArmadura(data.x, data.y, 'armadura_1', 'Armadura', 'armadura', 'armadura_de_cuero_img', { defensaFisica: 15, velocidad: -20 }); 
+        if (window.esqueletosGrupo) { 
+            window.esqueletosGrupo.getChildren().forEach(esq => { 
+                if (esq.esqueletoId === data.id) { 
+                    esq.play('esqueleto_die_Abajo'); 
+                    esq.once('animationcomplete', () => { 
+                        if (esq && esq.active) { 
+                            esq.stop(); 
+                            esq.setFrame(55); 
+                            esq.body.enable = false; 
+                            esq.setVisible(true); 
+                            setTimeout(() => { if (esq && esq.active) esq.destroy(); }, 60000); 
+                        } 
+                    }); 
+                    if (data.exp > 0 && data.attackers && data.attackers.includes(socket.id)) ganarExp(data.exp); 
+                    return; 
+                } 
+            }); 
+        } 
+    });
     
     socket.on('esqueletoDestroy', (data) => { if (window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) esq.destroy(); }); });
     
-    socket.on('esqueletoNew', (data) => { if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('esqueletoLevanta'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('esqueletoLevanta', { volume: window.volumenFX }); } const img = this.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3).setDepth(data.y); img.esqueletoId = data.id; img.isAlly = false; img.setCollideWorldBounds(true); img.setSize(50, 50); img.setOffset(100, 100); img.body.setImmovable(true); img.play('esqueleto_idle_Abajo', true); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto enemigo seleccionado.`, 'info'); }); window.esqueletosGrupo.add(img); window.esqueletosGrupo.getChildren().forEach(other => { if (other !== img) this.physics.add.collider(img, other); }); });
+    socket.on('esqueletoNew', (data) => { const img = this.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3).setDepth(data.y); img.esqueletoId = data.id; img.isAlly = false; img.setCollideWorldBounds(true); img.setSize(40, 40); img.setOffset(110, 110); img.body.setImmovable(true); img.play('esqueleto_idle_Abajo', true); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto enemigo seleccionado.`, 'info'); }); window.esqueletosGrupo.add(img); window.esqueletosGrupo.getChildren().forEach(other => { if (other !== img) this.physics.add.collider(img, other); }); });
     
-    socket.on('esqueletoRevive', (data) => { if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('esqueletoLevanta'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('esqueletoLevanta', { volume: window.volumenFX }); } const img = this.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3).setDepth(data.y); img.esqueletoId = data.id; img.isAlly = true; img.setCollideWorldBounds(true); img.setSize(50, 50); img.setOffset(100, 100); img.body.setImmovable(true); img.play('esqueleto_idle_Abajo', true); img.setTint(0x88ff88); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto aliado seleccionado`, 'info'); }); window.esqueletosGrupo.add(img); window.esqueletosGrupo.getChildren().forEach(other => { if (other !== img) this.physics.add.collider(img, other); }); mostrarMensaje(`💀 ¡Esqueleto aliado revivido!`, 'exito'); });
+    socket.on('esqueletoRevive', (data) => { const img = this.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3).setDepth(data.y); img.esqueletoId = data.id; img.isAlly = true; img.setCollideWorldBounds(true); img.setSize(40, 40); img.setOffset(110, 110); img.body.setImmovable(true); img.play('esqueleto_idle_Abajo', true); img.setTint(0x88ff88); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto aliado seleccionado`, 'info'); }); window.esqueletosGrupo.add(img); window.esqueletosGrupo.getChildren().forEach(other => { if (other !== img) { this.physics.add.collider(img, other); } }); mostrarMensaje(`💀 ¡Esqueleto aliado revivido!`, 'exito'); });
     
     socket.on('furiaNecroticaEffect', (data) => { if (data.playerId === socket.id) { mostrarMensaje(`🔥 ¡Furia Necrótica! Tus esqueletos están potenciados por 10 segundos (+${Math.floor(data.bonusPorcentaje * 100)}% daño)`, 'exito'); if (window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (data.esqueletosIds.includes(esq.esqueletoId)) esq.setTint(0xff3333); }); setTimeout(() => { if (window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (data.esqueletosIds.includes(esq.esqueletoId)) { esq.clearTint(); if (esq.isAlly) esq.setTint(0x88ff88); } }); }, 10000); } });
     
@@ -2638,6 +2729,38 @@ function create() {
         if (monedasSuelo) monedasSuelo.forEach(moneda => { if (moneda && moneda.texto) { const dist = Phaser.Math.Distance.Between(player.x, player.y, moneda.x, moneda.y); moneda.texto.setVisible(dist < 100); } });
         if (dropsSuelo) dropsSuelo.forEach(drop => { if (drop && drop.texto) { const dist = Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y); drop.texto.setVisible(dist < 100); } });
     }, 100);
+    
+    // Limpiar drops viejos cada 10 segundos
+    setInterval(() => {
+        const ahora = Date.now();
+        const TIEMPO_MAXIMO = 120000;
+        
+        for (let i = dropsSuelo.length - 1; i >= 0; i--) {
+            const item = dropsSuelo[i];
+            if (item && !item.recogida) {
+                if (!item.timestamp) item.timestamp = ahora;
+                if (ahora - item.timestamp > TIEMPO_MAXIMO) {
+                    if (item.texto) item.texto.destroy();
+                    if (item.animInterval) clearInterval(item.animInterval);
+                    item.destroy();
+                    dropsSuelo.splice(i, 1);
+                }
+            }
+        }
+        
+        for (let i = monedasSuelo.length - 1; i >= 0; i--) {
+            const moneda = monedasSuelo[i];
+            if (moneda && !moneda.recogida) {
+                if (!moneda.timestamp) moneda.timestamp = ahora;
+                if (ahora - moneda.timestamp > TIEMPO_MAXIMO) {
+                    if (moneda.texto) moneda.texto.destroy();
+                    if (moneda.animInterval) clearInterval(moneda.animInterval);
+                    moneda.destroy();
+                    monedasSuelo.splice(i, 1);
+                }
+            }
+        }
+    }, 10000);
     
     let zoomActivo = false;
     const ZOOM_NORMAL = 1, ZOOM_CERCA = 1.5;
