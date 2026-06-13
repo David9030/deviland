@@ -8,15 +8,13 @@ const CONFIG = {
     PORT: 3000,
     DEMONLORD: { MAX_HP: 5000, RESPAWN_TIME: 10000, SPEED: 7, ATTACK_COOLDOWN: 2000, ATTACK_DAMAGE: 200, VISION_RANGE: 400, EXP: 500 },
     SKELETON: { MAX_HP: 200, RESPAWN_TIME: 10000, SPEED: 8, ATTACK_COOLDOWN: 1000, ATTACK_DAMAGE: 25, VISION_RANGE: 400, EXP: 50, DEFENSE: 0 },
-    PLAYER: { MAX_HP: 500, RESPAWN_TIME: 10000,
-        BASE_STATS: {
-            barbaro: { fuerza: 18, defensa: 8, agilidad: 8, vitalidad: 12, attackSpeed: 0.7, baseDamage: 60, mana: 50 },
-            caballero: { fuerza: 12, defensa: 15, agilidad: 8, vitalidad: 14, attackSpeed: 0.9, baseDamage: 45, mana: 60 },
-            warrior: { fuerza: 10, defensa: 10, agilidad: 15, vitalidad: 10, attackSpeed: 1.0, baseDamage: 50, mana: 60 },
-            mago: { fuerza: 5, defensa: 5, agilidad: 12, vitalidad: 8, attackSpeed: 1.0, baseDamage: 35, mana: 150 },
-            necromancer: { fuerza: 5, defensa: 5, agilidad: 10, vitalidad: 10, attackSpeed: 1.0, baseDamage: 35, mana: 150 }
-        }
-    },
+    PLAYER: { MAX_HP: 500, RESPAWN_TIME: 10000, BASE_STATS: {
+        barbaro: { fuerza: 18, defensaFisica: 8, defensaMagica: 0, agilidad: 8, vitalidad: 12, attackSpeed: 0.7, baseDamage: 60, mana: 50 },
+        caballero: { fuerza: 12, defensaFisica: 15, defensaMagica: 0, agilidad: 8, vitalidad: 14, attackSpeed: 0.9, baseDamage: 45, mana: 60 },
+        warrior: { fuerza: 10, defensaFisica: 10, defensaMagica: 0, agilidad: 15, vitalidad: 10, attackSpeed: 1.0, baseDamage: 50, mana: 60 },
+        mago: { fuerza: 5, defensaFisica: 0, defensaMagica: 40, agilidad: 12, vitalidad: 8, attackSpeed: 1.0, baseDamage: 35, mana: 150 },
+        necromancer: { fuerza: 5, defensaFisica: 0, defensaMagica: 40, agilidad: 10, vitalidad: 10, attackSpeed: 1.0, baseDamage: 35, mana: 150 }
+    } },
     ROCAS: { CANTIDAD_INICIAL: 20, MAX_POR_JUGADOR: 50, RESPAWN_TIME: 30000 }
 };
 
@@ -25,53 +23,206 @@ app.use('/ui', express.static(path.join(__dirname, 'ui')));
 app.use('/skills', express.static(path.join(__dirname, 'skills')));
 app.use('/fireball', express.static(path.join(__dirname, 'fireball')));
 
-app.get('/espada_img.png', (req, res) => res.sendFile(path.join(__dirname, 'espada.png')));
-app.get('/escudo_madera_img.png', (req, res) => res.sendFile(path.join(__dirname, 'escudo_madera.png')));
-app.get('/armadura_de_cuero_img.png', (req, res) => res.sendFile(path.join(__dirname, 'armadura_de_cuero.png')));
-
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 let players = {};
 let ultimoAtaque = new Map();
 let demonlord = { id: 'demonlord', x: 1500, y: 1500, hp: CONFIG.DEMONLORD.MAX_HP, maxHp: CONFIG.DEMONLORD.MAX_HP, isAlive: true, dir: 'Abajo', attackCooldown: 0, attackers: [], isAttacking: false, currentTarget: null };
 let esqueletos = [];
-let arboles = [], minas = [], rocas = [], recursosJugadores = {}, inventariosJugadores = {};
+let arboles = [];
+let rocas = [];
+let inventariosJugadores = {};
 let nextSkeletonId = 100;
 let skillCooldowns = {};
 let teams = {};
 let playerTeam = {};
-let invitacionesPendientes = {};
 
 function getDistance(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
 
-function getPlayerDefense(playerId) {
-    const jugador = players[playerId];
-    if (!jugador) return 0;
-    const inventario = inventariosJugadores[playerId];
-    if (!inventario) return 0;
-    let defensaTotal = 0;
-    const escudoId = jugador.equipamiento?.escudo;
+// ============================================
+// SISTEMA DE DEFENSA COMPLETO
+// ============================================
+function getPlayerDefenseFisica(playerId) {
+    const j = players[playerId];
+    if (!j) return 0;
+    const inv = inventariosJugadores[playerId];
+    if (!inv) return 0;
+    let def = 0;
+    
+    // Defensa base de la clase
+    const statsBase = CONFIG.PLAYER.BASE_STATS[j.class] || CONFIG.PLAYER.BASE_STATS.warrior;
+    def += statsBase.defensaFisica || 0;
+    
+    // Defensa del escudo equipado
+    const escudoId = j.equipamiento?.escudo;
     if (escudoId) {
-        const item = inventario.items.find(i => i.id === escudoId);
-        if (item && item.defensaFisica) defensaTotal += item.defensaFisica;
+        const item = inv.items.find(i => i.id === escudoId);
+        if (item && item.defensaFisica) def += item.defensaFisica;
     }
-    const armaduraId = jugador.equipamiento?.armadura;
+    
+    // Defensa de la armadura equipada
+    const armaduraId = j.equipamiento?.armadura;
     if (armaduraId) {
-        const item = inventario.items.find(i => i.id === armaduraId);
-        if (item && item.defensaFisica) defensaTotal += item.defensaFisica;
+        const item = inv.items.find(i => i.id === armaduraId);
+        if (item && item.defensaFisica) def += item.defensaFisica;
     }
-    const statsBase = CONFIG.PLAYER.BASE_STATS[jugador.class] || CONFIG.PLAYER.BASE_STATS.warrior;
-    defensaTotal += statsBase.defensa || 0;
-    return defensaTotal;
+    
+    // Defensa por estadísticas (vitalidad)
+    def += Math.floor(j.stats?.vitalidad || 0);
+    
+    return def;
+}
+
+function getPlayerDefensaMagica(playerId) {
+    const j = players[playerId];
+    if (!j) return 0;
+    const inv = inventariosJugadores[playerId];
+    if (!inv) return 0;
+    let def = 0;
+    
+    // Defensa base de la clase
+    const statsBase = CONFIG.PLAYER.BASE_STATS[j.class] || CONFIG.PLAYER.BASE_STATS.warrior;
+    def += statsBase.defensaMagica || 0;
+    
+    // Defensa mágica de items (escudo o armadura pueden dar defensa mágica)
+    const escudoId = j.equipamiento?.escudo;
+    if (escudoId) {
+        const item = inv.items.find(i => i.id === escudoId);
+        if (item && item.defensaMagica) def += item.defensaMagica;
+    }
+    
+    const armaduraId = j.equipamiento?.armadura;
+    if (armaduraId) {
+        const item = inv.items.find(i => i.id === armaduraId);
+        if (item && item.defensaMagica) def += item.defensaMagica;
+    }
+    
+    // Defensa por estadísticas (inteligencia)
+    def += Math.floor((j.stats?.inteligencia || 0) / 2);
+    
+    return def;
 }
 
 function calcularDañoFinal(objetivoId, dañoBase, tipo = 'fisico') {
-    const defensa = getPlayerDefense(objetivoId);
+    let defensa = 0;
+    if (tipo === 'fisico') {
+        defensa = getPlayerDefenseFisica(objetivoId);
+    } else {
+        defensa = getPlayerDefensaMagica(objetivoId);
+    }
     const dañoFinal = Math.max(1, dañoBase - defensa);
+    console.log(`⚔️ Daño ${tipo}: ${dañoBase} - Defensa: ${defensa} = ${dañoFinal}`);
     return dañoFinal;
 }
 
-function dañarEsqueleto(esqueleto, atacanteId, daño, esDistancia = false) {
+function darExpAJugadorYEquipo(socketId, exp) {
+    const j = players[socketId];
+    if (!j) return;
+    j.exp = (j.exp || 0) + exp;
+    io.to(socketId).emit('playerExpGain', { id: socketId, exp: exp });
+    const t = playerTeam[socketId];
+    if (t && teams[t]) teams[t].miembros.forEach(m => {
+        if (m !== socketId && players[m]) {
+            players[m].exp = (players[m].exp || 0) + exp;
+            io.to(m).emit('playerExpGain', { id: m, exp: exp });
+        }
+    });
+}
+
+function revivirJugador(socketId) {
+    const j = players[socketId];
+    if (!j) return;
+    j.isAlive = true;
+    j.hp = CONFIG.PLAYER.MAX_HP;
+    j.mana = (CONFIG.PLAYER.BASE_STATS[j.class]?.mana || 100);
+    j.x = 512;
+    j.y = 512;
+    io.emit('playerRespawn', { id: socketId, x: 512, y: 512 });
+}
+
+function generarEsqueletosIniciales() {
+    esqueletos = [];
+    for (let i = 0; i < 50; i++) {
+        esqueletos.push({
+            id: 'esqueleto_' + (nextSkeletonId++),
+            x: Math.random() * 2800 + 100,
+            y: Math.random() * 2800 + 100,
+            hp: CONFIG.SKELETON.MAX_HP,
+            maxHp: CONFIG.SKELETON.MAX_HP,
+            isAlive: true,
+            isAlly: false,
+            ownerId: null,
+            targetId: null,
+            targetType: null,
+            dir: 'Abajo',
+            attackCooldown: 0,
+            damageBonus: 0,
+            baseDamage: CONFIG.SKELETON.ATTACK_DAMAGE,
+            attackers: []
+        });
+    }
+    return esqueletos;
+}
+
+function generarArboles() {
+    for (let i = 0; i < 15; i++) arboles.push({ id: 'arbol_' + i, x: Math.random() * 2800 + 100, y: Math.random() * 2800 + 100, activo: true });
+    io.emit('arbolesIniciales', arboles);
+}
+
+function generarRocas() {
+    for (let i = 0; i < CONFIG.ROCAS.CANTIDAD_INICIAL; i++) rocas.push({ id: 'roca_' + i, x: Math.random() * 2800 + 100, y: Math.random() * 2800 + 100, activo: true });
+    io.emit('rocasIniciales', rocas);
+}
+
+console.log("🔥 DEVILAND SERVIDOR INICIADO");
+generarArboles();
+generarRocas();
+generarEsqueletosIniciales();
+
+const ITEMS_DATA = {
+    // ========================================
+    // +++ EXTREMADAMENTE RAROS (TEXTO VERDE)
+    // ========================================
+    armadura_3: { nombre: 'Armadura+++', tipo: 'armadura', icono: 'armadura_de_cuero_img', stats: { defensaFisica: 50, defensaMagica: 25, velocidad: -10 }, calidad: '+++', dropChance: 0.005, textoVerde: true },
+    espada_3: { nombre: 'Espada+++', tipo: 'espada', icono: 'espada_img', stats: { ataqueFisico: 40, velocidad: -5 }, calidad: '+++', dropChance: 0.01, textoVerde: true },
+    escudo_3: { nombre: 'Escudo+++', tipo: 'escudo', icono: 'escudo_madera_img', stats: { defensaFisica: 55, defensaMagica: 20, velocidad: -5 }, calidad: '+++', dropChance: 0.01, textoVerde: true },
+    hachadehierro_3: { nombre: 'Hacha de Hierro+++', tipo: 'espada', icono: 'hachadehierro_img', stats: { ataqueFisico: 80, velocidad: 0 }, calidad: '+++', dropChance: 0.002, textoVerde: true },
+    
+    // ========================================
+    // ++ RAROS (TEXTO BLANCO)
+    // ========================================
+    armadura_2: { nombre: 'Armadura++', tipo: 'armadura', icono: 'armadura_de_cuero_img', stats: { defensaFisica: 30, defensaMagica: 15, velocidad: -15 }, calidad: '++', dropChance: 0.02, textoVerde: false },
+    espada_2: { nombre: 'Espada++', tipo: 'espada', icono: 'espada_img', stats: { ataqueFisico: 25, velocidad: -10 }, calidad: '++', dropChance: 0.03, textoVerde: false },
+    escudo_2: { nombre: 'Escudo++', tipo: 'escudo', icono: 'escudo_madera_img', stats: { defensaFisica: 35, defensaMagica: 12, velocidad: -10 }, calidad: '++', dropChance: 0.03, textoVerde: false },
+    hachadehierro_2: { nombre: 'Hacha de Hierro++', tipo: 'espada', icono: 'hachadehierro_img', stats: { ataqueFisico: 50, velocidad: -5 }, calidad: '++', dropChance: 0.008, textoVerde: false },
+    
+    // ========================================
+    // + POCO COMUNES (TEXTO BLANCO)
+    // ========================================
+    armadura_1: { nombre: 'Armadura+', tipo: 'armadura', icono: 'armadura_de_cuero_img', stats: { defensaFisica: 15, defensaMagica: 5, velocidad: -20 }, calidad: '+', dropChance: 0.05, textoVerde: false },
+    espada_1: { nombre: 'Espada+', tipo: 'espada', icono: 'espada_img', stats: { ataqueFisico: 15, velocidad: -15 }, calidad: '+', dropChance: 0.08, textoVerde: false },
+    escudo_1: { nombre: 'Escudo+', tipo: 'escudo', icono: 'escudo_madera_img', stats: { defensaFisica: 20, defensaMagica: 5, velocidad: -15 }, calidad: '+', dropChance: 0.08, textoVerde: false },
+    hachadehierro_1: { nombre: 'Hacha de Hierro+', tipo: 'espada', icono: 'hachadehierro_img', stats: { ataqueFisico: 25, velocidad: -10 }, calidad: '+', dropChance: 0.02, textoVerde: false }
+};
+
+function dropearItem(x, y, itemId) {
+    const item = ITEMS_DATA[itemId];
+    if (!item) return;
+    
+    io.emit('dropItem', { 
+        x: x,
+        y: y, 
+        itemId: itemId, 
+        nombre: item.nombre, 
+        tipo: item.tipo, 
+        icono: item.icono, 
+        stats: item.stats, 
+        calidad: item.calidad || '',
+        textoVerde: item.textoVerde || false
+    });
+}
+
+function dañarEsqueleto(esqueleto, atacanteId, daño) {
     if (!esqueleto || !esqueleto.isAlive) return;
     if (!esqueleto.attackers) esqueleto.attackers = [];
     if (!esqueleto.attackers.includes(atacanteId)) esqueleto.attackers.push(atacanteId);
@@ -79,54 +230,26 @@ function dañarEsqueleto(esqueleto, atacanteId, daño, esDistancia = false) {
     
     if (esqueleto.hp <= 0) {
         esqueleto.isAlive = false;
-        
-        esqueletos.forEach(otro => {
-            if (otro.isAlive && otro.targetId === esqueleto.id) {
-                otro.targetId = null;
-                otro.targetType = null;
-            }
+        esqueletos.forEach(o => {
+            if (o.isAlive && o.targetId === esqueleto.id) { o.targetId = null; o.targetType = null; }
         });
-
-        if (players[atacanteId] && players[atacanteId].className === 'BARBARO') {
-            io.emit('barbaroAsesinato', { playerId: atacanteId });
+        if (players[atacanteId] && players[atacanteId].className === 'BARBARO') io.emit('barbaroAsesinato', { playerId: atacanteId });
+        const team = playerTeam[atacanteId];
+        let destinos = team && teams[team] ? teams[team].miembros : [atacanteId];
+        if (Math.random() < 0.1) destinos.forEach(d => io.to(d).emit('dropPocion', { x: esqueleto.x, y: esqueleto.y, tipo: Math.random() < 0.5 ? 'hp' : 'mana', cantidad: 1 }));
+        
+        const dropRand = Math.random();
+        let dropObtenido = false;
+        for (const [id, data] of Object.entries(ITEMS_DATA)) {
+            if (dropRand < data.dropChance && !dropObtenido) {
+                dropearItem(esqueleto.x, esqueleto.y, id);
+                dropObtenido = true;
+            }
         }
         
-        const teamId = playerTeam[atacanteId];
-        let destinatarios = [];
-        if (teamId && teams[teamId]) {
-            destinatarios = teams[teamId].miembros;
-        } else {
-            destinatarios = [atacanteId];
-        }
-
-        function enviarDrop(evento, datos) {
-            destinatarios.forEach(destinatario => {
-                io.to(destinatario).emit(evento, datos);
-            });
-        }
-
-        if (Math.random() < 0.1) {
-            const tipoPocion = Math.random() < 0.5 ? 'hp' : 'mana';
-            enviarDrop('dropPocion', { x: esqueleto.x, y: esqueleto.y, tipo: tipoPocion, cantidad: 1 });
-        }
-        if (Math.random() < 0.05) {
-            enviarDrop('dropItem', { x: esqueleto.x, y: esqueleto.y, itemId: 'espada_1', nombre: 'Espada', tipo: 'espada', icono: 'espada_img', stats: { ataqueFisico: 15, velocidad: -15 } });
-        }
-        if (Math.random() < 0.05) {
-            enviarDrop('dropItem', { x: esqueleto.x, y: esqueleto.y, itemId: 'escudo_1', nombre: 'Escudo', tipo: 'escudo', icono: 'escudo_madera_img', stats: { defensaFisica: 20, velocidad: -15 } });
-        }
-        if (Math.random() < 0.03) {
-            enviarDrop('dropItem', { x: esqueleto.x, y: esqueleto.y, itemId: 'armadura_1', nombre: 'Armadura', tipo: 'armadura', icono: 'armadura_de_cuero_img', stats: { defensaFisica: 15, velocidad: -20 } });
-        }
-        
-        if (esqueleto.attackers && esqueleto.attackers.length > 0) {
-            esqueleto.attackers.forEach(attackerId => darExpAJugadorYEquipo(attackerId, CONFIG.SKELETON.EXP));
-        } else {
-            darExpAJugadorYEquipo(atacanteId, CONFIG.SKELETON.EXP);
-        }
-        
-        io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP, attackers: esqueleto.attackers || [] });
-        
+        if (esqueleto.attackers && esqueleto.attackers.length > 0) esqueleto.attackers.forEach(a => darExpAJugadorYEquipo(a, CONFIG.SKELETON.EXP));
+        else darExpAJugadorYEquipo(atacanteId, CONFIG.SKELETON.EXP);
+        io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP, attackers: esqueleto.attackers || [], dir: esqueleto.dir || 'Abajo' });
         setTimeout(() => {
             if (!esqueleto.isAlive && !esqueleto.isAlly) {
                 esqueleto.isAlive = true;
@@ -144,163 +267,75 @@ function dañarEsqueleto(esqueleto, atacanteId, daño, esDistancia = false) {
     }
 }
 
-function darExpAJugadorYEquipo(socketId, exp) {
-    const jugador = players[socketId];
-    if (!jugador) return;
-    jugador.exp = (jugador.exp || 0) + exp;
-    io.to(socketId).emit('playerExpGain', { id: socketId, exp: exp });
-    const teamId = playerTeam[socketId];
-    if (teamId && teams[teamId]) {
-        teams[teamId].miembros.forEach(miembroId => {
-            if (miembroId !== socketId && players[miembroId]) {
-                players[miembroId].exp = (players[miembroId].exp || 0) + exp;
-                io.to(miembroId).emit('playerExpGain', { id: miembroId, exp: exp });
-            }
-        });
-    }
-}
-
-function revivirJugador(socketId) {
-    const jugador = players[socketId];
-    if (!jugador) return;
-    jugador.isAlive = true;
-    jugador.hp = CONFIG.PLAYER.MAX_HP;
-    jugador.mana = (CONFIG.PLAYER.BASE_STATS[jugador.class]?.mana || 100);
-    jugador.x = 512;
-    jugador.y = 512;
-    io.emit('playerRespawn', { id: socketId, x: 512, y: 512 });
-}
-
-function generarEsqueletosIniciales() {
-    esqueletos = [];
-    for(let i = 0; i < 50; i++) {
-        esqueletos.push({ 
-            id: 'esqueleto_' + (nextSkeletonId++), 
-            x: Math.random() * 2800 + 100, 
-            y: Math.random() * 2800 + 100, 
-            hp: CONFIG.SKELETON.MAX_HP, 
-            maxHp: CONFIG.SKELETON.MAX_HP,
-            isAlive: true, 
-            isAlly: false,
-            ownerId: null,
-            targetId: null,
-            targetType: null,
-            dir: 'Abajo', 
-            attackCooldown: 0,
-            damageBonus: 0,
-            baseDamage: CONFIG.SKELETON.ATTACK_DAMAGE,
-            attackers: []
-        });
-    }
-    console.log(`✅ ${esqueletos.length} esqueletos generados en el servidor`);
-    return esqueletos;
-}
-
-function generarArboles() {
-    for(let i = 0; i < 15; i++) arboles.push({ id: 'arbol_' + i, x: Math.random() * 2800 + 100, y: Math.random() * 2800 + 100, madera: 10, activo: true });
-    io.emit('arbolesIniciales', arboles);
-}
-
-function generarMinas() {
-    for(let i = 0; i < 10; i++) minas.push({ id: 'mina_' + i, x: Math.random() * 2800 + 100, y: Math.random() * 2800 + 100, minerales: 15, activo: true });
-    io.emit('minasIniciales', minas);
-}
-
-function generarRocas() {
-    for(let i = 0; i < CONFIG.ROCAS.CANTIDAD_INICIAL; i++) rocas.push({ id: 'roca_' + i, x: Math.random() * 2800 + 100, y: Math.random() * 2800 + 100, activo: true });
-    io.emit('rocasIniciales', rocas);
-}
-
-console.log("🚀 INICIANDO SERVIDOR DEVILAND...");
-generarArboles();
-generarMinas();
-generarRocas();
-generarEsqueletosIniciales();
-
 io.on('connection', (socket) => {
     console.log('Cliente conectado:', socket.id);
     skillCooldowns[socket.id] = { furiaNecrotica: 0 };
-    
     socket.emit('arbolesIniciales', arboles);
-    socket.emit('minasIniciales', minas);
     socket.emit('rocasIniciales', rocas);
     socket.emit('esqueletosIniciales', esqueletos.filter(e => e.isAlive === true));
     socket.emit('currentPlayers', players);
     socket.emit('demonlordState', { hp: demonlord.hp, isAlive: demonlord.isAlive, x: demonlord.x, y: demonlord.y, dir: demonlord.dir });
     
     socket.on('newPlayer', (d) => {
-        const baseStats = CONFIG.PLAYER.BASE_STATS[d.class] || CONFIG.PLAYER.BASE_STATS.warrior;
-        let ataqueFisico = 15;
-        if (d.className === 'BÁRBARO') ataqueFisico = 80;
-        else if (d.className === 'CABALLERO') ataqueFisico = 50;
-        else if (d.className === 'WARRIOR') ataqueFisico = 50;
-        else if (d.className === 'MAGO' || d.className === 'NECROMANCER') ataqueFisico = 15;
-        
-        players[socket.id] = { 
+        const bs = CONFIG.PLAYER.BASE_STATS[d.class] || CONFIG.PLAYER.BASE_STATS.warrior;
+        let atq = 15;
+        if (d.className === 'BARBARO') atq = 80;
+        else if (d.className === 'CABALLERO') atq = 50;
+        else if (d.className === 'WARRIOR') atq = 50;
+        else if (d.className === 'MAGO' || d.className === 'NECROMANCER') atq = 15;
+        players[socket.id] = {
             id: socket.id, x: 512, y: 512, class: d.class, name: d.name, className: d.className,
             hp: CONFIG.PLAYER.MAX_HP, maxHp: CONFIG.PLAYER.MAX_HP, isAlive: true,
             deathCount: 0, deathPosition: null, team: 'Sin Team', level: 1, exp: 0, dir: 'Abajo',
-            stats: { fuerza: baseStats.fuerza, defensa: baseStats.defensa, agilidad: baseStats.agilidad, vitalidad: baseStats.vitalidad, puntosDisponibles: 5 },
-            minerales: { hierro: 0, bronce: 0, plata: 0, oro: 0 },
+            stats: { fuerza: bs.fuerza, defensaFisica: bs.defensaFisica, defensaMagica: bs.defensaMagica, agilidad: bs.agilidad, vitalidad: bs.vitalidad, puntosDisponibles: 5 },
+            minerales: {},
             equipamiento: { cabeza: null, pecho: null, piernas: null, pies: null, arma: null, escudo: null, ring1: null, ring2: null },
-            mana: baseStats.mana || 100, maxMana: baseStats.mana || 100,
+            mana: bs.mana || 100, maxMana: bs.mana || 100,
             esqueletosSummon: 0,
             skillsEquipadas: d.className === 'NECROMANCER' ? ['levantar_muerto', 'furia_necrotica', 'ataque_distancia'] : (d.className === 'MAGO' ? ['ataque_distancia'] : []),
-            attackSpeedModifier: baseStats.attackSpeed || 1.0,
-            baseDamage: baseStats.baseDamage || 50,
-            ataqueFisico: ataqueFisico
+            attackSpeedModifier: bs.attackSpeed || 1.0,
+            baseDamage: bs.baseDamage || 50,
+            ataqueFisico: atq
         };
-        
-        if (!inventariosJugadores[socket.id]) {
-            inventariosJugadores[socket.id] = { items: [], equipamiento: {} };
-        }
-        inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 });
-        
+        if (!inventariosJugadores[socket.id]) inventariosJugadores[socket.id] = { items: [], equipamiento: {} };
+        inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Pocion de Vida', icono: 'pocion_img', cantidad: 2, slot: 0 });
         socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
         socket.broadcast.emit('newPlayer', players[socket.id]);
     });
     
     socket.on('solicitarInventarioCompleto', () => {
-        if (inventariosJugadores[socket.id]) {
-            socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
-        } else {
-            inventariosJugadores[socket.id] = { 
-                items: [
-                    { id: 'pocion_1', tipo: 'pocion', nombre: 'Poción de Vida', icono: '❤️', cantidad: 2, slot: 0 },
-                ], 
-                equipamiento: {} 
-            };
+        if (inventariosJugadores[socket.id]) socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
+        else {
+            inventariosJugadores[socket.id] = { items: [{ id: 'pocion_1', tipo: 'pocion', nombre: 'Pocion de Vida', icono: 'pocion_img', cantidad: 2, slot: 0 }], equipamiento: {} };
             socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
         }
     });
     
     socket.on('actualizarInventario', (data) => {
-        const jugador = players[socket.id];
-        if (!jugador) return;
+        const j = players[socket.id];
+        if (!j) return;
         if (data.inventarioSlots) {
             inventariosJugadores[socket.id].items = [];
             for (let i = 0; i < data.inventarioSlots.length; i++) {
-                if (data.inventarioSlots[i]) {
-                    inventariosJugadores[socket.id].items.push({ ...data.inventarioSlots[i], slot: i });
-                }
+                if (data.inventarioSlots[i]) inventariosJugadores[socket.id].items.push({ ...data.inventarioSlots[i], slot: i });
             }
         }
         if (data.equipamiento) inventariosJugadores[socket.id].equipamiento = data.equipamiento;
     });
     
     socket.on('usarPocion', (data) => {
-        const jugador = players[socket.id];
-        if (!jugador) return;
-        const curacion = data.curacion || 20;
-        jugador.hp = Math.min(jugador.maxHp, jugador.hp + curacion);
-        io.emit('playerStatsUpdate', { id: socket.id, hp: jugador.hp });
+        const j = players[socket.id];
+        if (j) {
+            j.hp = Math.min(j.maxHp, j.hp + (data.curacion || 20));
+            io.emit('playerStatsUpdate', { id: socket.id, hp: j.hp });
+        }
     });
     
     socket.on('usarPocionMana', (data) => {
-        const jugador = players[socket.id];
-        if (jugador) {
-            jugador.mana = Math.min(jugador.maxMana, jugador.mana + data.restauracion);
-            io.emit('playerStatsUpdate', { id: socket.id, mana: jugador.mana });
+        const j = players[socket.id];
+        if (j) {
+            j.mana = Math.min(j.maxMana, j.mana + data.restauracion);
+            io.emit('playerStatsUpdate', { id: socket.id, mana: j.mana });
         }
     });
     
@@ -312,50 +347,37 @@ io.on('connection', (socket) => {
         }
     });
     
-    socket.on('playerAttack', (data) => { 
-        const jugador = players[socket.id]; 
-        if (!jugador || !jugador.isAlive) return; 
-        const ahora = Date.now(); 
-        if (ultimoAtaque.get(socket.id) && (ahora - ultimoAtaque.get(socket.id) < 100)) return; 
-        ultimoAtaque.set(socket.id, ahora); 
-        socket.broadcast.emit('playerAttacked', { id: socket.id, dir: jugador.dir, class: jugador.class }); 
-        
-        let esqueletoCercano = null; 
-        let distanciaMinima = 80; 
-        for (let esqueleto of esqueletos) { 
-            if (esqueleto.isAlive && !esqueleto.isAlly) { 
-                const dist = getDistance(jugador.x, jugador.y, esqueleto.x, esqueleto.y); 
-                if (dist < distanciaMinima) { 
-                    distanciaMinima = dist; 
-                    esqueletoCercano = esqueleto; 
-                } 
-            } 
-        } 
-        
-        if (esqueletoCercano) { 
-            let damage = data.damageBonus || jugador.ataqueFisico; 
-            const finalDamage = Math.max(1, Math.floor(damage)); 
-            dañarEsqueleto(esqueletoCercano, socket.id, finalDamage, false);
-        } 
+    socket.on('playerAttack', (data) => {
+        const j = players[socket.id];
+        if (!j || !j.isAlive) return;
+        const ahora = Date.now();
+        if (ultimoAtaque.get(socket.id) && ahora - ultimoAtaque.get(socket.id) < 100) return;
+        ultimoAtaque.set(socket.id, ahora);
+        socket.broadcast.emit('playerAttacked', { id: socket.id, dir: j.dir, class: j.class });
+        let esqCercano = null, distMin = 80;
+        for (let e of esqueletos) {
+            if (e.isAlive && !e.isAlly && getDistance(j.x, j.y, e.x, e.y) < distMin) {
+                distMin = getDistance(j.x, j.y, e.x, e.y);
+                esqCercano = e;
+            }
+        }
+        if (esqCercano) dañarEsqueleto(esqCercano, socket.id, Math.max(1, Math.floor(data.damageBonus || j.ataqueFisico)));
     });
     
-    socket.on('esqueletoHit', (data) => { 
-        const jugador = players[socket.id]; 
-        if (!jugador || !jugador.isAlive) return; 
-        let esqueleto = esqueletos.find(e => e.id === data.id && e.isAlive); 
-        if (!esqueleto) return; 
-        let damage = data.damageBonus || 0; 
-        const finalDamage = Math.max(1, damage); 
-        dañarEsqueleto(esqueleto, socket.id, finalDamage, true);
+    socket.on('esqueletoHit', (data) => {
+        const j = players[socket.id];
+        if (!j || !j.isAlive) return;
+        let e = esqueletos.find(e => e.id === data.id && e.isAlive);
+        if (e) dañarEsqueleto(e, socket.id, Math.max(1, data.damageBonus || 0));
     });
     
     socket.on('playerMurio', (data) => {
-        const jugador = players[data.id];
-        if (jugador && jugador.isAlive) {
-            jugador.isAlive = false;
-            jugador.hp = 0;
-            io.emit('playerDeath', { id: data.id, name: jugador.name });
-            esqueletos.forEach(esq => { if (esq.targetId === data.id) { esq.targetId = null; esq.targetType = null; } });
+        const j = players[data.id];
+        if (j && j.isAlive) {
+            j.isAlive = false;
+            j.hp = 0;
+            io.emit('playerDeath', { id: data.id, name: j.name });
+            esqueletos.forEach(e => { if (e.targetId === data.id) { e.targetId = null; e.targetType = null; } });
         }
     });
     
@@ -363,60 +385,34 @@ io.on('connection', (socket) => {
     
     socket.on('demonlordHit', (data) => {
         if (!demonlord.isAlive) return;
-        const jugador = players[socket.id];
-        if (!jugador || !jugador.isAlive) return;
-        
+        const j = players[socket.id];
+        if (!j || !j.isAlive) return;
         if (!demonlord.attackers) demonlord.attackers = [];
         if (!demonlord.attackers.includes(socket.id)) demonlord.attackers.push(socket.id);
-        
-        let damage = jugador.ataqueFisico;
-        if (data.damageBonus) damage += data.damageBonus;
-        if (data.esCritico) damage *= 2;
-        
-        demonlord.hp = Math.max(0, demonlord.hp - damage);
-        
-        io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: damage, hp: demonlord.hp });
-        
+        let dmg = j.ataqueFisico + (data.damageBonus || 0);
+        if (data.esCritico) dmg *= 2;
+        demonlord.hp = Math.max(0, demonlord.hp - dmg);
+        io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: dmg, hp: demonlord.hp });
         if (demonlord.hp <= 0) {
             demonlord.isAlive = false;
-            
-            if (demonlord.attackers && demonlord.attackers.length > 0) {
-                demonlord.attackers.forEach(attackerId => darExpAJugadorYEquipo(attackerId, CONFIG.DEMONLORD.EXP));
-            } else {
-                darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP);
-            }
-            
-            demonlord.attackers.forEach(attackerId => {
+            if (demonlord.attackers && demonlord.attackers.length > 0) demonlord.attackers.forEach(a => darExpAJugadorYEquipo(a, CONFIG.DEMONLORD.EXP));
+            else darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP);
+            demonlord.attackers.forEach(a => {
                 for (let i = 0; i < 8; i++) {
-                    const angle = (i / 8) * Math.PI * 2;
-                    const distancia = 60 + (Math.random() * 40);
-                    const offsetX = Math.cos(angle) * distancia;
-                    const offsetY = Math.sin(angle) * distancia;
-                    const cantidadOro = Math.floor(Math.random() * 20) + 10;
-                    io.to(attackerId).emit('crearMonedaServidor', { 
-                        x: demonlord.x + offsetX, 
-                        y: demonlord.y + offsetY, 
-                        cantidad: cantidadOro 
-                    });
+                    const ang = (i / 8) * Math.PI * 2;
+                    const dist = 60 + Math.random() * 40;
+                    io.to(a).emit('crearMonedaServidor', { x: demonlord.x + Math.cos(ang) * dist, y: demonlord.y + Math.sin(ang) * dist, cantidad: Math.floor(Math.random() * 20) + 10 });
                 }
             });
-            
-            demonlord.attackers.forEach(attackerId => {
-                if (Math.random() < 0.2) {
-                    io.to(attackerId).emit('dropItem', { 
-                        x: demonlord.x + (Math.random() - 0.5) * 80, 
-                        y: demonlord.y + (Math.random() - 0.5) * 80, 
-                        itemId: 'hachadehierro_1',
-                        nombre: 'Hacha de Hierro',
-                        tipo: 'espada',
-                        icono: 'hachadehierro_img',
-                        stats: { ataqueFisico: 25, velocidad: -10 }
-                    });
-                }
-            });
-            
+            if (Math.random() < 0.3) {
+                demonlord.attackers.forEach(a => {
+                    const rand = Math.random();
+                    if (rand < 0.03) dropearItem(demonlord.x + (Math.random() - 0.5) * 80, demonlord.y + (Math.random() - 0.5) * 80, 'hachadehierro_3');
+                    else if (rand < 0.15) dropearItem(demonlord.x + (Math.random() - 0.5) * 80, demonlord.y + (Math.random() - 0.5) * 80, 'hachadehierro_2');
+                    else dropearItem(demonlord.x + (Math.random() - 0.5) * 80, demonlord.y + (Math.random() - 0.5) * 80, 'hachadehierro_1');
+                });
+            }
             io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
-            
             setTimeout(() => {
                 demonlord.hp = CONFIG.DEMONLORD.MAX_HP;
                 demonlord.isAlive = true;
@@ -429,403 +425,264 @@ io.on('connection', (socket) => {
     });
     
     socket.on('solicitarDemonlordHP', () => {
-        const jugador = players[socket.id];
-        if (!jugador) return;
-        const dist = getDistance(demonlord.x, demonlord.y, jugador.x, jugador.y);
-        if (dist < CONFIG.DEMONLORD.VISION_RANGE + 100) {
-            socket.emit('demonlordHPResponse', { hp: demonlord.hp, maxHp: demonlord.maxHp, visible: true });
-        } else {
-            socket.emit('demonlordHPResponse', { visible: false });
-        }
+        const j = players[socket.id];
+        if (!j) return;
+        const dist = getDistance(demonlord.x, demonlord.y, j.x, j.y);
+        if (dist < CONFIG.DEMONLORD.VISION_RANGE + 100) socket.emit('demonlordHPResponse', { hp: demonlord.hp, maxHp: demonlord.maxHp, visible: true });
+        else socket.emit('demonlordHPResponse', { visible: false });
     });
     
     socket.on('levantarEsqueleto', (data) => {
-        const jugador = players[socket.id];
-        if (!jugador || jugador.className !== 'NECROMANCER') {
-            socket.emit('mensaje', '❌ Solo los Necromancer pueden levantar muertos');
-            return;
-        }
+        const j = players[socket.id];
+        if (!j || j.className !== 'NECROMANCER') { socket.emit('mensaje', '❌ Solo Necromancer'); return; }
         let cadaver = esqueletos.find(e => e.id === data.id && !e.isAlive && !e.isAlly);
-        if (!cadaver) { socket.emit('mensaje', '❌ No hay cadáver cerca'); return; }
-        const distToCorpse = getDistance(jugador.x, jugador.y, cadaver.x, cadaver.y);
-        if (distToCorpse > 100) { socket.emit('mensaje', '❌ El cadáver está muy lejos'); return; }
-        
+        if (!cadaver) { socket.emit('mensaje', '❌ No hay cadaver'); return; }
+        if (getDistance(j.x, j.y, cadaver.x, cadaver.y) > 100) { socket.emit('mensaje', '❌ Muy lejos'); return; }
         cadaver.isAlive = true;
         cadaver.isAlly = true;
         cadaver.ownerId = socket.id;
         cadaver.hp = cadaver.maxHp;
-        cadaver.x = jugador.x + (Math.random() * 100 - 50);
-        cadaver.y = jugador.y + (Math.random() * 100 - 50);
+        cadaver.x = j.x + (Math.random() * 100 - 50);
+        cadaver.y = j.y + (Math.random() * 100 - 50);
         cadaver.attackers = [];
-        
-        jugador.esqueletosSummon = (jugador.esqueletosSummon || 0) + 1;
+        j.esqueletosSummon = (j.esqueletosSummon || 0) + 1;
         io.emit('esqueletoRevive', { id: cadaver.id, x: cadaver.x, y: cadaver.y, ownerId: socket.id });
-        io.emit('playerStatsUpdate', { id: socket.id, hp: jugador.hp, mana: jugador.mana });
+        io.emit('playerStatsUpdate', { id: socket.id, hp: j.hp, mana: j.mana });
     });
     
     socket.on('furiaNecrotica', () => {
-        const jugador = players[socket.id];
-        if (!jugador || jugador.className !== 'NECROMANCER') { socket.emit('mensaje', '❌ Solo los Necromancer pueden usar Furia Necrótica'); return; }
+        const j = players[socket.id];
+        if (!j || j.className !== 'NECROMANCER') { socket.emit('mensaje', '❌ Solo Necromancer'); return; }
         const now = Date.now();
-        const lastUse = skillCooldowns[socket.id].furiaNecrotica;
-        const cooldownTime = 120000;
-        if (lastUse > 0 && (now - lastUse) < cooldownTime) { socket.emit('mensaje', `⏳ Furia Necrótica en cooldown`); return; }
-        const esqueletosAliados = esqueletos.filter(e => e.isAlly === true && e.ownerId === socket.id && e.isAlive === true);
-        const cantidad = esqueletosAliados.length;
-        if (cantidad === 0) { socket.emit('mensaje', '❌ No tienes esqueletos aliados'); return; }
-        const manaCost = cantidad * 10;
-        if (jugador.mana < manaCost) { socket.emit('mensaje', `❌ Necesitas ${manaCost} de maná`); return; }
-        jugador.mana -= manaCost;
-        io.emit('playerStatsUpdate', { id: socket.id, mana: jugador.mana });
-        const bonusPorcentaje = cantidad * 0.07;
-        const bonusDamage = Math.floor(CONFIG.SKELETON.ATTACK_DAMAGE * bonusPorcentaje);
-        const esqueletosIds = [];
-        esqueletosAliados.forEach(esqueleto => { esqueleto.damageBonus = bonusDamage; esqueletosIds.push(esqueleto.id); });
+        const last = skillCooldowns[socket.id].furiaNecrotica;
+        if (last > 0 && now - last < 120000) { socket.emit('mensaje', '⏳ Cooldown'); return; }
+        const aliados = esqueletos.filter(e => e.isAlly === true && e.ownerId === socket.id && e.isAlive === true);
+        const cant = aliados.length;
+        if (cant === 0) { socket.emit('mensaje', '❌ Sin esqueletos'); return; }
+        const cost = cant * 10;
+        if (j.mana < cost) { socket.emit('mensaje', `❌ Necesitas ${cost} mana`); return; }
+        j.mana -= cost;
+        io.emit('playerStatsUpdate', { id: socket.id, mana: j.mana });
+        const bonus = cant * 0.07;
+        const bonusDamage = Math.floor(CONFIG.SKELETON.ATTACK_DAMAGE * bonus);
+        const ids = [];
+        aliados.forEach(e => { e.damageBonus = bonusDamage; ids.push(e.id); });
         skillCooldowns[socket.id].furiaNecrotica = now;
-        io.emit('furiaNecroticaEffect', { playerId: socket.id, duracion: 10, esqueletosIds: esqueletosIds, bonusPorcentaje: bonusPorcentaje });
+        io.emit('furiaNecroticaEffect', { playerId: socket.id, duracion: 10, esqueletosIds: ids, bonusPorcentaje: bonus });
         setTimeout(() => {
-            esqueletos.filter(e => e.isAlly === true && e.ownerId === socket.id && e.isAlive === true).forEach(esqueleto => esqueleto.damageBonus = 0);
+            esqueletos.filter(e => e.isAlly && e.ownerId === socket.id && e.isAlive).forEach(e => e.damageBonus = 0);
             io.emit('furiaNecroticaEnd', { playerId: socket.id });
         }, 10000);
     });
     
     socket.on('crearProyectil', (data) => socket.broadcast.emit('proyectilCreado', data));
-    socket.on('solicitarEsqueletos', () => { 
-        const jugador = players[socket.id]; 
-        if(jugador) {
-            socket.emit('esqueletosIniciales', esqueletos.filter(e => e.isAlive === true));
-        } 
-    });
-    
-    socket.on('chatMessage', (msg) => {
-        const jugador = players[socket.id];
-        if (jugador) {
-            io.emit('chatMessage', { type: 'user', name: jugador.name, msg: msg });
-        }
-    });
-    
+    socket.on('solicitarEsqueletos', () => { if (players[socket.id]) socket.emit('esqueletosIniciales', esqueletos.filter(e => e.isAlive === true)); });
+    socket.on('chatMessage', (msg) => { const j = players[socket.id]; if (j) io.emit('chatMessage', { type: 'user', name: j.name, msg: msg }); });
     socket.on('salirEquipo', () => {
-        const teamId = playerTeam[socket.id];
-        if (!teamId || !teams[teamId]) {
-            socket.emit('mensaje', 'No estas en ningun equipo');
-            return;
-        }
-        const team = teams[teamId];
-        const index = team.miembros.indexOf(socket.id);
-        if (index !== -1) team.miembros.splice(index, 1);
+        const tid = playerTeam[socket.id];
+        if (!tid || !teams[tid]) { socket.emit('mensaje', 'No estas en equipo'); return; }
+        const team = teams[tid];
+        const idx = team.miembros.indexOf(socket.id);
+        if (idx !== -1) team.miembros.splice(idx, 1);
         delete playerTeam[socket.id];
         players[socket.id].team = 'Sin Team';
-        
-        if (team.miembros.length === 0) {
-            delete teams[teamId];
-        } else if (team.lider === socket.id) {
-            team.lider = team.miembros[0];
-        }
-        
-        socket.emit('mensaje', 'Has salido del equipo');
+        if (team.miembros.length === 0) delete teams[tid];
+        else if (team.lider === socket.id) team.lider = team.miembros[0];
+        socket.emit('mensaje', 'Saliste del equipo');
         io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${players[socket.id].name} salio del equipo` });
     });
     
     socket.on('talarArbol', (data) => {
-        let jugador = players[socket.id];
-        if(!jugador || !jugador.isAlive) return;
-        let arbol = arboles.find(a => a.activo && getDistance(data.x, data.y, a.x, a.y) < 80);
-        if(!arbol || arbol.madera <= 0) return;
-        const distJugadorArbol = getDistance(jugador.x, jugador.y, arbol.x, arbol.y);
-        if (distJugadorArbol > 100) { socket.emit('mensaje', '❌ Estás demasiado lejos del árbol'); return; }
-        arbol.madera--;
-        io.emit('arbolTalado', { id: arbol.id, x: arbol.x, y: arbol.y, taladoPor: jugador.name });
-        if(arbol.madera <= 0) { 
-            arbol.activo = false;
-            io.emit('arbolDesaparece', { id: arbol.id, x: arbol.x, y: arbol.y });
-            setTimeout(() => {
-                arbol.x = Math.random() * 2800 + 100;
-                arbol.y = Math.random() * 2800 + 100;
-                arbol.madera = 10;
-                arbol.activo = true;
-                io.emit('arbolRespawn', { id: arbol.id, x: arbol.x, y: arbol.y });
-            }, 15000);
-        }
-        socket.emit('maderaObtenida');
-    });
-    
-    socket.on('minarMina', (data) => {
-        const jugador = players[socket.id];
-        if (!jugador || !jugador.isAlive) return;
-        let minaCercana = null;
-        for (let mina of minas) {
-            if (!mina.activo) continue;
-            if (getDistance(data.x, data.y, mina.x, mina.y) < 80) { minaCercana = mina; break; }
-        }
-        if (!minaCercana || minaCercana.minerales <= 0) return;
-        const distJugadorMina = getDistance(jugador.x, jugador.y, minaCercana.x, minaCercana.y);
-        if (distJugadorMina > 100) { socket.emit('mensaje', '❌ Estás demasiado lejos de la mina'); return; }
-        minaCercana.minerales--;
-        const random = Math.random() * 100;
-        let mineral = 'hierro';
-        if (random < 2) mineral = 'oro';
-        else if (random < 7) mineral = 'plata';
-        else if (random < 37) mineral = 'bronce';
-        jugador.minerales[mineral]++;
-        socket.emit('mineralObtenido', { mineral: mineral, cantidad: 1, ...jugador.minerales });
-        io.emit('minaMinada', { id: minaCercana.id, x: minaCercana.x, y: minaCercana.y, mineralObtenido: mineral, minadoPor: jugador.name });
-        if (minaCercana.minerales <= 0) {
-            minaCercana.activo = false;
-            io.emit('minaDesaparece', { id: minaCercana.id, x: minaCercana.x, y: minaCercana.y });
-            setTimeout(() => {
-                const index = minas.findIndex(m => m.id === minaCercana.id);
-                if (index !== -1) {
-                    minas[index].activo = true;
-                    minas[index].x = Math.random() * 2800 + 100;
-                    minas[index].y = Math.random() * 2800 + 100;
-                    minas[index].minerales = 15;
-                    io.emit('minaRespawn', { id: minas[index].id, x: minas[index].x, y: minas[index].y });
-                }
-            }, 15000);
-        }
+        const j = players[socket.id];
+        if (!j || !j.isAlive) return;
+        const arbol = arboles.find(a => a.activo && getDistance(data.x, data.y, a.x, a.y) < 80);
+        if (!arbol) return;
+        if (getDistance(j.x, j.y, arbol.x, arbol.y) > 100) { socket.emit('mensaje', '❌ Muy lejos'); return; }
+        io.emit('arbolTalado', { id: arbol.id, x: arbol.x, y: arbol.y, taladoPor: j.name });
+        arbol.activo = false;
+        io.emit('arbolDesaparece', { id: arbol.id, x: arbol.x, y: arbol.y });
+        setTimeout(() => {
+            arbol.x = Math.random() * 2800 + 100;
+            arbol.y = Math.random() * 2800 + 100;
+            arbol.activo = true;
+            io.emit('arbolRespawn', { id: arbol.id, x: arbol.x, y: arbol.y });
+        }, 15000);
     });
     
     socket.on('recogerRoca', (data) => {
-        let jugador = players[socket.id];
-        if(!jugador || !jugador.isAlive) return;
+        let j = players[socket.id];
+        if (!j || !j.isAlive) return;
         let roca = rocas.find(r => r.activo && getDistance(data.x, data.y, r.x, r.y) < 50);
-        if(!roca) return;
-        const distJugadorRoca = getDistance(jugador.x, jugador.y, roca.x, roca.y);
-        if (distJugadorRoca > 70) { socket.emit('mensaje', '❌ Estás demasiado lejos de la roca'); return; }
-        jugador.rocas = (jugador.rocas || 0) + 1;
+        if (!roca) return;
+        if (getDistance(j.x, j.y, roca.x, roca.y) > 70) { socket.emit('mensaje', '❌ Muy lejos'); return; }
         roca.activo = false;
         io.emit('rocaDesaparece', { id: roca.id, x: roca.x, y: roca.y });
-        socket.emit('rocaObtenida', { total: jugador.rocas });
-        io.emit('rocaRecogida', { id: roca.id, recolectadoPor: jugador.name });
-        setTimeout(() => { 
-            const index = rocas.findIndex(r => r.id === roca.id);
-            if(index !== -1) {
-                rocas[index].activo = true;
-                rocas[index].x = Math.random() * 2800 + 100;
-                rocas[index].y = Math.random() * 2800 + 100;
-                io.emit('rocaRespawn', { id: rocas[index].id, x: rocas[index].x, y: rocas[index].y });
+        socket.emit('rocaObtenida');
+        io.emit('rocaRecogida', { id: roca.id, recolectadoPor: j.name });
+        setTimeout(() => {
+            const idx = rocas.findIndex(r => r.id === roca.id);
+            if (idx !== -1) {
+                rocas[idx].activo = true;
+                rocas[idx].x = Math.random() * 2800 + 100;
+                rocas[idx].y = Math.random() * 2800 + 100;
+                io.emit('rocaRespawn', { id: rocas[idx].id, x: rocas[idx].x, y: rocas[idx].y });
             }
         }, CONFIG.ROCAS.RESPAWN_TIME);
     });
     
-    socket.on('disconnect', () => { 
-        const teamId = playerTeam[socket.id];
-        if (teamId && teams[teamId]) {
-            const team = teams[teamId];
-            const indexMiembro = team.miembros.indexOf(socket.id);
-            if (indexMiembro !== -1) team.miembros.splice(indexMiembro, 1);
-            if (team.miembros.length === 0) delete teams[teamId];
+    socket.on('disconnect', () => {
+        const tid = playerTeam[socket.id];
+        if (tid && teams[tid]) {
+            const team = teams[tid];
+            const idx = team.miembros.indexOf(socket.id);
+            if (idx !== -1) team.miembros.splice(idx, 1);
+            if (team.miembros.length === 0) delete teams[tid];
             else if (team.lider === socket.id) team.lider = team.miembros[0];
         }
         delete playerTeam[socket.id];
-        delete invitacionesPendientes[socket.id];
-        delete players[socket.id]; 
+        delete players[socket.id];
         delete inventariosJugadores[socket.id];
-        delete recursosJugadores[socket.id];
         delete skillCooldowns[socket.id];
-        io.emit('playerDisconnected', socket.id); 
+        io.emit('playerDisconnected', socket.id);
     });
 });
 
-// MOVIMIENTO DE DEMONLORD
+// MOVIMIENTO DEMONLORD
 setInterval(() => {
     if (!demonlord.isAlive) return;
-    
-    let closestTarget = null;
-    let closestDistance = Infinity;
-    
+    let closest = null, closestDist = Infinity;
     for (let id in players) {
-        let player = players[id];
-        if (player && player.isAlive) {
-            let dist = getDistance(demonlord.x, demonlord.y, player.x, player.y);
-            if (dist < closestDistance) {
-                closestDistance = dist;
-                closestTarget = player;
+        let p = players[id];
+        if (p && p.isAlive) {
+            let d = getDistance(demonlord.x, demonlord.y, p.x, p.y);
+            if (d < closestDist) { closestDist = d; closest = p; }
+        }
+    }
+    if (!closest) {
+        for (let e of esqueletos) {
+            if (e.isAlive && !e.isAlly) {
+                let d = getDistance(demonlord.x, demonlord.y, e.x, e.y);
+                if (d < closestDist) { closestDist = d; closest = e; }
             }
         }
     }
-    
-    if (!closestTarget) {
-        for (let esq of esqueletos) {
-            if (esq.isAlive && esq.isAlly === false) {
-                let dist = getDistance(demonlord.x, demonlord.y, esq.x, esq.y);
-                if (dist < closestDistance) {
-                    closestDistance = dist;
-                    closestTarget = esq;
-                }
-            }
-        }
-    }
-    
-    if (!closestTarget) return;
-    
-    const dx = closestTarget.x - demonlord.x;
-    const dy = closestTarget.y - demonlord.y;
-    const distance = Math.hypot(dx, dy);
-    
-    if (Math.abs(dx) > Math.abs(dy)) {
-        demonlord.dir = dx > 0 ? 'Derecha' : 'Izquierda';
-    } else {
-        demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
-    }
-    
-    if (distance < 400) {
-        if (distance > 70) {
-            const moveX = (dx / distance) * CONFIG.DEMONLORD.SPEED;
-            const moveY = (dy / distance) * CONFIG.DEMONLORD.SPEED;
-            demonlord.x += moveX;
-            demonlord.y += moveY;
-            demonlord.x = Math.min(Math.max(demonlord.x, 50), 2950);
-            demonlord.y = Math.min(Math.max(demonlord.y, 50), 2950);
+    if (!closest) return;
+    const dx = closest.x - demonlord.x, dy = closest.y - demonlord.y, dist = Math.hypot(dx, dy);
+    if (Math.abs(dx) > Math.abs(dy)) demonlord.dir = dx > 0 ? 'Derecha' : 'Izquierda';
+    else demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
+    if (dist < 400) {
+        if (dist > 70) {
+            const moveX = (dx / dist) * CONFIG.DEMONLORD.SPEED;
+            const moveY = (dy / dist) * CONFIG.DEMONLORD.SPEED;
+            demonlord.x = Math.min(Math.max(demonlord.x + moveX, 50), 2950);
+            demonlord.y = Math.min(Math.max(demonlord.y + moveY, 50), 2950);
             io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: true });
-        } else {
-            io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
-        }
-        
-        if (demonlord.attackCooldown <= 0 && distance < 70) {
+        } else io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
+        if (demonlord.attackCooldown <= 0 && dist < 70) {
             demonlord.attackCooldown = CONFIG.DEMONLORD.ATTACK_COOLDOWN;
-            const isPlayer = players[closestTarget.id] ? true : false;
+            const isPlayer = players[closest.id] ? true : false;
             let damage = CONFIG.DEMONLORD.ATTACK_DAMAGE;
             io.emit('demonlordAtkVisual', { dir: demonlord.dir, esFuerte: false });
-            
             setTimeout(() => {
-                if (!demonlord.isAlive) return;
-                if (!closestTarget) return;
-                if (isPlayer && closestTarget.hp <= 0) return;
-                if (!isPlayer && !closestTarget.isAlive) return;
-                
+                if (!demonlord.isAlive || !closest) return;
+                if (isPlayer && closest.hp <= 0) return;
+                if (!isPlayer && !closest.isAlive) return;
                 if (isPlayer) {
-                    let offsetX = 0, offsetY = 0;
-                    switch(demonlord.dir) {
-                        case 'Derecha': offsetX = 30; break;
-                        case 'Izquierda': offsetX = -30; break;
-                        case 'Arriba': offsetY = -30; break;
-                        case 'Abajo': offsetY = 30; break;
+                    let offX = 0, offY = 0;
+                    switch (demonlord.dir) {
+                        case 'Derecha': offX = 30; break;
+                        case 'Izquierda': offX = -30; break;
+                        case 'Arriba': offY = -30; break;
+                        case 'Abajo': offY = 30; break;
                     }
-                    const rectCenterX = demonlord.x + offsetX;
-                    const rectCenterY = demonlord.y + offsetY;
-                    
-                    let golpeado = false;
-                    const mediaAncho = 25;
-                    const mediaAlto = 25;
-                    const dxRect = Math.abs(closestTarget.x - rectCenterX);
-                    const dyRect = Math.abs(closestTarget.y - rectCenterY);
-                    if (dxRect < mediaAncho && dyRect < mediaAlto) {
-                        golpeado = true;
-                    }
-                    
-                    io.emit('demonlordAttack', { targetId: closestTarget.id, damage: damage, x: demonlord.x, y: demonlord.y, dir: demonlord.dir });
-                    
+                    const cx = demonlord.x + offX, cy = demonlord.y + offY;
+                    const golpeado = Math.abs(closest.x - cx) < 25 && Math.abs(closest.y - cy) < 25;
+                    io.emit('demonlordAttack', { targetId: closest.id, damage: damage, x: demonlord.x, y: demonlord.y, dir: demonlord.dir });
                     if (golpeado) {
-                        damage = calcularDañoFinal(closestTarget.id, CONFIG.DEMONLORD.ATTACK_DAMAGE);
-                        closestTarget.hp = Math.max(0, closestTarget.hp - damage);
-                        io.emit('playerStatsUpdate', { id: closestTarget.id, hp: closestTarget.hp });
-                        io.emit('enemyDamaged', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, dmg: damage });
-                    } else {
-                        io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `✨ ${closestTarget.name} esquivó el golpe!` });
+                        damage = calcularDañoFinal(closest.id, CONFIG.DEMONLORD.ATTACK_DAMAGE, 'fisico');
+                        closest.hp = Math.max(0, closest.hp - damage);
+                        io.emit('playerStatsUpdate', { id: closest.id, hp: closest.hp });
+                        io.emit('enemyDamaged', { id: closest.id, x: closest.x, y: closest.y, dmg: damage });
                     }
-                    
-                    if (closestTarget.hp <= 0) {
-                        closestTarget.isAlive = false;
-                        io.emit('playerDeath', { id: closestTarget.id, name: closestTarget.name });
-                        setTimeout(() => revivirJugador(closestTarget.id), CONFIG.PLAYER.RESPAWN_TIME);
+                    if (closest.hp <= 0) {
+                        closest.isAlive = false;
+                        io.emit('playerDeath', { id: closest.id, name: closest.name });
+                        setTimeout(() => revivirJugador(closest.id), CONFIG.PLAYER.RESPAWN_TIME);
                     }
                 } else {
-                    closestTarget.hp = Math.max(0, closestTarget.hp - damage);
-                    io.emit('enemyDamaged', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, dmg: damage });
-                    if (closestTarget.hp <= 0) {
-                        closestTarget.isAlive = false;
-                        io.emit('esqueletoDeath', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, exp: CONFIG.SKELETON.EXP, attackers: ['demonlord'] });
+                    closest.hp = Math.max(0, closest.hp - damage);
+                    io.emit('enemyDamaged', { id: closest.id, x: closest.x, y: closest.y, dmg: damage });
+                    if (closest.hp <= 0) {
+                        closest.isAlive = false;
+                        io.emit('esqueletoDeath', { id: closest.id, x: closest.x, y: closest.y, exp: CONFIG.SKELETON.EXP, attackers: ['demonlord'], dir: closest.dir || 'Abajo' });
                     }
                 }
             }, 300);
         }
-    } else {
-        io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
-    }
-    
+    } else io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
     if (demonlord.attackCooldown > 0) demonlord.attackCooldown -= 100;
 }, 100);
 
-// MOVIMIENTO DE ESQUELETOS (SIMPLIFICADO)
+// MOVIMIENTO Y ATAQUE DE ESQUELETOS (CORREGIDO)
 setInterval(() => {
-    esqueletos.forEach(esqueleto => {
-        if (!esqueleto.isAlive) return;
-        
-        // Buscar el objetivo más cercano
-        let closestTarget = null;
-        let closestDistance = Infinity;
-        
-        // Buscar jugadores
+    esqueletos.forEach(e => {
+        if (!e.isAlive) return;
+        let closest = null, closestDist = Infinity;
         for (let id in players) {
-            let player = players[id];
-            if (player && player.isAlive) {
-                let dist = getDistance(esqueleto.x, esqueleto.y, player.x, player.y);
-                if (dist < closestDistance && dist < CONFIG.SKELETON.VISION_RANGE) {
-                    closestDistance = dist;
-                    closestTarget = player;
-                }
+            let p = players[id];
+            if (p && p.isAlive) {
+                let d = getDistance(e.x, e.y, p.x, p.y);
+                if (d < closestDist && d < CONFIG.SKELETON.VISION_RANGE) { closestDist = d; closest = p; }
             }
         }
-        
-        // Si no hay jugadores, buscar demonlord
-        if (!closestTarget && demonlord && demonlord.isAlive) {
-            let dist = getDistance(esqueleto.x, esqueleto.y, demonlord.x, demonlord.y);
-            if (dist < CONFIG.SKELETON.VISION_RANGE) {
-                closestTarget = demonlord;
-                closestDistance = dist;
-            }
+        if (!closest && demonlord && demonlord.isAlive) {
+            let d = getDistance(e.x, e.y, demonlord.x, demonlord.y);
+            if (d < CONFIG.SKELETON.VISION_RANGE) { closest = demonlord; closestDist = d; }
         }
+        if (!closest) { io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: false }); return; }
         
-        if (!closestTarget) {
-            io.emit('esqueletoMoved', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dir: esqueleto.dir, isMoving: false });
-            return;
-        }
-        
-        // Calcular movimiento
-        const dx = closestTarget.x - esqueleto.x;
-        const dy = closestTarget.y - esqueleto.y;
-        const distance = Math.hypot(dx, dy);
-        
-        if (distance > 35) {
-            const moveX = (dx / distance) * CONFIG.SKELETON.SPEED;
-            const moveY = (dy / distance) * CONFIG.SKELETON.SPEED;
-            esqueleto.x += moveX;
-            esqueleto.y += moveY;
-            
-            // Limitar dentro del mapa
-            esqueleto.x = Math.min(Math.max(esqueleto.x, 50), 2950);
-            esqueleto.y = Math.min(Math.max(esqueleto.y, 50), 2950);
-            
-            // Calcular dirección
-            if (Math.abs(dx) > Math.abs(dy)) {
-                esqueleto.dir = dx > 0 ? 'Derecha' : 'Izquierda';
-            } else {
-                esqueleto.dir = dy > 0 ? 'Abajo' : 'Arriba';
-            }
-            io.emit('esqueletoMoved', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dir: esqueleto.dir, isMoving: true });
+        const dx = closest.x - e.x, dy = closest.y - e.y, dist = Math.hypot(dx, dy);
+        if (dist > 35) {
+            const moveX = (dx / dist) * CONFIG.SKELETON.SPEED;
+            const moveY = (dy / dist) * CONFIG.SKELETON.SPEED;
+            e.x = Math.min(Math.max(e.x + moveX, 50), 2950);
+            e.y = Math.min(Math.max(e.y + moveY, 50), 2950);
+            if (Math.abs(dx) > Math.abs(dy)) e.dir = dx > 0 ? 'Derecha' : 'Izquierda';
+            else e.dir = dy > 0 ? 'Abajo' : 'Arriba';
+            io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: true });
         } else {
-            io.emit('esqueletoMoved', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dir: esqueleto.dir, isMoving: false });
+            io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: false });
         }
         
-        // Ataque
-        if (esqueleto.attackCooldown <= 0 && closestDistance < 45) {
-            esqueleto.attackCooldown = CONFIG.SKELETON.ATTACK_COOLDOWN;
-            let dañoBase = CONFIG.SKELETON.ATTACK_DAMAGE + (esqueleto.damageBonus || 0);
+        // ATAQUE DEL ESQUELETO
+        if (e.attackCooldown <= 0 && closestDist < 45) {
+            e.attackCooldown = CONFIG.SKELETON.ATTACK_COOLDOWN;
+            let dañoBase = CONFIG.SKELETON.ATTACK_DAMAGE + (e.damageBonus || 0);
+            
+            // Calcular daño final según defensa del objetivo
             let damage;
-            if (players[closestTarget.id]) {
-                damage = calcularDañoFinal(closestTarget.id, dañoBase);
+            let tipoDaño = 'fisico';
+            if (players[closest.id]) {
+                damage = calcularDañoFinal(closest.id, dañoBase, 'fisico');
+                closest.hp = Math.max(0, closest.hp - damage);
+                // ACTUALIZAR VIDA EN EL CLIENTE
+                io.emit('playerStatsUpdate', { id: closest.id, hp: closest.hp });
             } else {
                 damage = dañoBase;
+                closest.hp = Math.max(0, closest.hp - damage);
             }
-            closestTarget.hp = Math.max(0, closestTarget.hp - damage);
-            io.emit('esqueletoAttack', { id: esqueleto.id, targetId: closestTarget.id, damage: damage, x: esqueleto.x, y: esqueleto.y, dir: esqueleto.dir });
-            io.emit('enemyDamaged', { id: closestTarget.id, x: closestTarget.x, y: closestTarget.y, dmg: damage });
             
-            if (closestTarget.hp <= 0) {
-                if (closestTarget.id === 'demonlord') {
-                    closestTarget.isAlive = false;
-                    io.emit('demonlordDeath', { x: closestTarget.x, y: closestTarget.y });
+            // Emitir animación y efecto de daño
+            io.emit('esqueletoAttackAnim', { id: e.id, targetId: closest.id, damage: damage, x: e.x, y: e.y, dir: e.dir });
+            io.emit('enemyDamaged', { id: closest.id, x: closest.x, y: closest.y, dmg: damage });
+            
+            console.log(`💀 Esqueleto atacó a ${closest.name || closest.id}, daño: ${damage}, vida restante: ${closest.hp}`);
+            
+            // Verificar si el objetivo murió
+            if (closest.hp <= 0) {
+                if (closest.id === 'demonlord') {
+                    closest.isAlive = false;
+                    io.emit('demonlordDeath', { x: closest.x, y: closest.y });
                     setTimeout(() => {
                         demonlord.hp = CONFIG.DEMONLORD.MAX_HP;
                         demonlord.isAlive = true;
@@ -833,24 +690,20 @@ setInterval(() => {
                         demonlord.y = 1500;
                         io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y });
                     }, CONFIG.DEMONLORD.RESPAWN_TIME);
-                } else {
-                    closestTarget.isAlive = false;
-                    io.emit('playerDeath', { id: closestTarget.id, name: closestTarget.name });
-                    setTimeout(() => revivirJugador(closestTarget.id), CONFIG.PLAYER.RESPAWN_TIME);
+                } else if (players[closest.id]) {
+                    closest.isAlive = false;
+                    io.emit('playerDeath', { id: closest.id, name: closest.name });
+                    setTimeout(() => revivirJugador(closest.id), CONFIG.PLAYER.RESPAWN_TIME);
                 }
             }
         }
         
-        if (esqueleto.attackCooldown > 0) esqueleto.attackCooldown -= 100;
+        if (e.attackCooldown > 0) e.attackCooldown -= 100;
     });
 }, 150);
 
-setInterval(() => {
-    const vivos = esqueletos.filter(e => e.isAlive).length;
-    console.log(`🦴 Esqueletos vivos: ${vivos}/50`);
-}, 10000);
-
+setInterval(() => { const vivos = esqueletos.filter(e => e.isAlive).length; console.log(`🦴 Esqueletos vivos: ${vivos}/50`); }, 10000);
 setInterval(() => { if (demonlord.isAlive && Math.random() < 0.3) io.emit('demonlordAtkVisual', { dir: demonlord.dir, esFuerte: Math.random() < 0.3 }); }, 2000);
 
 const PORT = process.env.PORT || 10000;
-http.listen(PORT, '0.0.0.0', () => console.log(`🔥 DEVILAND - Servidor en puerto ${PORT}`));
+http.listen(PORT, '0.0.0.0', () => console.log(`🔥 DEVILAND - Puerto ${PORT}`));
