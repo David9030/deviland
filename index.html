@@ -207,8 +207,10 @@ const SKILLS_DATA = {
     furia_necrotica: { id: 'furia_necrotica', nombre: 'Furia Necrotica', descripcion: 'Potencia esqueletos aliados: +7% daño por esqueleto, 10 segundos', costo: '10 mana por esqueleto', icono: 'skills/furia_necrotica.png', soloNecromancer: true, clase: 'NECROMANCER' },
     ataque_distancia: { id: 'ataque_distancia', nombre: 'Bola de Sombra', descripcion: 'Dispara un proyectil de sombra a distancia', costo: '10 mana', icono: 'skills/ataque_distancia.png', soloNecromancer: true },
     fireball: { id: 'fireball', nombre: 'Fireball', descripcion: 'Dispara una bola de fuego a distancia', costo: '10 mana', icono: 'skills/ataque_distancia.png', soloMago: true, clase: 'MAGO' },
+    trueno: { id: 'trueno', nombre: 'Trueno', descripcion: 'Rayo eléctrico sobre el enemigo más cercano', costo: '15 mana', icono: 'skills/trueno.png', soloMago: true, clase: 'MAGO' },
     golpe_brutal: { id: 'golpe_brutal', nombre: 'Golpe Brutal', descripcion: 'Salto y golpe de área con daño x3. Cooldown 15 segundos.', costo: '20 mana', icono: 'skills/hacha_impacto.png', soloBarbaro: true, clase: 'BARBARO' }
 };
+// 👆 La llave cierra después de golpe_brutal, trueno va ADENTRO
 
 // ============================================
 // ESTADISTICAS POR CLASE
@@ -1372,6 +1374,107 @@ function usarSkill(skillId) {
                 }
             });
         }
+  } else if (skillId === 'trueno' && pClassName === 'MAGO') {
+    const ahora = Date.now();
+    if (ahora - ultimoAtaqueDistancia < 1500) { mostrarMensaje(`⏳ Espera ${Math.ceil((1500 - (ahora - ultimoAtaqueDistancia)) / 1000)}s`, 'error'); return; }
+    if (playerMana < 15) { mostrarMensaje(`❌ Mana insuficiente (15)`, 'error'); return; }
+    
+    let enemigoMasCercano = null;
+    let distanciaMinima = 400;
+    
+    if (window.esqueletosGrupo) {
+        window.esqueletosGrupo.getChildren().forEach(esq => {
+            if (esq.active && !esq.isAlly) {
+                const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y);
+                if (dist < distanciaMinima) {
+                    distanciaMinima = dist;
+                    enemigoMasCercano = { id: esq.esqueletoId, x: esq.x, y: esq.y, esDemonlord: false };
+                }
+            }
+        });
+    }
+    
+    if (demonlord_sprite && demonlord_sprite.active && demonlordHP > 0) {
+        const dist = Phaser.Math.Distance.Between(player.x, player.y, demonlord_sprite.x, demonlord_sprite.y);
+        if (dist < distanciaMinima) {
+            distanciaMinima = dist;
+            enemigoMasCercano = { id: 'demonlord', x: demonlord_sprite.x, y: demonlord_sprite.y, esDemonlord: true };
+        }
+    }
+    
+    if (!enemigoMasCercano) {
+        mostrarMensaje(`❌ No hay enemigos en rango (400px)`, 'error');
+        return;
+    }
+    
+    playerMana -= 15;
+    actualizarStatsUI();
+    ultimoAtaqueDistancia = ahora;
+    mostrarMensaje(`⚡ ¡Trueno! -15 mana`, 'exito');
+    
+    const ex = enemigoMasCercano.x;
+    const ey = enemigoMasCercano.y;
+    
+    let ataqueMagicoTotal = (classStats['MAGO'].ataqueMagico || 0) + Math.floor((playerStats.inteligencia) * 1.5);
+    const danioTotal = Math.floor(ataqueMagicoTotal * 0.1); // ✅ 10% del ataque mágico
+    
+    if (currentScene && currentScene.sound) {
+    const sonidoTrueno = currentScene.sound.get('truenosound');
+    if (sonidoTrueno) reproducirSonido(sonidoTrueno, window.volumenFX);
+    else currentScene.sound.play('truenosound', { volume: window.volumenFX });
+}
+    
+    // Trueno azul más abajo
+    const truenoSprite = currentScene.add.sprite(ex, ey - 20, 'trueno_sprite');
+    truenoSprite.setScale(1.5);
+    truenoSprite.setDepth(10000);
+    truenoSprite.setOrigin(0.5, 1);
+    
+    // Círculo invisible (hitbox)
+    const impactoGraphics = currentScene.add.graphics();
+    impactoGraphics.setVisible(false);
+    impactoGraphics.setDepth(9999);
+    
+    // Daño en área
+if (window.esqueletosGrupo && currentScene) {
+    window.esqueletosGrupo.getChildren().forEach(esq => {
+        if (esq.active && !esq.isAlly) {
+            const dist = Phaser.Math.Distance.Between(ex, ey, esq.x, esq.y);
+            if (dist < 60) {
+                if (socket && socket.connected) socket.emit('esqueletoHit', { id: esq.esqueletoId, damageBonus: danioTotal });
+                crearTextoDmg(currentScene, esq.x, esq.y - 30, danioTotal.toString(), "#ffffff", "14px");
+            }
+        }
+    });
+}
+    
+    // Daño principal
+    if (enemigoMasCercano.esDemonlord) {
+        if (socket && socket.connected) socket.emit('demonlordHit', { damageBonus: danioTotal, esCritico: false });
+        crearTextoDmg(currentScene, ex, ey - 80, danioTotal.toString(), "#ffffff", "24px");
+    } else {
+        if (socket && socket.connected) socket.emit('esqueletoHit', { id: enemigoMasCercano.id, damageBonus: danioTotal });
+        crearTextoDmg(currentScene, ex, ey - 50, danioTotal.toString(), "#ffffff", "20px");
+    }
+    
+    // ✅ Destruir círculo al causar daño
+    if (impactoGraphics && impactoGraphics.active) impactoGraphics.destroy();
+    
+    currentScene.cameras.main.shake(150, 0.012);
+    
+    if (currentScene.anims.exists('trueno_anim')) {
+        truenoSprite.play('trueno_anim');
+    }
+    
+    truenoSprite.once('animationcomplete', () => {
+        if (truenoSprite && truenoSprite.active) truenoSprite.destroy();
+    });
+    
+    currentScene.time.delayedCall(1500, () => {
+        if (truenoSprite && truenoSprite.active) truenoSprite.destroy();
+        if (impactoGraphics && impactoGraphics.active) impactoGraphics.destroy();
+    });
+        
     } else if (skillId === 'golpe_brutal') {
         if (pClassName !== 'BARBARO') { mostrarMensaje(`❌ Solo los Bárbaros`, 'error'); return; }
         if (playerMana < 20) { mostrarMensaje(`❌ Mana insuficiente (20)`, 'error'); return; }
@@ -1416,7 +1519,6 @@ function usarSkill(skillId) {
         mostrarMensaje(`💥 ¡GOLPE BRUTAL! 💥`,'exito');
     }
 }
-
 // ============================================
 // PHASER - PRELOAD
 // ============================================
@@ -1435,10 +1537,12 @@ function preload() {
     this.load.image('hachadehierroleg', 'hachadehierroleg.png');
     this.load.image('hachadehierrolegdrop', 'hachadehierroleg.png');
     this.load.image('loot_indicator_yellow', 'loot_indicator_yellow.png');
+    this.load.audio('truenosound', 'truenosound.mp3');
     this.load.audio('vozskill1barbaro', 'vozskill1barbaro.mp3');
     this.load.spritesheet('flame_sprite', 'flame_sprite.png', { frameWidth: 256, frameHeight: 256, endFrame: 5 });
     this.load.audio('fireballsound', 'fireballsound.mp3');
     this.load.audio('fireballimpact', 'fireballimpact.mp3');
+    this.load.spritesheet('trueno_sprite', 'trueno_sprite.png', { frameWidth: 64, frameHeight: 256 })
     this.load.image('espadadrop', 'espadadrop.png');
     this.load.image('escudodrop', 'escudodrop.png');
     this.load.image('armaduradrop', 'armaduradrop.png');
@@ -1544,6 +1648,7 @@ function create() {
     this.anims.create({ key: 'dl_ataque_Abajo', frames: this.anims.generateFrameNumbers('demonlord', { start: 177, end: 184 }), frameRate: 16, repeat: 0 });
     this.anims.create({ key: 'dl_ataque_Izquierda', frames: this.anims.generateFrameNumbers('demonlord', { start: 185, end: 192 }), frameRate: 16, repeat: 0 });
     this.anims.create({ key: 'fireball_anim', frames: this.anims.generateFrameNumbers('flame_sprite', { start: 0, end: 5 }), frameRate: 15, repeat: -1 });
+    this.anims.create({ key: 'trueno_anim', frames: this.anims.generateFrameNumbers('trueno_sprite', { start: 0, end: 18 }), frameRate: 60, repeat: 0 });
 
     let escalaJugador = (pClassName === 'NECROMANCER' || pClassName === 'MAGO') ? 0.3 : 2;
     player = this.physics.add.sprite(512, 512, pClass).setScale(escalaJugador).setCollideWorldBounds(true);
