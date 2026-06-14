@@ -5,7 +5,7 @@ const io = require('socket.io')(http);
 const path = require('path');
 
 const CONFIG = {
-    PORT: 3000,
+    PORT: 10000,
     DEMONLORD: { MAX_HP: 5000, RESPAWN_TIME: 10000, SPEED: 7, ATTACK_COOLDOWN: 2000, ATTACK_DAMAGE: 200, VISION_RANGE: 400, EXP: 500 },
     SKELETON: { MAX_HP: 200, RESPAWN_TIME: 10000, SPEED: 8, ATTACK_COOLDOWN: 1000, ATTACK_DAMAGE: 25, VISION_RANGE: 400, EXP: 50, DEFENSE: 0 },
     PLAYER: { MAX_HP: 500, RESPAWN_TIME: 10000, BASE_STATS: {
@@ -21,7 +21,6 @@ const CONFIG = {
 app.use(express.static(__dirname));
 app.use('/ui', express.static(path.join(__dirname, 'ui')));
 app.use('/skills', express.static(path.join(__dirname, 'skills')));
-app.use('/fireball', express.static(path.join(__dirname, 'fireball')));
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
@@ -40,7 +39,7 @@ let playerTeam = {};
 function getDistance(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
 
 // ============================================
-// SISTEMA DE DEFENSA COMPLETO
+// SISTEMA DE DEFENSA
 // ============================================
 function getPlayerDefenseFisica(playerId) {
     const j = players[playerId];
@@ -48,28 +47,19 @@ function getPlayerDefenseFisica(playerId) {
     const inv = inventariosJugadores[playerId];
     if (!inv) return 0;
     let def = 0;
-    
-    // Defensa base de la clase
     const statsBase = CONFIG.PLAYER.BASE_STATS[j.class] || CONFIG.PLAYER.BASE_STATS.warrior;
     def += statsBase.defensaFisica || 0;
-    
-    // Defensa del escudo equipado
     const escudoId = j.equipamiento?.escudo;
     if (escudoId) {
         const item = inv.items.find(i => i.id === escudoId);
         if (item && item.defensaFisica) def += item.defensaFisica;
     }
-    
-    // Defensa de la armadura equipada
     const armaduraId = j.equipamiento?.armadura;
     if (armaduraId) {
         const item = inv.items.find(i => i.id === armaduraId);
         if (item && item.defensaFisica) def += item.defensaFisica;
     }
-    
-    // Defensa por estadísticas (vitalidad)
     def += Math.floor(j.stats?.vitalidad || 0);
-    
     return def;
 }
 
@@ -79,27 +69,19 @@ function getPlayerDefensaMagica(playerId) {
     const inv = inventariosJugadores[playerId];
     if (!inv) return 0;
     let def = 0;
-    
-    // Defensa base de la clase
     const statsBase = CONFIG.PLAYER.BASE_STATS[j.class] || CONFIG.PLAYER.BASE_STATS.warrior;
     def += statsBase.defensaMagica || 0;
-    
-    // Defensa mágica de items (escudo o armadura pueden dar defensa mágica)
     const escudoId = j.equipamiento?.escudo;
     if (escudoId) {
         const item = inv.items.find(i => i.id === escudoId);
         if (item && item.defensaMagica) def += item.defensaMagica;
     }
-    
     const armaduraId = j.equipamiento?.armadura;
     if (armaduraId) {
         const item = inv.items.find(i => i.id === armaduraId);
         if (item && item.defensaMagica) def += item.defensaMagica;
     }
-    
-    // Defensa por estadísticas (inteligencia)
     def += Math.floor((j.stats?.inteligencia || 0) / 2);
-    
     return def;
 }
 
@@ -110,9 +92,7 @@ function calcularDañoFinal(objetivoId, dañoBase, tipo = 'fisico') {
     } else {
         defensa = getPlayerDefensaMagica(objetivoId);
     }
-    const dañoFinal = Math.max(1, dañoBase - defensa);
-    console.log(`⚔️ Daño ${tipo}: ${dañoBase} - Defensa: ${defensa} = ${dañoFinal}`);
-    return dañoFinal;
+    return Math.max(1, dañoBase - defensa);
 }
 
 function darExpAJugadorYEquipo(socketId, exp) {
@@ -140,6 +120,44 @@ function revivirJugador(socketId) {
     io.emit('playerRespawn', { id: socketId, x: 512, y: 512 });
 }
 
+// ============================================
+// ITEMS DATA
+// ============================================
+const ITEMS_DATA = {
+    armadura_3: { nombre: 'Armadura+++', tipo: 'armadura', icono: 'armadura_de_cuero_img', stats: { defensaFisica: 50, defensaMagica: 25, velocidad: -10 }, calidad: '+++', dropChance: 0.005, textoVerde: true },
+    espada_3: { nombre: 'Espada+++', tipo: 'espada', icono: 'espada_img', stats: { ataqueFisico: 40, velocidad: -5 }, calidad: '+++', dropChance: 0.01, textoVerde: true },
+    escudo_3: { nombre: 'Escudo+++', tipo: 'escudo', icono: 'escudo_madera_img', stats: { defensaFisica: 55, defensaMagica: 20, velocidad: -5 }, calidad: '+++', dropChance: 0.01, textoVerde: true },
+    hachadehierro_3: { nombre: 'Hacha de Hierro+++', tipo: 'espada', icono: 'hachadehierro_img', stats: { ataqueFisico: 80, velocidad: 0 }, calidad: '+++', dropChance: 0.002, textoVerde: true },
+    armadura_2: { nombre: 'Armadura++', tipo: 'armadura', icono: 'armadura_de_cuero_img', stats: { defensaFisica: 30, defensaMagica: 15, velocidad: -15 }, calidad: '++', dropChance: 0.02, textoVerde: false },
+    espada_2: { nombre: 'Espada++', tipo: 'espada', icono: 'espada_img', stats: { ataqueFisico: 25, velocidad: -10 }, calidad: '++', dropChance: 0.03, textoVerde: false },
+    escudo_2: { nombre: 'Escudo++', tipo: 'escudo', icono: 'escudo_madera_img', stats: { defensaFisica: 35, defensaMagica: 12, velocidad: -10 }, calidad: '++', dropChance: 0.03, textoVerde: false },
+    hachadehierro_2: { nombre: 'Hacha de Hierro++', tipo: 'espada', icono: 'hachadehierro_img', stats: { ataqueFisico: 50, velocidad: -5 }, calidad: '++', dropChance: 0.008, textoVerde: false },
+    armadura_1: { nombre: 'Armadura+', tipo: 'armadura', icono: 'armadura_de_cuero_img', stats: { defensaFisica: 15, defensaMagica: 5, velocidad: -20 }, calidad: '+', dropChance: 0.05, textoVerde: false },
+    espada_1: { nombre: 'Espada+', tipo: 'espada', icono: 'espada_img', stats: { ataqueFisico: 15, velocidad: -15 }, calidad: '+', dropChance: 0.08, textoVerde: false },
+    escudo_1: { nombre: 'Escudo+', tipo: 'escudo', icono: 'escudo_madera_img', stats: { defensaFisica: 20, defensaMagica: 5, velocidad: -15 }, calidad: '+', dropChance: 0.08, textoVerde: false },
+    hachadehierro_1: { nombre: 'Hacha de Hierro+', tipo: 'espada', icono: 'hachadehierro_img', stats: { ataqueFisico: 25, velocidad: -10 }, calidad: '+', dropChance: 0.02, textoVerde: false },
+    hachadehierroleg: { nombre: 'Hacha Legendaria', tipo: 'espada', icono: 'hachadehierroleg_img', stats: { ataqueFisico: 250, velocidad: -50 }, calidad: 'LEGENDARIA', dropChance: 0.001, textoDorado: true, lootIndicator: 'yellow', efectoEspecial: 'contraGolpe' }
+};
+
+// ============================================
+// FUNCIONES DE GENERACIÓN
+// ============================================
+function generarArboles() {
+    arboles = [];
+    for (let i = 0; i < 15; i++) {
+        arboles.push({ id: 'arbol_' + i, x: Math.random() * 2800 + 100, y: Math.random() * 2800 + 100, activo: true });
+    }
+    console.log(`🌲 Generados ${arboles.length} árboles`);
+}
+
+function generarRocas() {
+    rocas = [];
+    for (let i = 0; i < CONFIG.ROCAS.CANTIDAD_INICIAL; i++) {
+        rocas.push({ id: 'roca_' + i, x: Math.random() * 2800 + 100, y: Math.random() * 2800 + 100, activo: true });
+    }
+    console.log(`🪨 Generadas ${rocas.length} rocas`);
+}
+
 function generarEsqueletosIniciales() {
     esqueletos = [];
     for (let i = 0; i < 50; i++) {
@@ -161,65 +179,43 @@ function generarEsqueletosIniciales() {
             attackers: []
         });
     }
+    console.log(`💀 Generados ${esqueletos.length} esqueletos`);
     return esqueletos;
 }
-
-function generarArboles() {
-    for (let i = 0; i < 15; i++) arboles.push({ id: 'arbol_' + i, x: Math.random() * 2800 + 100, y: Math.random() * 2800 + 100, activo: true });
-    io.emit('arbolesIniciales', arboles);
-}
-
-function generarRocas() {
-    for (let i = 0; i < CONFIG.ROCAS.CANTIDAD_INICIAL; i++) rocas.push({ id: 'roca_' + i, x: Math.random() * 2800 + 100, y: Math.random() * 2800 + 100, activo: true });
-    io.emit('rocasIniciales', rocas);
-}
-
-console.log("🔥 DEVILAND SERVIDOR INICIADO");
-generarArboles();
-generarRocas();
-generarEsqueletosIniciales();
-
-const ITEMS_DATA = {
-    // ========================================
-    // +++ EXTREMADAMENTE RAROS (TEXTO VERDE)
-    // ========================================
-    armadura_3: { nombre: 'Armadura+++', tipo: 'armadura', icono: 'armadura_de_cuero_img', stats: { defensaFisica: 50, defensaMagica: 25, velocidad: -10 }, calidad: '+++', dropChance: 0.005, textoVerde: true },
-    espada_3: { nombre: 'Espada+++', tipo: 'espada', icono: 'espada_img', stats: { ataqueFisico: 40, velocidad: -5 }, calidad: '+++', dropChance: 0.01, textoVerde: true },
-    escudo_3: { nombre: 'Escudo+++', tipo: 'escudo', icono: 'escudo_madera_img', stats: { defensaFisica: 55, defensaMagica: 20, velocidad: -5 }, calidad: '+++', dropChance: 0.01, textoVerde: true },
-    hachadehierro_3: { nombre: 'Hacha de Hierro+++', tipo: 'espada', icono: 'hachadehierro_img', stats: { ataqueFisico: 80, velocidad: 0 }, calidad: '+++', dropChance: 0.002, textoVerde: true },
-    
-    // ========================================
-    // ++ RAROS (TEXTO BLANCO)
-    // ========================================
-    armadura_2: { nombre: 'Armadura++', tipo: 'armadura', icono: 'armadura_de_cuero_img', stats: { defensaFisica: 30, defensaMagica: 15, velocidad: -15 }, calidad: '++', dropChance: 0.02, textoVerde: false },
-    espada_2: { nombre: 'Espada++', tipo: 'espada', icono: 'espada_img', stats: { ataqueFisico: 25, velocidad: -10 }, calidad: '++', dropChance: 0.03, textoVerde: false },
-    escudo_2: { nombre: 'Escudo++', tipo: 'escudo', icono: 'escudo_madera_img', stats: { defensaFisica: 35, defensaMagica: 12, velocidad: -10 }, calidad: '++', dropChance: 0.03, textoVerde: false },
-    hachadehierro_2: { nombre: 'Hacha de Hierro++', tipo: 'espada', icono: 'hachadehierro_img', stats: { ataqueFisico: 50, velocidad: -5 }, calidad: '++', dropChance: 0.008, textoVerde: false },
-    
-    // ========================================
-    // + POCO COMUNES (TEXTO BLANCO)
-    // ========================================
-    armadura_1: { nombre: 'Armadura+', tipo: 'armadura', icono: 'armadura_de_cuero_img', stats: { defensaFisica: 15, defensaMagica: 5, velocidad: -20 }, calidad: '+', dropChance: 0.05, textoVerde: false },
-    espada_1: { nombre: 'Espada+', tipo: 'espada', icono: 'espada_img', stats: { ataqueFisico: 15, velocidad: -15 }, calidad: '+', dropChance: 0.08, textoVerde: false },
-    escudo_1: { nombre: 'Escudo+', tipo: 'escudo', icono: 'escudo_madera_img', stats: { defensaFisica: 20, defensaMagica: 5, velocidad: -15 }, calidad: '+', dropChance: 0.08, textoVerde: false },
-    hachadehierro_1: { nombre: 'Hacha de Hierro+', tipo: 'espada', icono: 'hachadehierro_img', stats: { ataqueFisico: 25, velocidad: -10 }, calidad: '+', dropChance: 0.02, textoVerde: false }
-};
 
 function dropearItem(x, y, itemId) {
     const item = ITEMS_DATA[itemId];
     if (!item) return;
-    
+    console.log(`📤 Enviando dropItem: ${itemId}, textoDorado: ${item.textoDorado || false}`);
     io.emit('dropItem', { 
-        x: x,
-        y: y, 
-        itemId: itemId, 
+        x, y, itemId, 
         nombre: item.nombre, 
         tipo: item.tipo, 
         icono: item.icono, 
         stats: item.stats, 
-        calidad: item.calidad || '',
-        textoVerde: item.textoVerde || false
+        calidad: item.calidad || '', 
+        textoVerde: item.textoVerde || false, 
+        textoDorado: item.textoDorado || false,
+        lootIndicator: item.lootIndicator || 'white' 
     });
+}
+
+function tieneHachaLegendaria(jugador) {
+    if (!jugador) return false;
+    const armaId = jugador.equipamiento?.arma;
+    if (armaId && armaId.includes('hachadehierroleg')) return true;
+    const inventario = inventariosJugadores[jugador.id];
+    if (inventario && inventario.items) {
+        const itemArma = inventario.items.find(i => i.id === armaId);
+        if (itemArma) {
+            if (itemArma.idBase === 'hachadehierroleg' || 
+                (itemArma.id && itemArma.id.includes('hachadehierroleg')) ||
+                itemArma.nombre === 'Hacha Legendaria') {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 function dañarEsqueleto(esqueleto, atacanteId, daño) {
@@ -228,11 +224,11 @@ function dañarEsqueleto(esqueleto, atacanteId, daño) {
     if (!esqueleto.attackers.includes(atacanteId)) esqueleto.attackers.push(atacanteId);
     esqueleto.hp = Math.max(0, esqueleto.hp - daño);
     
+    io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: daño });
+    
     if (esqueleto.hp <= 0) {
         esqueleto.isAlive = false;
-        esqueletos.forEach(o => {
-            if (o.isAlive && o.targetId === esqueleto.id) { o.targetId = null; o.targetType = null; }
-        });
+        esqueletos.forEach(o => { if (o.isAlive && o.targetId === esqueleto.id) { o.targetId = null; o.targetType = null; } });
         if (players[atacanteId] && players[atacanteId].className === 'BARBARO') io.emit('barbaroAsesinato', { playerId: atacanteId });
         const team = playerTeam[atacanteId];
         let destinos = team && teams[team] ? teams[team].miembros : [atacanteId];
@@ -240,8 +236,10 @@ function dañarEsqueleto(esqueleto, atacanteId, daño) {
         
         const dropRand = Math.random();
         let dropObtenido = false;
+        
+        // Drops normales del ITEMS_DATA (sin Hacha Legendaria)
         for (const [id, data] of Object.entries(ITEMS_DATA)) {
-            if (dropRand < data.dropChance && !dropObtenido) {
+            if (id !== 'hachadehierroleg' && dropRand < data.dropChance && !dropObtenido) {
                 dropearItem(esqueleto.x, esqueleto.y, id);
                 dropObtenido = true;
             }
@@ -249,7 +247,9 @@ function dañarEsqueleto(esqueleto, atacanteId, daño) {
         
         if (esqueleto.attackers && esqueleto.attackers.length > 0) esqueleto.attackers.forEach(a => darExpAJugadorYEquipo(a, CONFIG.SKELETON.EXP));
         else darExpAJugadorYEquipo(atacanteId, CONFIG.SKELETON.EXP);
+        
         io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP, attackers: esqueleto.attackers || [], dir: esqueleto.dir || 'Abajo' });
+        
         setTimeout(() => {
             if (!esqueleto.isAlive && !esqueleto.isAlly) {
                 esqueleto.isAlive = true;
@@ -267,9 +267,22 @@ function dañarEsqueleto(esqueleto, atacanteId, daño) {
     }
 }
 
+// ============================================
+// INICIALIZAR MUNDO
+// ============================================
+console.log("🔥 DEVILAND SERVIDOR INICIADO");
+generarArboles();
+generarRocas();
+generarEsqueletosIniciales();
+console.log(`✅ Mundo generado: ${arboles.length} árboles, ${rocas.length} rocas, ${esqueletos.length} esqueletos`);
+
+// ============================================
+// SOCKET CONNECTION
+// ============================================
 io.on('connection', (socket) => {
-    console.log('Cliente conectado:', socket.id);
+    console.log('✅ Cliente conectado:', socket.id);
     skillCooldowns[socket.id] = { furiaNecrotica: 0 };
+    
     socket.emit('arbolesIniciales', arboles);
     socket.emit('rocasIniciales', rocas);
     socket.emit('esqueletosIniciales', esqueletos.filter(e => e.isAlive === true));
@@ -283,6 +296,7 @@ io.on('connection', (socket) => {
         else if (d.className === 'CABALLERO') atq = 50;
         else if (d.className === 'WARRIOR') atq = 50;
         else if (d.className === 'MAGO' || d.className === 'NECROMANCER') atq = 15;
+        
         players[socket.id] = {
             id: socket.id, x: 512, y: 512, class: d.class, name: d.name, className: d.className,
             hp: CONFIG.PLAYER.MAX_HP, maxHp: CONFIG.PLAYER.MAX_HP, isAlive: true,
@@ -295,8 +309,13 @@ io.on('connection', (socket) => {
             skillsEquipadas: d.className === 'NECROMANCER' ? ['levantar_muerto', 'furia_necrotica', 'ataque_distancia'] : (d.className === 'MAGO' ? ['ataque_distancia'] : []),
             attackSpeedModifier: bs.attackSpeed || 1.0,
             baseDamage: bs.baseDamage || 50,
-            ataqueFisico: atq
+            ataqueFisico: atq,
+            contraGolpeContador: 0,
+            contraGolpeDañoAcumulado: 0,
+            contraGolpeCargado: false,
+            contraGolpeBonus: 0
         };
+        
         if (!inventariosJugadores[socket.id]) inventariosJugadores[socket.id] = { items: [], equipamiento: {} };
         inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Pocion de Vida', icono: 'pocion_img', cantidad: 2, slot: 0 });
         socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
@@ -325,18 +344,12 @@ io.on('connection', (socket) => {
     
     socket.on('usarPocion', (data) => {
         const j = players[socket.id];
-        if (j) {
-            j.hp = Math.min(j.maxHp, j.hp + (data.curacion || 20));
-            io.emit('playerStatsUpdate', { id: socket.id, hp: j.hp });
-        }
+        if (j) { j.hp = Math.min(j.maxHp, j.hp + (data.curacion || 20)); io.emit('playerStatsUpdate', { id: socket.id, hp: j.hp }); }
     });
     
     socket.on('usarPocionMana', (data) => {
         const j = players[socket.id];
-        if (j) {
-            j.mana = Math.min(j.maxMana, j.mana + data.restauracion);
-            io.emit('playerStatsUpdate', { id: socket.id, mana: j.mana });
-        }
+        if (j) { j.mana = Math.min(j.maxMana, j.mana + data.restauracion); io.emit('playerStatsUpdate', { id: socket.id, mana: j.mana }); }
     });
     
     socket.on('playerMovement', (data) => {
@@ -354,6 +367,17 @@ io.on('connection', (socket) => {
         if (ultimoAtaque.get(socket.id) && ahora - ultimoAtaque.get(socket.id) < 100) return;
         ultimoAtaque.set(socket.id, ahora);
         socket.broadcast.emit('playerAttacked', { id: socket.id, dir: j.dir, class: j.class });
+        
+        let dañoTotal = data.damageBonus || j.ataqueFisico;
+        
+        if (j.contraGolpeCargado && j.contraGolpeBonus > 0) {
+            dañoTotal += j.contraGolpeBonus;
+            io.emit('contraGolpeActivado', { playerId: socket.id, x: j.x, y: j.y, bonus: j.contraGolpeBonus });
+            io.emit('contraGolpeUsado', { playerId: socket.id });
+            j.contraGolpeCargado = false;
+            j.contraGolpeBonus = 0;
+        }
+        
         let esqCercano = null, distMin = 80;
         for (let e of esqueletos) {
             if (e.isAlive && !e.isAlly && getDistance(j.x, j.y, e.x, e.y) < distMin) {
@@ -361,21 +385,31 @@ io.on('connection', (socket) => {
                 esqCercano = e;
             }
         }
-        if (esqCercano) dañarEsqueleto(esqCercano, socket.id, Math.max(1, Math.floor(data.damageBonus || j.ataqueFisico)));
+        if (esqCercano) dañarEsqueleto(esqCercano, socket.id, Math.max(1, Math.floor(dañoTotal)));
     });
     
     socket.on('esqueletoHit', (data) => {
         const j = players[socket.id];
         if (!j || !j.isAlive) return;
+        
+        let dañoTotal = data.damageBonus || 0;
+        
+        if (j.contraGolpeCargado && j.contraGolpeBonus > 0) {
+            dañoTotal += j.contraGolpeBonus;
+            io.emit('contraGolpeActivado', { playerId: socket.id, x: j.x, y: j.y, bonus: j.contraGolpeBonus });
+            io.emit('contraGolpeUsado', { playerId: socket.id });
+            j.contraGolpeCargado = false;
+            j.contraGolpeBonus = 0;
+        }
+        
         let e = esqueletos.find(e => e.id === data.id && e.isAlive);
-        if (e) dañarEsqueleto(e, socket.id, Math.max(1, data.damageBonus || 0));
+        if (e) dañarEsqueleto(e, socket.id, Math.max(1, dañoTotal));
     });
     
     socket.on('playerMurio', (data) => {
         const j = players[data.id];
         if (j && j.isAlive) {
-            j.isAlive = false;
-            j.hp = 0;
+            j.isAlive = false; j.hp = 0;
             io.emit('playerDeath', { id: data.id, name: j.name });
             esqueletos.forEach(e => { if (e.targetId === data.id) { e.targetId = null; e.targetType = null; } });
         }
@@ -392,9 +426,19 @@ io.on('connection', (socket) => {
         let dmg = j.ataqueFisico + (data.damageBonus || 0);
         if (data.esCritico) dmg *= 2;
         demonlord.hp = Math.max(0, demonlord.hp - dmg);
+        
         io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: dmg, hp: demonlord.hp });
+        
         if (demonlord.hp <= 0) {
             demonlord.isAlive = false;
+            
+            // 👇 DROP DEL HACHA LEGENDARIA (0.05% = 0.0005)
+            const dropLegRand = Math.random();
+            if (dropLegRand < 0.0005) {
+                console.log(`✨ ¡HACHA LEGENDARIA DROPEADA POR DEMONLORD!`);
+                dropearItem(demonlord.x, demonlord.y, 'hachadehierroleg');
+            }
+            
             if (demonlord.attackers && demonlord.attackers.length > 0) demonlord.attackers.forEach(a => darExpAJugadorYEquipo(a, CONFIG.DEMONLORD.EXP));
             else darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP);
             demonlord.attackers.forEach(a => {
@@ -477,7 +521,21 @@ io.on('connection', (socket) => {
     
     socket.on('crearProyectil', (data) => socket.broadcast.emit('proyectilCreado', data));
     socket.on('solicitarEsqueletos', () => { if (players[socket.id]) socket.emit('esqueletosIniciales', esqueletos.filter(e => e.isAlive === true)); });
-    socket.on('chatMessage', (msg) => { const j = players[socket.id]; if (j) io.emit('chatMessage', { type: 'user', name: j.name, msg: msg }); });
+    
+    socket.on('chatMessage', (msg) => {
+        const j = players[socket.id];
+        if (!j) return;
+        
+        if (msg === '/hacha') {
+            console.log(`📤 Server: dropeando Hacha Legendaria para ${j.name}`);
+            dropearItem(j.x, j.y, 'hachadehierroleg');
+            io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🗡️ ${j.name} invocó el Hacha Legendaria` });
+            return;
+        }
+        
+        io.emit('chatMessage', { type: 'user', name: j.name, msg: msg });
+    });
+    
     socket.on('salirEquipo', () => {
         const tid = playerTeam[socket.id];
         if (!tid || !teams[tid]) { socket.emit('mensaje', 'No estas en equipo'); return; }
@@ -530,6 +588,28 @@ io.on('connection', (socket) => {
         }, CONFIG.ROCAS.RESPAWN_TIME);
     });
     
+    socket.on('equiparHachaLegendaria', () => {
+        const j = players[socket.id];
+        if (j) {
+            j.contraGolpeContador = 0;
+            j.contraGolpeDañoAcumulado = 0;
+            j.contraGolpeCargado = false;
+            j.contraGolpeBonus = 0;
+            io.emit('contraGolpeUsado', { playerId: socket.id });
+            console.log(`⚔️ ${j.name} equipó el Hacha Legendaria`);
+        }
+    });
+    
+    socket.on('desequiparHachaLegendaria', () => {
+        const j = players[socket.id];
+        if (j) {
+            j.contraGolpeCargado = false;
+            j.contraGolpeBonus = 0;
+            io.emit('contraGolpeUsado', { playerId: socket.id });
+            console.log(`⚔️ ${j.name} desequipó el Hacha Legendaria`);
+        }
+    });
+    
     socket.on('disconnect', () => {
         const tid = playerTeam[socket.id];
         if (tid && teams[tid]) {
@@ -547,7 +627,9 @@ io.on('connection', (socket) => {
     });
 });
 
-// MOVIMIENTO DEMONLORD
+// ============================================
+// MOVIMIENTO DEMONLORD CON CONTRA-GOLPE
+// ============================================
 setInterval(() => {
     if (!demonlord.isAlive) return;
     let closest = null, closestDist = Infinity;
@@ -600,6 +682,32 @@ setInterval(() => {
                     io.emit('demonlordAttack', { targetId: closest.id, damage: damage, x: demonlord.x, y: demonlord.y, dir: demonlord.dir });
                     if (golpeado) {
                         damage = calcularDañoFinal(closest.id, CONFIG.DEMONLORD.ATTACK_DAMAGE, 'fisico');
+                        
+                        const j = players[closest.id];
+                        if (j && tieneHachaLegendaria(j)) {
+                            j.contraGolpeContador = (j.contraGolpeContador || 0) + 1;
+                            j.contraGolpeDañoAcumulado = (j.contraGolpeDañoAcumulado || 0) + damage;
+                            
+                            console.log(`📊 [${j.name}] Golpe ${j.contraGolpeContador}/10 | Acumulado: ${j.contraGolpeDañoAcumulado}`);
+                            
+                            if (j.contraGolpeContador >= 10) {
+                                j.contraGolpeBonus = Math.floor(j.contraGolpeDañoAcumulado * 0.15);
+                                j.contraGolpeCargado = true;
+                                
+                                console.log(`🔥 ¡CONTRA-GOLPE CARGADO! ${j.name} - Bono: +${j.contraGolpeBonus}`);
+                                
+                                io.emit('contraGolpeCargado', { playerId: j.id });
+                                
+                                j.contraGolpeContador = 0;
+                                j.contraGolpeDañoAcumulado = 0;
+                                
+                                io.to(j.id).emit('chatMessage', { 
+                                    type: 'system', name: 'Sistema', 
+                                    msg: `⚔️ ¡Contra-golpe listo! Tu próximo ataque hará +${j.contraGolpeBonus} de daño.` 
+                                });
+                            }
+                        }
+                        
                         closest.hp = Math.max(0, closest.hp - damage);
                         io.emit('playerStatsUpdate', { id: closest.id, hp: closest.hp });
                         io.emit('enemyDamaged', { id: closest.id, x: closest.x, y: closest.y, dmg: damage });
@@ -623,7 +731,9 @@ setInterval(() => {
     if (demonlord.attackCooldown > 0) demonlord.attackCooldown -= 100;
 }, 100);
 
-// MOVIMIENTO Y ATAQUE DE ESQUELETOS (CORREGIDO)
+// ============================================
+// MOVIMIENTO Y ATAQUE DE ESQUELETOS CON CONTRA-GOLPE
+// ============================================
 setInterval(() => {
     esqueletos.forEach(e => {
         if (!e.isAlive) return;
@@ -654,31 +764,46 @@ setInterval(() => {
             io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: false });
         }
         
-        // ATAQUE DEL ESQUELETO
         if (e.attackCooldown <= 0 && closestDist < 45) {
             e.attackCooldown = CONFIG.SKELETON.ATTACK_COOLDOWN;
             let dañoBase = CONFIG.SKELETON.ATTACK_DAMAGE + (e.damageBonus || 0);
-            
-            // Calcular daño final según defensa del objetivo
             let damage;
-            let tipoDaño = 'fisico';
             if (players[closest.id]) {
                 damage = calcularDañoFinal(closest.id, dañoBase, 'fisico');
+                
+                const j = players[closest.id];
+                if (j && tieneHachaLegendaria(j)) {
+                    j.contraGolpeContador = (j.contraGolpeContador || 0) + 1;
+                    j.contraGolpeDañoAcumulado = (j.contraGolpeDañoAcumulado || 0) + damage;
+                    
+                    console.log(`📊 [${j.name}] Golpe ${j.contraGolpeContador}/10 | Acumulado: ${j.contraGolpeDañoAcumulado}`);
+                    
+                    if (j.contraGolpeContador >= 10) {
+                        j.contraGolpeBonus = Math.floor(j.contraGolpeDañoAcumulado * 0.15);
+                        j.contraGolpeCargado = true;
+                        
+                        console.log(`🔥 ¡CONTRA-GOLPE CARGADO! ${j.name} - Bono: +${j.contraGolpeBonus}`);
+                        
+                        io.emit('contraGolpeCargado', { playerId: j.id });
+                        
+                        j.contraGolpeContador = 0;
+                        j.contraGolpeDañoAcumulado = 0;
+                        
+                        io.to(j.id).emit('chatMessage', { 
+                            type: 'system', name: 'Sistema', 
+                            msg: `⚔️ ¡Contra-golpe listo! Tu próximo ataque hará +${j.contraGolpeBonus} de daño.` 
+                        });
+                    }
+                }
+                
                 closest.hp = Math.max(0, closest.hp - damage);
-                // ACTUALIZAR VIDA EN EL CLIENTE
                 io.emit('playerStatsUpdate', { id: closest.id, hp: closest.hp });
             } else {
                 damage = dañoBase;
                 closest.hp = Math.max(0, closest.hp - damage);
             }
-            
-            // Emitir animación y efecto de daño
             io.emit('esqueletoAttackAnim', { id: e.id, targetId: closest.id, damage: damage, x: e.x, y: e.y, dir: e.dir });
             io.emit('enemyDamaged', { id: closest.id, x: closest.x, y: closest.y, dmg: damage });
-            
-            console.log(`💀 Esqueleto atacó a ${closest.name || closest.id}, daño: ${damage}, vida restante: ${closest.hp}`);
-            
-            // Verificar si el objetivo murió
             if (closest.hp <= 0) {
                 if (closest.id === 'demonlord') {
                     closest.isAlive = false;
@@ -697,7 +822,6 @@ setInterval(() => {
                 }
             }
         }
-        
         if (e.attackCooldown > 0) e.attackCooldown -= 100;
     });
 }, 150);
