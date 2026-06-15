@@ -7,13 +7,13 @@ const path = require('path');
 const CONFIG = {
     PORT: 10000,
     DEMONLORD: { MAX_HP: 5000, RESPAWN_TIME: 10000, SPEED: 7, ATTACK_COOLDOWN: 2000, ATTACK_DAMAGE: 200, VISION_RANGE: 400, EXP: 500 },
-    SKELETON: { MAX_HP: 200, RESPAWN_TIME: 10000, SPEED: 8, ATTACK_COOLDOWN: 1000, ATTACK_DAMAGE: 25, VISION_RANGE: 400, EXP: 50, DEFENSE: 0 },
+    SKELETON: { MAX_HP: 200, RESPAWN_TIME: 10000, SPEED: 8, ATTACK_COOLDOWN: 1000, ATTACK_DAMAGE: 30, VISION_RANGE: 400, EXP: 50, DEFENSE: 0 },
     PLAYER: { MAX_HP: 500, RESPAWN_TIME: 10000, BASE_STATS: {
         barbaro: { fuerza: 18, defensaFisica: 8, defensaMagica: 0, agilidad: 8, vitalidad: 12, attackSpeed: 0.7, baseDamage: 60, mana: 50 },
         caballero: { fuerza: 12, defensaFisica: 15, defensaMagica: 0, agilidad: 8, vitalidad: 14, attackSpeed: 0.9, baseDamage: 45, mana: 60 },
         warrior: { fuerza: 10, defensaFisica: 10, defensaMagica: 0, agilidad: 15, vitalidad: 10, attackSpeed: 1.0, baseDamage: 50, mana: 60 },
-        mago: { fuerza: 5, defensaFisica: 0, defensaMagica: 40, agilidad: 12, vitalidad: 8, attackSpeed: 1.0, baseDamage: 35, mana: 150 },
-        necromancer: { fuerza: 5, defensaFisica: 0, defensaMagica: 40, agilidad: 10, vitalidad: 10, attackSpeed: 1.0, baseDamage: 35, mana: 150 }
+        mago: { fuerza: 5, defensaFisica: 0, defensaMagica: 40, agilidad: 12, vitalidad: 8, attackSpeed: 0.7, baseDamage: 35, mana: 150 },
+        necromancer: { fuerza: 5, defensaFisica: 0, defensaMagica: 40, agilidad: 10, vitalidad: 10, attackSpeed: 0.7, baseDamage: 35, mana: 150 }
     }},
     ROCAS: { CANTIDAD_INICIAL: 20, MAX_POR_JUGADOR: 50, RESPAWN_TIME: 30000 }
 };
@@ -82,10 +82,26 @@ function getPlayerDefensaMagica(playerId) {
     return def;
 }
 
-function calcularDañoFinal(objetivoId, dañoBase, tipo = 'fisico') {
+function calcularDañoFinal(objetivoId, dañoBase, tipo = 'fisico', elemento = null) {
     let defensa = 0;
-    if (tipo === 'fisico') defensa = getPlayerDefenseFisica(objetivoId);
-    else defensa = getPlayerDefensaMagica(objetivoId);
+    if (tipo === 'fisico') {
+        defensa = getPlayerDefenseFisica(objetivoId);
+    } else if (tipo === 'magico' && elemento) {
+        const j = players[objetivoId];
+        if (j && j.stats) {
+            switch(elemento) {
+                case 'fuego': defensa = j.stats.defFuego || 0; break;
+                case 'agua': defensa = j.stats.defAgua || 0; break;
+                case 'viento': defensa = j.stats.defViento || 0; break;
+                case 'rayo': defensa = j.stats.defRayo || 0; break;
+                case 'luz': defensa = j.stats.defLuz || 0; break;
+                case 'oscuridad': defensa = j.stats.defOscuridad || 0; break;
+                default: defensa = 0;
+            }
+        }
+    } else {
+        defensa = getPlayerDefensaMagica(objetivoId);
+    }
     return Math.max(1, dañoBase - defensa);
 }
 
@@ -284,7 +300,7 @@ io.on('connection', (socket) => {
             id: socket.id, x: 512, y: 512, class: d.class, name: d.name, className: d.className,
             hp: CONFIG.PLAYER.MAX_HP, maxHp: CONFIG.PLAYER.MAX_HP, isAlive: true,
             deathCount: 0, deathPosition: null, team: 'Sin Team', level: 1, exp: 0, dir: 'Abajo',
-            stats: { fuerza: bs.fuerza, defensaFisica: bs.defensaFisica, defensaMagica: bs.defensaMagica, agilidad: bs.agilidad, vitalidad: bs.vitalidad, puntosDisponibles: 5 },
+            stats: { fuerza: bs.fuerza, defensaFisica: bs.defensaFisica, defensaMagica: bs.defensaMagica, agilidad: bs.agilidad, vitalidad: bs.vitalidad, puntosDisponibles: 5, defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0 },
             minerales: {},
             equipamiento: { cabeza: null, pecho: null, piernas: null, pies: null, arma: null, escudo: null, ring1: null, ring2: null },
             mana: bs.mana || 100, maxMana: bs.mana || 100,

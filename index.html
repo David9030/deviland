@@ -37,10 +37,11 @@
         .skill-slot { background: #1a1a1a; border: 1px solid #444; border-radius: 5px; padding: 5px; margin: 5px; display: inline-block; width: 80px; text-align: center; cursor: pointer; }
         .skill-slot.equipped { border-color: #88ff88; background: #2a2a2a; }
         .skills-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+        #especialidades-grid { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
         .drag-over { border: 2px solid #88ff88; background: #2a2a2a; }
         #btn-attack { position: fixed; bottom: 15px; right: 15px; width: 60px; height: 60px; border-radius: 30px; background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff; font-size: 28px; cursor: pointer; z-index: 10000; display: flex; align-items: center; justify-content: center; }
-        #inventario-ui { position: fixed !important; top: 45% !important; left: 50% !important; transform: translate(-50%, -50%) !important; background: #000 !important; border: 3px solid #fff !important; padding: 10px !important; z-index: 999999 !important; width: auto !important; max-width: 80vw !important; max-height: 65vh !important; overflow: auto !important; display: none; }
-        .inventario-grid { display: grid; grid-template-columns: repeat(6, 60px); gap: 5px; background: #111; padding: 10px; }
+        #inventario-ui { position: fixed !important; top: 45% !important; left: 50% !important; transform: translate(-50%, -50%) !important; background: #000 !important; border: 3px solid #fff !important; padding: 10px !important; z-index: 999999 !important; width: auto !important; max-width: 95vw !important; max-height: 85vh !important; overflow: auto !important; display: none; }
+        .inventario-grid { display: grid; grid-template-columns: repeat(6, 60px); gap: 5px; background: #111; padding: 10px; justify-content: center; margin: 0 auto; }
         .slot { background: #1a1a1a; border: 1px solid #444; width: 60px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; }
         .slot-icon { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
         .slot-icon img { width: 60px !important; height: 60px !important; object-fit: contain; }
@@ -72,14 +73,19 @@
         .context-menu-item:hover { background: #333; }
         .volumen-control { background: #1a1a1a; padding: 8px; border-radius: 5px; margin-top: 10px; }
         input[type="range"] { width: 100px; cursor: pointer; background: #333; height: 3px; border-radius: 3px; }
+        .especialidad-slot { width: 65px; height: 85px; background: #1a1a1a; border: 1px solid #444; border-radius: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; padding: 5px; text-align: center; }
+        .especialidad-slot:hover { border-color: #ffaa00; background: #222; }
+        .especialidad-slot img { width: 38px; height: 38px; object-fit: contain; }
+        .especialidad-nombre { font-size: 7px; color: #ccc; margin-top: 3px; }
+        .especialidad-nivel { font-size: 8px; color: #ffaa00; margin-top: 2px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div id="menu-ui" class="menu-overlay">
         <div class="menu-box">
             <h1>DEVILAND</h1>
-            <div class="menu-btn" onclick="nuevoJuego()">NUEVO JUEGO</div>
-            <div class="menu-btn" onclick="continuarPartida()">CONTINUAR</div>
+            <div class="menu-btn" onclick="window.nuevoJuego()">NUEVO JUEGO</div>
+            <div class="menu-btn" onclick="window.continuarPartida()">CONTINUAR</div>
         </div>
     </div>
     <div id="loading-ui" class="loading-overlay">
@@ -129,24 +135,42 @@
         <div class="floating-tab" onclick="toggleInventario()">INVENTARIO</div>
     </div>
     <div id="inventario-ui">
-        <div style="display:flex;flex-direction:row;gap:15px;background:#000;padding:15px;border:2px solid #fff;flex-wrap:wrap">
-            <div style="flex:2;min-width:250px">
-                <h3 style="color:#fff;text-align:center">INVENTARIO</h3>
+        <div style="display:flex;flex-direction:column;gap:15px;background:#000;padding:15px;border:2px solid #fff">
+            <div style="text-align:center">
+                <h3 style="color:#fff;text-align:center;margin:0 0 10px 0">INVENTARIO</h3>
                 <div id="inventario-grid" class="inventario-grid"></div>
             </div>
-            <div style="flex:1;min-width:180px">
-                <div id="stats-panel-inline" style="background:#111;padding:8px;border:1px solid #333">
-                    <div class="stat-section"><div class="section-title">📈 NIVEL</div><div class="stat-row">LV:<span id="stat-level" class="stat-value">1</span></div><div class="exp-bar"><div id="exp-fill" class="exp-fill"></div></div><div class="stat-row">EXP:<span id="stat-exp" class="stat-value">0</span>/<span id="stat-exp-next">100</span></div><div class="stat-row">PTS:<span id="stat-puntos" class="stat-value">0</span></div></div>
-                    <div class="stat-section"><div class="section-title">⚔️ COMBATE</div><div class="stat-row">HP:<span id="stat-hp" class="stat-value">500/500</span></div><div class="stat-row">MANA:<span id="stat-mana" class="stat-value">100/100</span></div><div class="stat-row">ATQ FISICO:<span id="stat-ataque-fisico" class="stat-value">0</span></div><div class="stat-row">ATQ MAGICO:<span id="stat-ataque-magico" class="stat-value">0</span></div><div class="stat-row">DEF FISICA:<span id="stat-defensa-fisica" class="stat-value">0</span></div><div class="stat-row">DEF MAGICA:<span id="stat-defensa-magica" class="stat-value">0</span></div><div class="stat-row">VELOCIDAD:<span id="stat-velocidad" class="stat-value">150</span></div><div class="stat-row">CRITICO:<span id="stat-critico" class="stat-value">20%</span></div></div>
-                    <div class="stat-section"><div class="section-title">📈 ATRIBUTOS</div><div class="stat-row">FUERZA:<span id="stat-fuerza" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('fuerza')">+</button></div><div class="stat-row">INTELIGENCIA:<span id="stat-inteligencia" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('inteligencia')">+</button></div><div class="stat-row">VITALIDAD:<span id="stat-vitalidad" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('vitalidad')">+</button></div></div>
+            <div style="display:flex;flex-direction:row;gap:15px;flex-wrap:wrap">
+                <div style="flex:1;min-width:180px">
+                    <div id="stats-panel-inline" style="background:#111;padding:8px;border:1px solid #333">
+                        <div class="stat-section"><div class="section-title">📈 NIVEL</div><div class="stat-row">LV:<span id="stat-level" class="stat-value">1</span></div><div class="exp-bar"><div id="exp-fill" class="exp-fill"></div></div><div class="stat-row">EXP:<span id="stat-exp" class="stat-value">0</span>/<span id="stat-exp-next">100</span></div><div class="stat-row">PTS:<span id="stat-puntos" class="stat-value">0</span></div></div>
+                        <div class="stat-section"><div class="section-title">⚔️ COMBATE</div><div class="stat-row">HP:<span id="stat-hp" class="stat-value">500/500</span></div><div class="stat-row">MANA:<span id="stat-mana" class="stat-value">100/100</span></div><div class="stat-row">ATQ FISICO:<span id="stat-ataque-fisico" class="stat-value">0</span></div><div class="stat-row">ATQ MAGICO:<span id="stat-ataque-magico" class="stat-value">0</span></div><div class="stat-row">DEF FISICA:<span id="stat-defensa-fisica" class="stat-value">0</span></div><div class="stat-row">DEF MAGICA:<span id="stat-defensa-magica" class="stat-value">0</span></div><div class="stat-row">VELOCIDAD:<span id="stat-velocidad" class="stat-value">150</span></div><div class="stat-row">CRITICO:<span id="stat-critico" class="stat-value">20%</span></div></div>
+                        <div class="stat-section"><div class="section-title">📈 ATRIBUTOS</div><div class="stat-row">FUERZA:<span id="stat-fuerza" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('fuerza')">+</button></div><div class="stat-row">INTELIGENCIA:<span id="stat-inteligencia" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('inteligencia')">+</button></div><div class="stat-row">VITALIDAD:<span id="stat-vitalidad" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('vitalidad')">+</button></div></div>
+                        <div class="stat-section"><div class="section-title">🛡️ DEFENSAS ELEMENTALES</div>
+                        <div class="stat-row">🔥 Fuego:<span id="stat-defFuego" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('defFuego')">+</button></div>
+                        <div class="stat-row">💧 Agua:<span id="stat-defAgua" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('defAgua')">+</button></div>
+                        <div class="stat-row">🌪️ Viento:<span id="stat-defViento" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('defViento')">+</button></div>
+                        <div class="stat-row">⚡ Rayo:<span id="stat-defRayo" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('defRayo')">+</button></div>
+                        <div class="stat-row">✨ Luz:<span id="stat-defLuz" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('defLuz')">+</button></div>
+                        <div class="stat-row">🌑 Oscuridad:<span id="stat-defOscuridad" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('defOscuridad')">+</button></div></div>
+                    </div>
+                </div>
+                <div style="flex:1;min-width:200px">
+                    <div style="background:#111;padding:8px;border:1px solid #333">
+                        <h3 style="color:#fff;text-align:center">SKILLS</h3>
+                        <div id="skills-grid-inline" class="skills-grid" style="max-height:180px;overflow-y:auto"></div>
+                        <div style="margin-top:10px;font-size:9px;color:#666">💡 Arrastra a la barra inferior</div>
+                    </div>
+                    <div style="background:#111;padding:8px;border:1px solid #333;margin-top:10px">
+                        <h3 style="color:#fff;text-align:center">✨ ESPECIALIDADES</h3>
+                        <div id="especialidades-grid"></div>
+                        <div style="margin-top:5px;font-size:9px;color:#666">⭐ Doble click para subir (1 punto)</div>
+                    </div>
+                    <div class="volumen-control" style="margin-top:15px"><div class="section-title">🎵 VOLUMEN</div><div class="stat-row"><span>🎼 Música:</span><input type="range" id="volumen-musica" min="0" max="100" value="30"><span id="volumen-musica-valor" style="width:35px">30%</span></div><div class="stat-row"><span>💥 Efectos:</span><input type="range" id="volumen-fx" min="0" max="100" value="60"><span id="volumen-fx-valor" style="width:35px">60%</span></div></div>
                 </div>
             </div>
-            <div style="flex:1;min-width:200px">
-                <div style="background:#111;padding:8px;border:1px solid #333"><h3 style="color:#fff;text-align:center">SKILLS</h3><div id="skills-grid-inline" class="skills-grid" style="max-height:250px;overflow-y:auto"></div><div style="margin-top:10px;font-size:9px;color:#666">💡 Arrastra a la barra inferior</div></div>
-                <div class="volumen-control" style="margin-top:15px"><div class="section-title">🎵 VOLUMEN</div><div class="stat-row"><span>🎼 Música:</span><input type="range" id="volumen-musica" min="0" max="100" value="30"><span id="volumen-musica-valor" style="width:35px">30%</span></div><div class="stat-row"><span>💥 Efectos:</span><input type="range" id="volumen-fx" min="0" max="100" value="60"><span id="volumen-fx-valor" style="width:35px">60%</span></div></div>
-            </div>
+            <button onclick="toggleInventario()" style="margin-top:10px;padding:5px 15px;cursor:pointer">CERRAR</button>
         </div>
-        <button onclick="toggleInventario()" style="margin-top:10px;padding:5px 15px;cursor:pointer">CERRAR</button>
     </div>
     <div id="stat-preview" class="stat-preview" style="display:none"></div>
     <div id="context-menu" class="context-menu">
@@ -154,6 +178,7 @@
         <div id="menu-salir" class="context-menu-item" onclick="salirDelEquipo()" style="display:none">Salir del equipo</div>
     </div>
 <script>
+
 // ============================================
 // VARIABLES GLOBALES
 // ============================================
@@ -184,7 +209,15 @@ let skillsEquipadas = [];
 const MAX_SKILLS = 5;
 let inventarioSlots = [];
 let equipamiento = { arma: null, escudo: null, armadura: null };
-let playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 };
+let playerStats = {
+    level: 1, exp: 0, expNeeded: 100, puntos: 0,
+    fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0,
+    defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0, // ✅ COMA
+    // Especialidades
+    atqFuego: 0, atqAgua: 0, atqViento: 0, atqTierra: 0, atqLuz: 0, atqOscuridad: 0,
+    corte: 0, regeneracion: 0, destreza: 0, virtuoso: 0, brutalidad: 0,
+    actoFugaz: 0, bendito: 0, sacrificio: 0, furia: 0, critico: 0
+};
 let previewTimeout = null;
 let ultimoAtaqueNormal = 0;
 const COOLDOWN_ATAQUE_NORMAL = 1000;
@@ -210,7 +243,51 @@ const SKILLS_DATA = {
     trueno: { id: 'trueno', nombre: 'Trueno', descripcion: 'Rayo eléctrico sobre el enemigo más cercano', costo: '15 mana', icono: 'skills/trueno.png', soloMago: true, clase: 'MAGO' },
     golpe_brutal: { id: 'golpe_brutal', nombre: 'Golpe Brutal', descripcion: 'Salto y golpe de área con daño x3. Cooldown 15 segundos.', costo: '20 mana', icono: 'skills/hacha_impacto.png', soloBarbaro: true, clase: 'BARBARO' }
 };
-// 👆 La llave cierra después de golpe_brutal, trueno va ADENTRO
+// ============================================
+// ESPECIALIDADES POR CLASE
+// ============================================
+const ESPECIALIDADES_DATA = {
+    MAGO: [
+        { id: 'atqFuego', nombre: 'Fuego', desc: '+1 daño fuego', icono: 'skills/especialidades/FUEGO.png', stat: 'atqFuego' },
+        { id: 'atqAgua', nombre: 'Agua', desc: '+1 daño agua', icono: 'skills/especialidades/AGUA.png', stat: 'atqAgua' },
+        { id: 'atqViento', nombre: 'Viento', desc: '+1 daño viento', icono: 'skills/especialidades/VIENTO.png', stat: 'atqViento' },
+        { id: 'atqTierra', nombre: 'Tierra', desc: '+1 daño tierra', icono: 'skills/especialidades/TIERRA.png', stat: 'atqTierra' },
+        { id: 'atqLuz', nombre: 'Luz', desc: '+1 daño luz', icono: 'skills/especialidades/LUZ.png', stat: 'atqLuz' },
+        { id: 'atqOscuridad', nombre: 'Oscuridad', desc: '+1 daño oscuridad', icono: 'skills/especialidades/OSCURIDAD.png', stat: 'atqOscuridad' }
+    ],
+    NECROMANCER: [
+        { id: 'atqFuego', nombre: 'Fuego', desc: '+1 daño fuego', icono: 'skills/especialidades/FUEGO.png', stat: 'atqFuego' },
+        { id: 'atqAgua', nombre: 'Agua', desc: '+1 daño agua', icono: 'skills/especialidades/AGUA.png', stat: 'atqAgua' },
+        { id: 'atqViento', nombre: 'Viento', desc: '+1 daño viento', icono: 'skills/especialidades/VIENTO.png', stat: 'atqViento' },
+        { id: 'atqTierra', nombre: 'Tierra', desc: '+1 daño tierra', icono: 'skills/especialidades/TIERRA.png', stat: 'atqTierra' },
+        { id: 'atqLuz', nombre: 'Luz', desc: '+1 daño luz', icono: 'skills/especialidades/LUZ.png', stat: 'atqLuz' },
+        { id: 'atqOscuridad', nombre: 'Oscuridad', desc: '+1 daño oscuridad', icono: 'skills/especialidades/OSCURIDAD.png', stat: 'atqOscuridad' }
+    ],
+    WARRIOR: [
+        { id: 'corte', nombre: 'Corte', desc: '+1% daño corte', icono: 'skills/especialidades/CORTE.png', stat: 'corte' },
+        { id: 'regeneracion', nombre: 'Regeneración', desc: '+0.1% regen', icono: 'skills/especialidades/REGENERACIÓN.png', stat: 'regeneracion' },
+        { id: 'destreza', nombre: 'Destreza', desc: '+1 esquiva', icono: 'skills/especialidades/DESTREZA.png', stat: 'destreza' },
+        { id: 'virtuoso', nombre: 'Virtuoso', desc: '+2 defensas', icono: 'skills/especialidades/VIRTUOSO.png', stat: 'virtuoso' },
+        { id: 'brutalidad', nombre: 'Brutalidad', desc: '+1% empuje', icono: 'skills/especialidades/BRUTALIDAD.png', stat: 'brutalidad' },
+        { id: 'actoFugaz', nombre: 'Acto Fugaz', desc: '+1 vel ataque', icono: 'skills/especialidades/ACTO FUGAZ.png', stat: 'actoFugaz' }
+    ],
+    CABALLERO: [
+        { id: 'corte', nombre: 'Corte', desc: '+1% daño corte', icono: 'skills/especialidades/CORTE.png', stat: 'corte' },
+        { id: 'regeneracion', nombre: 'Regeneración', desc: '+0.1% regen', icono: 'skills/especialidades/REGENERACIÓN.png', stat: 'regeneracion' },
+        { id: 'bendito', nombre: 'Bendito', desc: '+2 fuego/luz +1% cura', icono: 'skills/especialidades/BENDITO.png', stat: 'bendito' },
+        { id: 'atqFuego', nombre: 'Fuego', desc: '+1 daño fuego', icono: 'skills/especialidades/FUEGO.png', stat: 'atqFuego' },
+        { id: 'atqLuz', nombre: 'Luz', desc: '+1 daño luz', icono: 'skills/especialidades/LUZ.png', stat: 'atqLuz' },
+        { id: 'sacrificio', nombre: 'Sacrificio', desc: '15% abs +1px rango', icono: 'skills/especialidades/SACRIFICIO.png', stat: 'sacrificio' },
+        { id: 'virtuoso', nombre: 'Virtuoso', desc: '+2 defensas', icono: 'skills/especialidades/VIRTUOSO.png', stat: 'virtuoso' }
+    ],
+    BARBARO: [
+        { id: 'corte', nombre: 'Corte', desc: '+1% daño corte', icono: 'skills/especialidades/CORTE.png', stat: 'corte' },
+        { id: 'regeneracion', nombre: 'Regeneración', desc: '+0.1% regen', icono: 'skills/especialidades/REGENERACIÓN.png', stat: 'regeneracion' },
+        { id: 'brutalidad', nombre: 'Brutalidad', desc: '+1% empuje', icono: 'skills/especialidades/BRUTALIDAD.png', stat: 'brutalidad' },
+        { id: 'furia', nombre: 'Furia', desc: '+1% daño Furia', icono: 'skills/especialidades/FURIA.png', stat: 'furia' },
+        { id: 'critico', nombre: 'Crítico', desc: '+0.05% x3 daño', icono: 'skills/especialidades/CRITICO.png', stat: 'critico' }
+    ]
+};
 
 // ============================================
 // ESTADISTICAS POR CLASE
@@ -271,7 +348,10 @@ function toggleInventario() {
     const u = document.getElementById('inventario-ui');
     if (u) {
         u.style.display = u.style.display === 'none' || u.style.display === '' ? 'block' : 'none';
-        if (u.style.display === 'block') renderizarInventario();
+        if (u.style.display === 'block') {
+            renderizarInventario();
+            renderizarEspecialidades();
+        }
     }
 }
 
@@ -290,7 +370,6 @@ function invitarJugadorSeleccionado() {
         jugadorSeleccionadoId = null;
     }
 }
-
 function salirDelEquipo() {
     if (confirm("¿Seguro que querés salir del equipo?")) {
         socket.emit('salirEquipo');
@@ -455,7 +534,7 @@ function ocultarPantallaCarga() {
 window.nuevoJuego = function() {
     borrarPartida();
     equipamiento = { arma: null, escudo: null, armadura: null };
-    playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 };
+    playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0, defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0 };
     skillsEquipadas = [];
     inventarioSlots = [];
     for (let i = 0; i < 36; i++) inventarioSlots.push(null);
@@ -472,7 +551,7 @@ window.continuarPartida = function() {
     pClass = g.clase;
     pClassName = g.className || g.clase;
     equipamiento = g.equipamiento || { arma: null, escudo: null, armadura: null };
-    playerStats = g.playerStats || { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 };
+    playerStats = g.playerStats || { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0, defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0 };
     playerHP = g.playerHP || (classStats[pClassName]?.hp || 500);
     playerMana = g.playerMana || (classStats[pClassName]?.mana || 100);
     if (g.inventarioSlots && Array.isArray(g.inventarioSlots)) inventarioSlots = g.inventarioSlots;
@@ -1016,9 +1095,17 @@ function actualizarStatsUI() {
                 mostrarMensaje(`✨ HAS REVIVIDO!`, 'exito');
                 if (socket && socket.connected) socket.emit('playerRespawn', { id: socket.id });
             }
-        }, 10000);
+                }, 10000);
     }
-}
+    
+    // ✅ DEFENSAS ELEMENTALES
+    document.getElementById('stat-defFuego').textContent = playerStats.defFuego || 0;
+    document.getElementById('stat-defAgua').textContent = playerStats.defAgua || 0;
+    document.getElementById('stat-defViento').textContent = playerStats.defViento || 0;
+    document.getElementById('stat-defRayo').textContent = playerStats.defRayo || 0;
+    document.getElementById('stat-defLuz').textContent = playerStats.defLuz || 0;
+    document.getElementById('stat-defOscuridad').textContent = playerStats.defOscuridad || 0;
+} // ← CIERRE de actualizarStatsUI
 
 function mostrarPreviewStats(item, tipo) {
     const statsOriginales = {
@@ -1074,6 +1161,55 @@ function mostrarPreviewStats(item, tipo) {
 // ============================================
 // SKILLS
 // ============================================
+
+function renderizarEspecialidades() {
+    const grid = document.getElementById('especialidades-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    const especialidades = ESPECIALIDADES_DATA[pClassName];
+    if (!especialidades) return;
+    
+    especialidades.forEach(esp => {
+        const nivel = playerStats[esp.stat] || 0;
+        const div = document.createElement('div');
+        div.className = 'especialidad-slot';
+        div.setAttribute('data-id', esp.id);
+        div.title = esp.desc;
+        
+        const img = document.createElement('img');
+        img.src = esp.icono;
+        img.alt = esp.nombre;
+        img.onerror = function() { this.style.display = 'none'; };
+        
+        const nombreSpan = document.createElement('div');
+        nombreSpan.className = 'especialidad-nombre';
+        nombreSpan.textContent = esp.nombre;
+        
+        const nivelSpan = document.createElement('div');
+        nivelSpan.className = 'especialidad-nivel';
+        nivelSpan.textContent = 'Nv.' + nivel;
+        
+        div.appendChild(img);
+        div.appendChild(nombreSpan);
+        div.appendChild(nivelSpan);
+        
+        div.ondblclick = () => {
+            if (playerStats.puntos <= 0) {
+                mostrarMensaje('❌ Sin puntos', 'error');
+                return;
+            }
+            playerStats[esp.stat] = (playerStats[esp.stat] || 0) + 1;
+            playerStats.puntos--;
+            actualizarStatsUI();
+            guardarPartida();
+            renderizarEspecialidades();
+            mostrarMensaje(`✅ +1 ${esp.nombre} (Nv.${playerStats[esp.stat]})`, 'exito');
+        };
+        
+        grid.appendChild(div);
+    });
+}
 function cargarSkillsPorClase() {
     skillsDisponibles = [];
     Object.keys(SKILLS_DATA).forEach(key => {
@@ -1247,6 +1383,18 @@ function levantarEsqueleto(id) {
     setTimeout(() => { summonCooldown = 0; }, 1000);
 }
 
+function getDefensaElemental(elemento) {
+    switch(elemento) {
+        case 'fuego': return playerStats.defFuego || 0;
+        case 'agua': return playerStats.defAgua || 0;
+        case 'viento': return playerStats.defViento || 0;
+        case 'rayo': return playerStats.defRayo || 0;
+        case 'luz': return playerStats.defLuz || 0;
+        case 'oscuridad': return playerStats.defOscuridad || 0;
+        default: return 0;
+    }
+}
+
 // ============================================
 // CREAR PROYECTIL
 // ============================================
@@ -1295,7 +1443,7 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
             if (esqueleto.isAlly === false && esqueleto.active && p.active) {
                 let statsBaseMago = classStats[pClassName] || classStats['MAGO'];
                 let ataqueMagicoTotal = statsBaseMago.ataqueMagico + Math.floor((playerStats.inteligencia) * 1.5);
-                const danioTotal = ataqueMagicoTotal;
+                const danioTotal = ataqueMagicoTotal + (proyectil.damage - 35);;
                 if (socket && socket.connected) socket.emit('esqueletoHit', { id: esqueleto.esqueletoId, damageBonus: danioTotal });
                 if (currentScene) {
     const sonidoImpacto = currentScene.sound.get('fireballimpact');
@@ -1311,7 +1459,7 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
             if (demon.active && p.active && demonlordHP > 0) {
                 let statsBaseMago = classStats[pClassName] || classStats['MAGO'];
                 let ataqueMagicoTotal = statsBaseMago.ataqueMagico + Math.floor((playerStats.inteligencia) * 1.5);
-                const danioTotal = ataqueMagicoTotal;
+                const danioTotal = proyectil.damage;
                 if (socket && socket.connected) socket.emit('demonlordHit', { damageBonus: danioTotal, esCritico: false });
                 if (currentScene) {
                     const sonidoImpacto = currentScene.sound.get('fireballimpact');
@@ -1352,20 +1500,22 @@ function usarSkill(skillId) {
         if (ahora - ultimoAtaqueDistancia < 1000) { mostrarMensaje(`⏳ Espera ${Math.ceil((1000 - (ahora - ultimoAtaqueDistancia)) / 1000)}s`, 'error'); return; }
         if (playerMana < 10) { mostrarMensaje(`❌ Mana insuficiente (10)`, 'error'); return; }
         playerMana -= 10; actualizarStatsUI(); ultimoAtaqueDistancia = ahora;
-        mostrarMensaje(`💀 Bola de sombra! -10 mana`, 'exito');
+        mostrarMensaje(skillId === 'fireball' ? '🔥 Fireball! -10 mana' : '💀 Bola de sombra! -10 mana', 'exito');
         let dir = player.lastDir;
         let targetX = player.x; let targetY = player.y;
         switch(dir) { case 'Derecha': targetX += 200; break; case 'Izquierda': targetX -= 200; break; case 'Arriba': targetY -= 200; break; case 'Abajo': targetY += 200; break; default: targetY += 200; }
         let offsetX = 0; let offsetY = 0;
         switch(dir) { case 'Derecha': offsetX = 30; break; case 'Izquierda': offsetX = -30; break; case 'Arriba': offsetY = -30; break; case 'Abajo': offsetY = 30; break; }
         if (!player.attacking) {
-            player.attacking = true; player.setVelocity(0, 0);
-            const animKey = pClass + '_atk_' + dir;
-            if (currentScene.anims.exists(animKey)) player.play(animKey, true);
-            else player.play(pClass + '_atk_Abajo', true);
-            currentScene.time.delayedCall(150, () => {
-                if (player && player.active) crearProyectil(player.x + offsetX, player.y + offsetY, targetX, targetY, 35);
-            });
+    const bonus = skillId === 'fireball' ? (playerStats.atqFuego || 0) : (playerStats.atqOscuridad || 0);
+    let ataqueMagico = (classStats[pClassName].ataqueMagico || 0) + Math.floor((playerStats.inteligencia) * 1.5);
+    player.attacking = true; player.setVelocity(0, 0);
+    const animKey = pClass + '_atk_' + dir;
+    if (currentScene.anims.exists(animKey)) player.play(animKey, true);
+    else player.play(pClass + '_atk_Abajo', true);
+    currentScene.time.delayedCall(150, () => {
+        if (player && player.active) crearProyectil(player.x + offsetX, player.y + offsetY, targetX, targetY, ataqueMagico + bonus);
+    });
             player.once('animationcomplete', () => {
                 player.attacking = false;
                 if (player && player.active) {
@@ -1374,106 +1524,101 @@ function usarSkill(skillId) {
                 }
             });
         }
-  } else if (skillId === 'trueno' && pClassName === 'MAGO') {
-    const ahora = Date.now();
-    if (ahora - ultimoAtaqueDistancia < 1500) { mostrarMensaje(`⏳ Espera ${Math.ceil((1500 - (ahora - ultimoAtaqueDistancia)) / 1000)}s`, 'error'); return; }
-    if (playerMana < 15) { mostrarMensaje(`❌ Mana insuficiente (15)`, 'error'); return; }
-    
-    let enemigoMasCercano = null;
-    let distanciaMinima = 400;
-    
-    if (window.esqueletosGrupo) {
-        window.esqueletosGrupo.getChildren().forEach(esq => {
-            if (esq.active && !esq.isAlly) {
-                const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y);
-                if (dist < distanciaMinima) {
-                    distanciaMinima = dist;
-                    enemigoMasCercano = { id: esq.esqueletoId, x: esq.x, y: esq.y, esDemonlord: false };
+    } else if (skillId === 'trueno' && pClassName === 'MAGO') {
+        const ahora = Date.now();
+        if (ahora - ultimoAtaqueDistancia < 1500) { mostrarMensaje(`⏳ Espera ${Math.ceil((1500 - (ahora - ultimoAtaqueDistancia)) / 1000)}s`, 'error'); return; }
+        if (playerMana < 15) { mostrarMensaje(`❌ Mana insuficiente (15)`, 'error'); return; }
+        
+        let enemigoMasCercano = null;
+        let distanciaMinima = 400;
+        
+        if (window.esqueletosGrupo) {
+            window.esqueletosGrupo.getChildren().forEach(esq => {
+                if (esq.active && !esq.isAlly) {
+                    const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y);
+                    if (dist < distanciaMinima) {
+                        distanciaMinima = dist;
+                        enemigoMasCercano = { id: esq.esqueletoId, x: esq.x, y: esq.y, esDemonlord: false };
+                    }
                 }
-            }
-        });
-    }
-    
-    if (demonlord_sprite && demonlord_sprite.active && demonlordHP > 0) {
-        const dist = Phaser.Math.Distance.Between(player.x, player.y, demonlord_sprite.x, demonlord_sprite.y);
-        if (dist < distanciaMinima) {
-            distanciaMinima = dist;
-            enemigoMasCercano = { id: 'demonlord', x: demonlord_sprite.x, y: demonlord_sprite.y, esDemonlord: true };
+            });
         }
-    }
-    
-    if (!enemigoMasCercano) {
-        mostrarMensaje(`❌ No hay enemigos en rango (400px)`, 'error');
-        return;
-    }
-    
-    playerMana -= 15;
-    actualizarStatsUI();
-    ultimoAtaqueDistancia = ahora;
-    mostrarMensaje(`⚡ ¡Trueno! -15 mana`, 'exito');
-    
-    const ex = enemigoMasCercano.x;
-    const ey = enemigoMasCercano.y;
-    
-    let ataqueMagicoTotal = (classStats['MAGO'].ataqueMagico || 0) + Math.floor((playerStats.inteligencia) * 1.5);
-    const danioTotal = Math.floor(ataqueMagicoTotal * 0.1); // ✅ 10% del ataque mágico
-    
-    if (currentScene && currentScene.sound) {
-    const sonidoTrueno = currentScene.sound.get('truenosound');
-    if (sonidoTrueno) reproducirSonido(sonidoTrueno, window.volumenFX);
-    else currentScene.sound.play('truenosound', { volume: window.volumenFX });
-}
-    
-    // Trueno azul más abajo
-    const truenoSprite = currentScene.add.sprite(ex, ey - 20, 'trueno_sprite');
-    truenoSprite.setScale(1.5);
-    truenoSprite.setDepth(10000);
-    truenoSprite.setOrigin(0.5, 1);
-    
-    // Círculo invisible (hitbox)
-    const impactoGraphics = currentScene.add.graphics();
-    impactoGraphics.setVisible(false);
-    impactoGraphics.setDepth(9999);
-    
-    // Daño en área
-if (window.esqueletosGrupo && currentScene) {
-    window.esqueletosGrupo.getChildren().forEach(esq => {
-        if (esq.active && !esq.isAlly) {
-            const dist = Phaser.Math.Distance.Between(ex, ey, esq.x, esq.y);
-            if (dist < 60) {
-                if (socket && socket.connected) socket.emit('esqueletoHit', { id: esq.esqueletoId, damageBonus: danioTotal });
-                crearTextoDmg(currentScene, esq.x, esq.y - 30, danioTotal.toString(), "#ffffff", "14px");
+        
+        if (demonlord_sprite && demonlord_sprite.active && demonlordHP > 0) {
+            const dist = Phaser.Math.Distance.Between(player.x, player.y, demonlord_sprite.x, demonlord_sprite.y);
+            if (dist < distanciaMinima) {
+                distanciaMinima = dist;
+                enemigoMasCercano = { id: 'demonlord', x: demonlord_sprite.x, y: demonlord_sprite.y, esDemonlord: true };
             }
         }
-    });
-}
-    
-    // Daño principal
-    if (enemigoMasCercano.esDemonlord) {
-        if (socket && socket.connected) socket.emit('demonlordHit', { damageBonus: danioTotal, esCritico: false });
-        crearTextoDmg(currentScene, ex, ey - 80, danioTotal.toString(), "#ffffff", "24px");
-    } else {
-        if (socket && socket.connected) socket.emit('esqueletoHit', { id: enemigoMasCercano.id, damageBonus: danioTotal });
-        crearTextoDmg(currentScene, ex, ey - 50, danioTotal.toString(), "#ffffff", "20px");
-    }
-    
-    // ✅ Destruir círculo al causar daño
-    if (impactoGraphics && impactoGraphics.active) impactoGraphics.destroy();
-    
-    currentScene.cameras.main.shake(150, 0.012);
-    
-    if (currentScene.anims.exists('trueno_anim')) {
-        truenoSprite.play('trueno_anim');
-    }
-    
-    truenoSprite.once('animationcomplete', () => {
-        if (truenoSprite && truenoSprite.active) truenoSprite.destroy();
-    });
-    
-    currentScene.time.delayedCall(1500, () => {
-        if (truenoSprite && truenoSprite.active) truenoSprite.destroy();
+        
+        if (!enemigoMasCercano) {
+            mostrarMensaje(`❌ No hay enemigos en rango (400px)`, 'error');
+            return;
+        }
+        
+        playerMana -= 15;
+        actualizarStatsUI();
+        ultimoAtaqueDistancia = ahora;
+        mostrarMensaje(`⚡ ¡Trueno! -15 mana`, 'exito');
+        
+        const ex = enemigoMasCercano.x;
+        const ey = enemigoMasCercano.y;
+        
+        let ataqueMagicoTotal = (classStats['MAGO'].ataqueMagico || 0) + Math.floor((playerStats.inteligencia) * 1.5);
+        const danioTotal = Math.floor(ataqueMagicoTotal * 0.1) + (playerStats.atqLuz || 0);
+        
+        if (currentScene && currentScene.sound) {
+            const sonidoTrueno = currentScene.sound.get('fireballimpact');
+            if (sonidoTrueno) reproducirSonido(sonidoTrueno, window.volumenFX);
+            else currentScene.sound.play('fireballimpact', { volume: window.volumenFX });
+        }
+        
+        const truenoSprite = currentScene.add.sprite(ex, ey - 20, 'trueno_sprite');
+        truenoSprite.setScale(1.5);
+        truenoSprite.setDepth(10000);
+        truenoSprite.setOrigin(0.5, 1);
+        
+        const impactoGraphics = currentScene.add.graphics();
+        impactoGraphics.setVisible(false);
+        impactoGraphics.setDepth(9999);
+        
+        if (window.esqueletosGrupo && currentScene) {
+            window.esqueletosGrupo.getChildren().forEach(esq => {
+                if (esq.active && !esq.isAlly) {
+                    const dist = Phaser.Math.Distance.Between(ex, ey, esq.x, esq.y);
+                    if (dist < 60) {
+                        if (socket && socket.connected) socket.emit('esqueletoHit', { id: esq.esqueletoId, damageBonus: danioTotal, elemento: 'luz' });
+                        crearTextoDmg(currentScene, esq.x, esq.y - 30, danioTotal.toString(), "#ffffff", "14px");
+                    }
+                }
+            });
+        }
+        
+        if (enemigoMasCercano.esDemonlord) {
+            if (socket && socket.connected) socket.emit('demonlordHit', { damageBonus: danioTotal, esCritico: false, elemento: 'luz' });
+            crearTextoDmg(currentScene, ex, ey - 80, danioTotal.toString(), "#ffffff", "24px");
+        } else {
+            if (socket && socket.connected) socket.emit('esqueletoHit', { id: enemigoMasCercano.id, damageBonus: danioTotal, elemento: 'luz' });
+            crearTextoDmg(currentScene, ex, ey - 50, danioTotal.toString(), "#ffffff", "20px");
+        }
+        
         if (impactoGraphics && impactoGraphics.active) impactoGraphics.destroy();
-    });
+        
+        currentScene.cameras.main.shake(150, 0.012);
+        
+        if (currentScene.anims.exists('trueno_anim')) {
+            truenoSprite.play('trueno_anim');
+        }
+        
+        truenoSprite.once('animationcomplete', () => {
+            if (truenoSprite && truenoSprite.active) truenoSprite.destroy();
+        });
+        
+        currentScene.time.delayedCall(1500, () => {
+            if (truenoSprite && truenoSprite.active) truenoSprite.destroy();
+            if (impactoGraphics && impactoGraphics.active) impactoGraphics.destroy();
+        });
         
     } else if (skillId === 'golpe_brutal') {
         if (pClassName !== 'BARBARO') { mostrarMensaje(`❌ Solo los Bárbaros`, 'error'); return; }
@@ -1679,6 +1824,7 @@ function create() {
     socket.emit('solicitarInventarioCompleto');
     cargarSkillsPorClase();
     renderizarBarraSkills();
+    renderizarEspecialidades();
 
     const btnAttack = document.getElementById('btn-attack');
     const actualizarIconoAtaque = () => {
@@ -1689,61 +1835,158 @@ function create() {
         if (roca) btnAttack.innerHTML = '🖐️'; else if (arbol) btnAttack.innerHTML = '🪓'; else btnAttack.innerHTML = '⚔️';
     };
 
-    window.simularAtaque = () => {
-        if (window.ataqueEnProceso) return;
-        if (!player.attacking && player.body.enable && player.isAlive) {
-            const ahora = Date.now();
-            if (ahora - ultimoAtaqueNormal < COOLDOWN_ATAQUE_NORMAL) {
-                const tr = ((COOLDOWN_ATAQUE_NORMAL - (ahora - ultimoAtaqueNormal)) / 1000).toFixed(1);
-                mostrarMensaje(`⏳ Espera ${tr}s`, 'error'); return;
-            }
-            window.ataqueEnProceso = true; ultimoAtaqueNormal = ahora;
-            let arbol = false, roca = false, aC = null, rC = null;
-            if (window.arbolesGrupo) window.arbolesGrupo.getChildren().forEach(ab => { if (ab.active && Phaser.Math.Distance.Between(player.x, player.y, ab.x, ab.y) < 80) { arbol = true; aC = ab; } });
-            if (window.rocasGrupo) window.rocasGrupo.getChildren().forEach(rc => { if (rc.active && Phaser.Math.Distance.Between(player.x, player.y, rc.x, rc.y) < 50) { roca = true; rC = rc; } });
-            player.attacking = true; player.setVelocity(0, 0);
-            player.play(pClass + '_atk_' + player.lastDir, true);
-            setTimeout(() => { player.attacking = false; window.ataqueEnProceso = false; }, 400);
-            if (currentScene) {
-                const sonidoAtq = currentScene.sound.get('sonidoAtaque');
-                if (sonidoAtq) reproducirSonido(sonidoAtq, window.volumenFX);
-                else currentScene.sound.play('sonidoAtaque', { volume: window.volumenFX });
-            }
-            let ataqueFisicoTotal = (classStats[pClassName].ataqueFisico || 0) + playerStats.fuerza;
-            const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null;
-            if (armaItem && armaItem.ataqueFisico) ataqueFisicoTotal += armaItem.ataqueFisico;
-            const chanceCritico = 20 + Math.floor(playerStats.agilidad / 10);
-            const esCritico = Math.random() * 100 < chanceCritico;
-            let damageBonus = ataqueFisicoTotal;
-            if (esCritico) damageBonus = Math.floor(ataqueFisicoTotal * 1.5);
-            if (pClassName === 'BARBARO' && barbaroTieneHacha && barbaroContadorAsesinatos >= 10) {
-                damageBonus = ataqueFisicoTotal * 3;
-                mostrarMensaje(`💥 ¡GOLPE X3! 💥`, 'exito');
-                barbaroContadorAsesinatos = 0;
-                if (player) player.clearTint();
-            }
-            socket.emit('playerAttack', { damageBonus: damageBonus });
-            player.once('animationcomplete', (anim) => {
-                if (anim.key === pClass + '_atk_' + player.lastDir) {
-                    player.attacking = false; window.ataqueEnProceso = false;
-                    if (roca && rC) { socket.emit('recogerRoca', { x: player.x, y: player.y }); rC.destroy(); }
-                    else if (arbol && aC) { socket.emit('talarArbol', { x: player.x, y: player.y }); }
-                    else if (demonlord_sprite && demonlord_sprite.visible && Phaser.Math.Distance.Between(player.x, player.y, demonlord_sprite.x, demonlord_sprite.y) < 135) {
-                        socket.emit('demonlordHit', { damageBonus: damageBonus, esCritico: esCritico });
-                    }
-                    if (window.esqueletosGrupo) {
-                        window.esqueletosGrupo.getChildren().forEach(esq => {
-                            if (esq.active && !esq.isAlly && Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y) < 80) {
-                                socket.emit('esqueletoHit', { id: esq.esqueletoId, damageBonus: damageBonus, esCritico: esCritico });
-                            }
-                        });
-                    }
-                }
+   window.simularAtaque = () => {
+    if (window.ataqueEnProceso) return;
+    if (!player.attacking && player.body.enable && player.isAlive) {
+        const ahora = Date.now();
+        if (ahora - ultimoAtaqueNormal < COOLDOWN_ATAQUE_NORMAL) {
+            const tr = ((COOLDOWN_ATAQUE_NORMAL - (ahora - ultimoAtaqueNormal)) / 1000).toFixed(1);
+            mostrarMensaje(`⏳ Espera ${tr}s`, 'error'); 
+            return;
+        }
+        window.ataqueEnProceso = true; 
+        ultimoAtaqueNormal = ahora;
+        
+        // Detectar árboles y rocas
+        let arbol = false, roca = false, aC = null, rC = null;
+        if (window.arbolesGrupo) {
+            window.arbolesGrupo.getChildren().forEach(ab => { 
+                if (ab.active && Phaser.Math.Distance.Between(player.x, player.y, ab.x, ab.y) < 80) { 
+                    arbol = true; 
+                    aC = ab; 
+                } 
             });
         }
-    };
-    btnAttack.addEventListener('click', () => { if (window.simularAtaque) window.simularAtaque(); });
+        if (window.rocasGrupo) {
+            window.rocasGrupo.getChildren().forEach(rc => { 
+                if (rc.active && Phaser.Math.Distance.Between(player.x, player.y, rc.x, rc.y) < 50) { 
+                    roca = true; 
+                    rC = rc; 
+                } 
+            });
+        }
+        
+        // Animación de ataque
+        player.attacking = true; 
+        player.setVelocity(0, 0);
+        player.play(pClass + '_atk_' + player.lastDir, true);
+        
+        setTimeout(() => { 
+            player.attacking = false; 
+            window.ataqueEnProceso = false; 
+        }, 400);
+        
+        // Sonido de ataque
+        if (currentScene) {
+            const sonidoAtq = currentScene.sound.get('sonidoAtaque');
+            if (sonidoAtq) reproducirSonido(sonidoAtq, window.volumenFX);
+            else currentScene.sound.play('sonidoAtaque', { volume: window.volumenFX });
+        }
+        
+        // ============================================
+        // CÁLCULO DE DAÑO BASE
+        // ============================================
+        let ataqueFisicoTotal = (classStats[pClassName].ataqueFisico || 0) + (playerStats.fuerza || 0);
+        const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null;
+        if (armaItem && armaItem.ataqueFisico) ataqueFisicoTotal += armaItem.ataqueFisico;
+        
+        // ============================================
+        // CRÍTICOS
+        // ============================================
+        const chanceCriticoNormal = 20 + Math.floor((playerStats.agilidad || 0) / 10);
+        const esCriticoNormal = Math.random() * 100 < chanceCriticoNormal;
+        
+        // Crítico especial del Bárbaro (x3 por especialidad)
+        let esSuperCritico = false;
+        if (pClassName === 'BARBARO') {
+            const chanceCriticoBarbaro = (playerStats.critico || 0) * 0.5; // 0.5% por punto
+            esSuperCritico = Math.random() * 100 < chanceCriticoBarbaro;
+        }
+        
+        // ============================================
+        // APLICAR DAÑO (prioridades)
+        // ============================================
+        let damageBonus = ataqueFisicoTotal;
+        
+        // Prioridad 1: Súper crítico del Bárbaro (especialidad)
+        if (esSuperCritico) {
+            damageBonus = Math.floor(ataqueFisicoTotal * 3);
+            mostrarMensaje('💢 ¡CRÍTICO X3 DEL BÁRBARO! 💢', 'exito');
+            if (player) {
+                player.setTint(0xff6600);
+                setTimeout(() => player.clearTint(), 300);
+            }
+        } 
+        // Prioridad 2: Hacha legendaria (10 asesinatos)
+        else if (pClassName === 'BARBARO' && barbaroTieneHacha && barbaroContadorAsesinatos >= 10) {
+            damageBonus = Math.floor(ataqueFisicoTotal * 3);
+            mostrarMensaje(`💥 ¡GOLPE X3 DEL HACHA LEGENDARIA! 💥`, 'exito');
+            barbaroContadorAsesinatos = 0;
+            if (player) player.clearTint();
+        }
+        // Prioridad 3: Crítico normal
+        else if (esCriticoNormal) {
+            damageBonus = Math.floor(ataqueFisicoTotal * 1.5);
+        }
+        
+        // Mostrar porcentaje de crítico del Bárbaro (cada 30 segundos)
+        if (pClassName === 'BARBARO' && (playerStats.critico || 0) > 0) {
+            if (!window.mostrePorcentajeCritico) {
+                const porcentaje = ((playerStats.critico || 0) * 0.5).toFixed(1);
+                mostrarMensaje(`💢 Crítico Bárbaro: ${porcentaje}% (x3 daño)`, 'exito');
+                window.mostrePorcentajeCritico = true;
+                setTimeout(() => { window.mostrePorcentajeCritico = false; }, 30000);
+            }
+        }
+        
+        // Enviar al servidor
+        socket.emit('playerAttack', { 
+            damageBonus: damageBonus, 
+            esCritico: esCriticoNormal,
+            esSuperCritico: esSuperCritico 
+        });
+        
+        // Aplicar daño después de la animación
+        player.once('animationcomplete', (anim) => {
+            if (anim.key === pClass + '_atk_' + player.lastDir) {
+                player.attacking = false; 
+                window.ataqueEnProceso = false;
+                
+                if (roca && rC) { 
+                    socket.emit('recogerRoca', { x: player.x, y: player.y }); 
+                    rC.destroy(); 
+                }
+                else if (arbol && aC) { 
+                    socket.emit('talarArbol', { x: player.x, y: player.y }); 
+                }
+                else if (demonlord_sprite && demonlord_sprite.visible && Phaser.Math.Distance.Between(player.x, player.y, demonlord_sprite.x, demonlord_sprite.y) < 135) {
+                    socket.emit('demonlordHit', { 
+                        damageBonus: damageBonus, 
+                        esCritico: esCriticoNormal,
+                        esSuperCritico: esSuperCritico 
+                    });
+                }
+                
+                if (window.esqueletosGrupo) {
+                    window.esqueletosGrupo.getChildren().forEach(esq => {
+                        if (esq.active && !esq.isAlly && Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y) < 80) {
+                            socket.emit('esqueletoHit', { 
+                                id: esq.esqueletoId, 
+                                damageBonus: damageBonus, 
+                                esCritico: esCriticoNormal,
+                                esSuperCritico: esSuperCritico 
+                            });
+                        }
+                    });
+                }
+            }
+        });
+    }
+};
 
+btnAttack.addEventListener('click', () => { 
+    if (window.simularAtaque) window.simularAtaque(); 
+});
     // ============================================
     // SOCKET EVENTS - TODOS IMPLEMENTADOS
     // ============================================
