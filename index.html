@@ -294,9 +294,9 @@ const ESPECIALIDADES_DATA = {
 // ESTADISTICAS POR CLASE
 // ============================================
 const classStats = {
-    BARBARO: { hp: 800, mana: 100, ataqueFisico: 80, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 120, attackSpeed: 0.7 },
-    WARRIOR: { hp: 500, mana: 60, ataqueFisico: 50, ataqueMagico: 0, defensaFisica: 40, defensaMagica: 0, velocidad: 150, attackSpeed: 1.0 },
-    CABALLERO: { hp: 500, mana: 60, ataqueFisico: 50, ataqueMagico: 0, defensaFisica: 100, defensaMagica: 0, velocidad: 130, attackSpeed: 0.9 },
+    BARBARO: { hp: 800, mana: 100, ataqueFisico: 80, ataqueMagico: 0, defensaFisica: 10, defensaMagica: 0, velocidad: 120, attackSpeed: 0.7 },
+    WARRIOR: { hp: 500, mana: 60, ataqueFisico: 50, ataqueMagico: 0, defensaFisica: 10, defensaMagica: 0, velocidad: 150, attackSpeed: 1.0 },
+    CABALLERO: { hp: 500, mana: 60, ataqueFisico: 50, ataqueMagico: 0, defensaFisica: 15, defensaMagica: 0, velocidad: 130, attackSpeed: 0.9 },
     MAGO: { hp: 300, mana: 150, ataqueFisico: 15, ataqueMagico: 50, defensaFisica: 0, defensaMagica: 40, velocidad: 180, attackSpeed: 1.0 },
     NECROMANCER: { hp: 300, mana: 150, ataqueFisico: 15, ataqueMagico: 50, defensaFisica: 0, defensaMagica: 40, velocidad: 180, attackSpeed: 1.0 }
 };
@@ -460,6 +460,12 @@ function getVelocidadActual() {
     if (armaItem && armaItem.velocidad) velocidadBase += armaItem.velocidad;
     if (escudoItem && escudoItem.velocidad) velocidadBase += escudoItem.velocidad;
     if (armaduraItem && armaduraItem.velocidad) velocidadBase += armaduraItem.velocidad;
+    
+    if (pClassName === 'WARRIOR') {
+        const actoFugazBonus = (playerStats.actoFugaz || 0) * 0.02;
+        attackSpeedModifier = 1.0 + actoFugazBonus;
+    }
+    
     return Math.max(40, velocidadBase);
 }
 
@@ -487,7 +493,11 @@ function guardarPartida() {
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
     localStorage.setItem(SAVE_KEY + '_skills', JSON.stringify(skillsEquipadas));
     if (socket && socket.connected && juegoIniciado) {
-        socket.emit('actualizarInventario', { inventarioSlots: inventarioLimpio, equipamiento: equipamiento });
+        socket.emit('actualizarInventario', { 
+            inventarioSlots: inventarioLimpio, 
+            equipamiento: equipamiento,
+            playerStats: playerStats
+        });
     }
 }
 
@@ -1035,12 +1045,17 @@ function renderizarInventario() {
     }
 }
 
+// ============================================
+// ACTUALIZAR STATS UI (con especialidades)
+// ============================================
 function actualizarStatsUI() {
     let statsBase = classStats[pClassName] || classStats['WARRIOR'];
     let ataqueFisico = statsBase.ataqueFisico + playerStats.fuerza;
     let ataqueMagico = statsBase.ataqueMagico + Math.floor((playerStats.inteligencia) * 1.5);
-    let defensaFisica = statsBase.defensaFisica;
-    let defensaMagica = statsBase.defensaMagica;
+    
+    let defensaFisica = statsBase.defensaFisica + (playerStats.virtuoso || 0) * 2;
+    let defensaMagica = statsBase.defensaMagica + (playerStats.virtuoso || 0) * 2;
+    
     let velocidad = statsBase.velocidad + (playerStats.agilidad * 1.5);
     let hpTotal = statsBase.hp + (playerStats.vitalidad * 10);
     let manaTotal = statsBase.mana + ((playerStats.sabiduria || 0) * 10);
@@ -1066,12 +1081,17 @@ function actualizarStatsUI() {
     document.getElementById('stat-defensa-magica').textContent = Math.floor(defensaMagica);
     document.getElementById('stat-velocidad').textContent = Math.floor(velocidad);
     
-    // Mostrar crítico según clase
     if (pClassName === 'BARBARO') {
         const porcentajeCritico = ((playerStats.critico || 0) * 0.5).toFixed(1);
         document.getElementById('stat-critico').textContent = `${porcentajeCritico}% (x3)`;
     } else {
         document.getElementById('stat-critico').textContent = (20 + Math.floor(playerStats.agilidad / 10)) + '%';
+    }
+    
+    if (pClassName === 'CABALLERO') {
+        const benditoBonus = (playerStats.bendito || 0) * 2;
+        playerStats.defFuego = (playerStats.defFuego || 0) + benditoBonus;
+        playerStats.defLuz = (playerStats.defLuz || 0) + benditoBonus;
     }
     
     document.getElementById('stat-level').textContent = playerStats.level;
@@ -1127,7 +1147,7 @@ function mostrarPreviewStats(item, tipo) {
     };
     let statsBase = classStats[pClassName] || classStats['WARRIOR'];
     let ataqueFisicoBase = statsBase.ataqueFisico + playerStats.fuerza;
-    let defensaFisicaBase = statsBase.defensaFisica;
+    let defensaFisicaBase = statsBase.defensaFisica + (playerStats.virtuoso || 0) * 2;
     let velocidadBase = statsBase.velocidad + (playerStats.agilidad * 1.5);
     let hpBase = statsBase.hp + (playerStats.vitalidad * 10);
     let armaActual = null, escudoActual = null, armaduraActual = null;
@@ -1652,19 +1672,12 @@ function preload() {
     this.load.on('progress', (value) => { actualizarBarraCarga(Math.floor(value * 100)); });
     this.load.on('complete', () => { actualizarBarraCarga(100); });
     
-    // Suelos
     this.load.image('suelo', 'ground_stone1.png');
-    
-    // Árboles (los que realmente tienes en assets/)
     this.load.image('pino_sin_nieve', 'assets/pino_sin_nieve.png');
     this.load.image('pino_con_nieve', 'assets/pino_con_nieve.png');
-    this.load.image('pino_1', 'pino_1.png');  // si existe en la raíz
-    
-    // Objetos
+    this.load.image('pino_1', 'pino_1.png');
     this.load.image('rotosuelo', 'rotosuelo.png');
     this.load.image('roca', 'roca.png');
-    
-    // Drops
     this.load.image('frascohpdrop', 'frascohpdrop.png');
     this.load.image('frascompdrop', 'frascompdrop.png');
     this.load.image('hachadehierrodrop', 'hachadehierrodrop.png');
@@ -1675,7 +1688,6 @@ function preload() {
     this.load.image('escudodrop', 'escudodrop.png');
     this.load.image('armaduradrop', 'armaduradrop.png');
     
-    // Spritesheets
     this.load.spritesheet('mago_sprite', 'mago.png', { frameWidth: 255, frameHeight: 255 });
     this.load.spritesheet('necromancer_sprite', 'necromancer.png', { frameWidth: 255, frameHeight: 255 });
     this.load.spritesheet('barbaro', 'Barbaro.png', { frameWidth: 128, frameHeight: 128 });
@@ -1686,7 +1698,6 @@ function preload() {
     this.load.spritesheet('flame_sprite', 'flame_sprite.png', { frameWidth: 256, frameHeight: 256, endFrame: 5 });
     this.load.spritesheet('trueno_sprite', 'trueno_sprite.png', { frameWidth: 64, frameHeight: 256 });
     
-    // Audios
     this.load.audio('truenosound', 'truenosound.mp3');
     this.load.audio('vozskill1barbaro', 'vozskill1barbaro.mp3');
     this.load.audio('fireballsound', 'fireballsound.mp3');
@@ -1697,12 +1708,12 @@ function preload() {
     this.load.audio('musicaFondo', 'musica1.mp3');
     this.load.audio('esqueletoMuere', 'esqueleto_muere.mp3');
     
-    // Oro
     for (let i = 0; i <= 7; i++) { 
         const fn = i.toString().padStart(4, '0'); 
         this.load.image(`gold_${fn}`, `gold/${fn}.png`); 
     }
 }
+
 // ============================================
 // PHASER - CREATE
 // ============================================
@@ -1722,7 +1733,6 @@ function create() {
     this.physics.world.setBounds(0, 0, 3000, 3000);
     this.cameras.main.setBounds(0, 0, 3000, 3000);
     
-    // SUELO
     this.ground = this.add.tileSprite(1500, 1500, 3000, 3000, 'suelo');
     this.ground.setAlpha(0.6);
     
@@ -1732,10 +1742,6 @@ function create() {
     musica.play();
     initControlesVolumen();
 
-
-    // ==========================================
-    // ANIMACIONES DE PERSONAJES
-    // ==========================================
     const dirs = ['Derecha', 'Arriba', 'Abajo', 'Izquierda'];
     ['barbaro', 'caballero', 'warrior'].forEach(k => {
         dirs.forEach((d, i) => {
@@ -1745,9 +1751,6 @@ function create() {
         });
     });
 
-    // ==========================================
-    // ANIMACIONES DE ESQUELETOS
-    // ==========================================
     const skeletonAnims = [
         { dir: 'Izquierda', walkStart: 0, walkCount: 4, atk1: 5, atk2: 4, dieStart: 6, dieCount: 2 },
         { dir: 'Arriba', walkStart: 16, walkCount: 4, atk1: 21, atk2: 20, dieStart: 22, dieCount: 2 },
@@ -1763,9 +1766,6 @@ function create() {
         this.anims.create({ key: `esqueleto_die_${anim.dir}`, frames: df, frameRate: 8 });
     });
 
-    // ==========================================
-    // ANIMACIONES DE NECROMANCER
-    // ==========================================
     const necroAnims = [
         { dir: 'Izquierda', walkStart: 0, atk1: 4, atk2: 5, dieStart: 6, dieCount: 2, walkCount: 4 },
         { dir: 'Arriba', walkStart: 16, atk1: 20, atk2: 21, dieStart: 22, dieCount: 2, walkCount: 4 },
@@ -1781,9 +1781,6 @@ function create() {
         this.anims.create({ key: `necromancer_sprite_die_${anim.dir}`, frames: df, frameRate: 8 });
     });
 
-    // ==========================================
-    // ANIMACIONES DE MAGO
-    // ==========================================
     const magoAnims = [
         { dir: 'Izquierda', walkStart: 0, atk1: 4, atk2: 5, dieStart: 6, dieCount: 2, walkCount: 4 },
         { dir: 'Arriba', walkStart: 16, atk1: 20, atk2: 21, dieStart: 22, dieCount: 2, walkCount: 4 },
@@ -1799,9 +1796,6 @@ function create() {
         this.anims.create({ key: `mago_sprite_die_${anim.dir}`, frames: df, frameRate: 8 });
     });
 
-    // ==========================================
-    // ÁRBOLES CON TRANSICIÓN
-    // ==========================================
     this.arbolesTransicionGroup = this.add.group();
     for (let i = 0; i < 80; i++) {
         const x = Math.random() * 3000;
@@ -1817,9 +1811,6 @@ function create() {
         this.arbolesTransicionGroup.add(tree);
     }
 
-    // ==========================================
-    // ANIMACIONES DE DEMONLORD
-    // ==========================================
     this.anims.create({ key: 'dl_idle_Derecha', frames: this.anims.generateFrameNumbers('demonlord', { start: 0, end: 7 }), frameRate: 10, repeat: -1 });
     this.anims.create({ key: 'dl_idle_Arriba', frames: this.anims.generateFrameNumbers('demonlord', { start: 8, end: 15 }), frameRate: 10, repeat: -1 });
     this.anims.create({ key: 'dl_idle_Abajo', frames: this.anims.generateFrameNumbers('demonlord', { start: 16, end: 23 }), frameRate: 10, repeat: -1 });
@@ -1835,9 +1826,6 @@ function create() {
     this.anims.create({ key: 'fireball_anim', frames: this.anims.generateFrameNumbers('flame_sprite', { start: 0, end: 5 }), frameRate: 15, repeat: -1 });
     this.anims.create({ key: 'trueno_anim', frames: this.anims.generateFrameNumbers('trueno_sprite', { start: 0, end: 18 }), frameRate: 60, repeat: 0 });
 
-    // ==========================================
-    // JUGADOR Y DEMONLORD
-    // ==========================================
     let escalaJugador = (pClassName === 'NECROMANCER' || pClassName === 'MAGO') ? 0.3 : 2;
     player = this.physics.add.sprite(512, 512, pClass).setScale(escalaJugador).setCollideWorldBounds(true);
     player.lastDir = 'Abajo'; player.attacking = false; player.isAlive = true;
@@ -1927,6 +1915,14 @@ function create() {
             const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null;
             if (armaItem && armaItem.ataqueFisico) ataqueFisicoTotal += armaItem.ataqueFisico;
             
+            const corteBonus = (playerStats.corte || 0) * 0.01;
+            let damageBonus = Math.floor(ataqueFisicoTotal * (1 + corteBonus));
+            
+            if (pClassName === 'BARBARO') {
+                const furiaBonus = 1 + (playerStats.furia || 0) * 0.01;
+                damageBonus = Math.floor(damageBonus * furiaBonus);
+            }
+            
             const chanceCriticoNormal = 20 + Math.floor((playerStats.agilidad || 0) / 10);
             const esCriticoNormal = Math.random() * 100 < chanceCriticoNormal;
             
@@ -1936,22 +1932,20 @@ function create() {
                 esSuperCritico = Math.random() * 100 < chanceCriticoBarbaro;
             }
             
-            let damageBonus = ataqueFisicoTotal;
-            
             if (esSuperCritico) {
-                damageBonus = Math.floor(ataqueFisicoTotal * 3);
+                damageBonus = Math.floor(damageBonus * 3);
                 mostrarMensaje('💢 ¡CRÍTICO X3 DEL BÁRBARO! 💢', 'exito');
                 if (player) {
                     player.setTint(0xff6600);
                     setTimeout(() => player.clearTint(), 300);
                 }
             } else if (pClassName === 'BARBARO' && barbaroTieneHacha && barbaroContadorAsesinatos >= 10) {
-                damageBonus = Math.floor(ataqueFisicoTotal * 3);
+                damageBonus = Math.floor(damageBonus * 3);
                 mostrarMensaje(`💥 ¡GOLPE X3 DEL HACHA LEGENDARIA! 💥`, 'exito');
                 barbaroContadorAsesinatos = 0;
                 if (player) player.clearTint();
             } else if (esCriticoNormal) {
-                damageBonus = Math.floor(ataqueFisicoTotal * 1.5);
+                damageBonus = Math.floor(damageBonus * 1.5);
             }
             
             if (pClassName === 'BARBARO' && (playerStats.critico || 0) > 0) {
@@ -2010,7 +2004,9 @@ function create() {
         if (window.simularAtaque) window.simularAtaque(); 
     });
 
+    // ==========================================
     // SOCKET EVENTS
+    // ==========================================
     socket.on('currentPlayers', (ps) => { Object.keys(ps).forEach(id => { if (id !== socket.id) addOtherPlayer(this, ps[id]); }); });
     socket.on('newPlayer', (info) => { if (info.id !== socket.id) { addOtherPlayer(this, info); mostrarMensaje(`📡 ${info.name} (${info.className || info.class})`, 'info'); } });
     socket.on('playerMoved', (info) => {
@@ -2059,7 +2055,18 @@ function create() {
             if (barbaroContadorAsesinatos >= 10) { mostrarMensaje(`🔥 ¡HABILIDAD ESPECIAL DISPONIBLE! 🔥`, 'exito'); if (player) player.setTint(0xff6600); }
         }
     });
-    socket.on('playerStatsUpdate', (data) => { if (data.id === socket.id) { if (data.hp !== undefined) playerHP = data.hp; if (data.mana !== undefined) playerMana = data.mana; actualizarStatsUI(); } });
+    socket.on('playerStatsUpdate', (data) => {
+        if (data.id === socket.id) {
+            const hpAnterior = playerHP;
+            if (data.hp !== undefined) playerHP = data.hp;
+            if (data.mana !== undefined) playerMana = data.mana;
+            if (data.hp !== undefined && data.hp < hpAnterior && player && currentScene) {
+                const dañoRecibido = hpAnterior - data.hp;
+                crearTextoDmg(currentScene, player.x, player.y - 30, `-${dañoRecibido}`, "#ff4444", "24px");
+            }
+            actualizarStatsUI();
+        }
+    });
     socket.on('playerExpGain', (data) => { if (data.id === socket.id) ganarExp(data.exp); });
     socket.on('playerDeath', (data) => { if (data.id === socket.id) { player.setVisible(false); player.body.enable = false; player.attacking = true; player.isAlive = false; } });
     socket.on('playerRespawn', (data) => {
@@ -2089,9 +2096,25 @@ function create() {
     });
     socket.on('demonlordAtkVisual', (d) => {
         if (demonlord_sprite && demonlord_sprite.active) {
-            demonlord_sprite.play(`dl_ataque_${d.dir}`, true);
-            demonlord_sprite.once('animationcomplete', () => { if (demonlord_sprite && demonlord_sprite.active) demonlord_sprite.play(`dl_idle_${d.dir}`, true); });
-            if (d.esFuerte) { demonlord_sprite.setTint(0x888888); setTimeout(() => demonlord_sprite.clearTint(), 500); }
+            const currentDir = demonlord_sprite.cDir || d.dir || 'Abajo';
+            const atkKey = `dl_ataque_${d.dir || currentDir}`;
+            if (this.anims.exists(atkKey)) {
+                demonlord_sprite.play(atkKey, true);
+                demonlord_sprite.once('animationcomplete', () => {
+                    if (demonlord_sprite && demonlord_sprite.active) {
+                        const idleKey = `dl_idle_${d.dir || currentDir}`;
+                        if (this.anims.exists(idleKey)) {
+                            demonlord_sprite.play(idleKey, true);
+                        }
+                    }
+                });
+            }
+            if (d.esFuerte) {
+                demonlord_sprite.setTint(0x888888);
+                setTimeout(() => {
+                    if (demonlord_sprite) demonlord_sprite.clearTint();
+                }, 500);
+            }
         }
     });
     socket.on('demonlordState', (d) => { demonlordHP = d.hp; demonlordMaxHP = 5000; actualizarDemonlordHPBar(); if (!d.isAlive) demonlord_sprite.setVisible(false); else demonlord_sprite.setVisible(true); });
@@ -2102,68 +2125,42 @@ function create() {
             else demonlord_sprite.play('dl_idle_' + data.dir, true);
         }
     });
-    socket.on('demonlordAttack', (data) => { if (data.targetId === socket.id && player.isAlive) { playerHP = Math.max(0, playerHP - data.damage); actualizarStatsUI(); } });
+    socket.on('demonlordAttack', (data) => {
+        if (data.targetId === socket.id && player.isAlive && currentScene) {
+            const dañoRecibido = data.damage || 0;
+            if (dañoRecibido > 0) {
+                crearTextoDmg(currentScene, player.x, player.y - 30, `-${dañoRecibido}`, "#ff4444", "24px");
+            }
+            playerHP = Math.max(0, playerHP - dañoRecibido);
+            actualizarStatsUI();
+        }
+    });
     socket.on('demonlordDeath', (data) => { demonlord_sprite.setVisible(false); crearTextoDmg(this, data.x, data.y, "VENCIDO", "#fff", "22px"); });
     socket.on('demonlordRespawn', (data) => { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.setVisible(true); demonlord_sprite.clearTint(); demonlordHP = 5000; actualizarDemonlordHPBar(); });
     socket.on('enemyDamaged', (data) => {
         if (!currentScene) return;
-        if (data.id === 'demonlord') { crearTextoDmg(currentScene, demonlord_sprite.x, demonlord_sprite.y - 120, data.dmg.toString(), "#ff0000", "32px"); return; }
+        if (data.id === 'demonlord') { 
+            crearTextoDmg(currentScene, demonlord_sprite.x, demonlord_sprite.y - 120, data.dmg.toString(), "#ff0000", "32px"); 
+            return; 
+        }
         if (window.esqueletosGrupo) {
-            window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id && esq.active) { crearTextoDmg(currentScene, esq.x, esq.y - 20, data.dmg.toString(), "#fff", "18px"); } });
+            window.esqueletosGrupo.getChildren().forEach(esq => { 
+                if (esq.esqueletoId === data.id && esq.active) { 
+                    crearTextoDmg(currentScene, esq.x, esq.y - 20, data.dmg.toString(), "#ffffff", "18px");
+                } 
+            });
         }
     });
     socket.on('contraGolpeCargado', (data) => { if (data.playerId === socket.id && player) { player.setTint(0xff0000); mostrarMensaje(`🔥 ¡CONTRA-GOLPE CARGADO! 🔥`, 'exito'); } });
     socket.on('contraGolpeUsado', (data) => { if (data.playerId === socket.id && player) player.clearTint(); });
     socket.on('contraGolpeActivado', (data) => { if (currentScene) crearTextoDmg(currentScene, data.x, data.y - 40, `💥 CONTRA-GOLPE +${data.bonus} 💥`, "#ffaa00", "20px"); });
 
-    socket.on('arbolesIniciales', (data) => {
-        if (!window.arbolesGrupo) window.arbolesGrupo = this.add.group();
-        window.arbolesGrupo.clear(true, true);
-        data.forEach(a => {
-            if (a.activo !== false) {
-                const img = this.add.image(a.x, a.y, 'pino_1').setScale(1.5).setDepth(a.y);
-                img.arbolId = a.id;
-                window.arbolesGrupo.add(img);
-            }
-        });
-    });
-    socket.on('arbolTalado', (data) => { });
-    socket.on('arbolDesaparece', (data) => {
-        if (window.arbolesGrupo) window.arbolesGrupo.getChildren().forEach(a => { if (a.arbolId === data.id) a.destroy(); });
-    });
-    socket.on('arbolRespawn', (data) => {
-        const img = this.add.image(data.x, data.y, 'pino_1').setScale(1.5).setDepth(data.y);
-        img.arbolId = data.id;
-        if (window.arbolesGrupo) window.arbolesGrupo.add(img);
-    });
-
-    socket.on('rocasIniciales', (data) => {
-        if (!window.rocasGrupo) window.rocasGrupo = this.add.group();
-        window.rocasGrupo.clear(true, true);
-        data.forEach(r => {
-            if (r.activo !== false) {
-                const img = this.add.image(r.x, r.y, 'roca').setScale(0.8).setDepth(r.y);
-                img.rocaId = r.id;
-                window.rocasGrupo.add(img);
-            }
-        });
-    });
-    socket.on('rocaObtenida', () => { agregarItemAlInventario('roca', 'material', 'Roca', 'roca_img', 1, true); });
-    socket.on('rocaDesaparece', (data) => {
-        if (window.rocasGrupo) window.rocasGrupo.getChildren().forEach(r => { if (r.rocaId === data.id) r.destroy(); });
-    });
-    socket.on('rocaRespawn', (data) => {
-        const img = this.add.image(data.x, data.y, 'roca').setScale(0.8).setDepth(data.y);
-        img.rocaId = data.id;
-        if (window.rocasGrupo) window.rocasGrupo.add(img);
-    });
-
     socket.on('esqueletosIniciales', (data) => {
         if (!window.esqueletosGrupo) window.esqueletosGrupo = this.add.group();
         window.esqueletosGrupo.clear(true, true);
         data.forEach(esqueleto => {
             if (esqueleto.isAlive !== false) {
-                const img = this.physics.add.sprite(esqueleto.x, esqueleto.y, 'esqueleto').setScale(0.3).setDepth(esqueleto.y);
+                const img = this.physics.add.sprite(esqueleto.x, esqueleto.y, 'esqueleto').setScale(0.3);
                 img.esqueletoId = esqueleto.id;
                 img.isAlly = esqueleto.isAlly || false;
                 img.currentDir = esqueleto.dir || 'Abajo';
@@ -2236,7 +2233,7 @@ function create() {
     });
     socket.on('esqueletoNew', (data) => {
         if (!currentScene) return;
-        const img = currentScene.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3).setDepth(data.y);
+        const img = currentScene.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3);
         img.esqueletoId = data.id; img.isAlly = false; img.currentDir = 'Abajo';
         img.setCollideWorldBounds(true); img.setSize(30, 30); img.setOffset(115, 115); img.body.setImmovable(true);
         img.play('esqueleto_idle_Abajo', true);
@@ -2246,7 +2243,7 @@ function create() {
     });
     socket.on('esqueletoRevive', (data) => {
         if (!currentScene) return;
-        const img = currentScene.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3).setDepth(data.y);
+        const img = currentScene.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3);
         img.esqueletoId = data.id; img.isAlly = true; img.currentDir = 'Abajo';
         img.setCollideWorldBounds(true); img.setSize(30, 30); img.setOffset(115, 115); img.body.setImmovable(true);
         img.play('esqueleto_idle_Abajo', true); img.setTint(0x88ff88);
@@ -2268,6 +2265,48 @@ function create() {
         if (data.playerId === socket.id && window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.isAlly) esq.setTint(0x88ff88); });
     });
     socket.on('proyectilCreado', (data) => { crearProyectil(data.origenX, data.origenY, data.targetX, data.targetY, data.damage, false); });
+
+    socket.on('arbolesIniciales', (data) => {
+        if (!window.arbolesGrupo) window.arbolesGrupo = this.add.group();
+        window.arbolesGrupo.clear(true, true);
+        data.forEach(a => {
+            if (a.activo !== false) {
+                const img = this.add.image(a.x, a.y, 'pino_1').setScale(1.5).setDepth(a.y);
+                img.arbolId = a.id;
+                window.arbolesGrupo.add(img);
+            }
+        });
+    });
+    socket.on('arbolTalado', (data) => { });
+    socket.on('arbolDesaparece', (data) => {
+        if (window.arbolesGrupo) window.arbolesGrupo.getChildren().forEach(a => { if (a.arbolId === data.id) a.destroy(); });
+    });
+    socket.on('arbolRespawn', (data) => {
+        const img = this.add.image(data.x, data.y, 'pino_1').setScale(1.5).setDepth(data.y);
+        img.arbolId = data.id;
+        if (window.arbolesGrupo) window.arbolesGrupo.add(img);
+    });
+
+    socket.on('rocasIniciales', (data) => {
+        if (!window.rocasGrupo) window.rocasGrupo = this.add.group();
+        window.rocasGrupo.clear(true, true);
+        data.forEach(r => {
+            if (r.activo !== false) {
+                const img = this.add.image(r.x, r.y, 'roca').setScale(0.8).setDepth(r.y);
+                img.rocaId = r.id;
+                window.rocasGrupo.add(img);
+            }
+        });
+    });
+    socket.on('rocaObtenida', () => { agregarItemAlInventario('roca', 'material', 'Roca', 'roca_img', 1, true); });
+    socket.on('rocaDesaparece', (data) => {
+        if (window.rocasGrupo) window.rocasGrupo.getChildren().forEach(r => { if (r.rocaId === data.id) r.destroy(); });
+    });
+    socket.on('rocaRespawn', (data) => {
+        const img = this.add.image(data.x, data.y, 'roca').setScale(0.8).setDepth(data.y);
+        img.rocaId = data.id;
+        if (window.rocasGrupo) window.rocasGrupo.add(img);
+    });
 
     setInterval(() => {
         if (!player || !player.isAlive) return;
@@ -2315,7 +2354,7 @@ function create() {
         else if (deltaY > 0) nz = Math.max(nz - 0.1, 0.5);
         this.cameras.main.setZoom(nz);
     });
-} // ← FIN DE create()
+}
 
 function addOtherPlayer(self, info) {
     if (!info.class) return;
@@ -2355,7 +2394,16 @@ function update() {
     }
     if (moviendo && ahora - ultimoGuardadoPosicionTime > 10000) { ultimoGuardadoPosicionTime = ahora; guardarPartida(); }
     
-    // TRANSICIÓN DE SUELO
+    if (!window.regeneracionTimer) window.regeneracionTimer = 0;
+    window.regeneracionTimer++;
+    if (window.regeneracionTimer % 120 === 0) {
+        const regenHP = 1 + (playerStats.regeneracion || 0) * 0.1;
+        if (playerHP < playerMaxHP) {
+            playerHP = Math.min(playerMaxHP, playerHP + regenHP);
+            actualizarStatsUI();
+        }
+    }
+    
     const playerY = player.y;
     if (playerY < 400) {
         if (this.ground) this.ground.setTint(0xddddff);

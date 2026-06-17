@@ -9,7 +9,7 @@ const CONFIG = {
     DEMONLORD: { MAX_HP: 5000, RESPAWN_TIME: 10000, SPEED: 7, ATTACK_COOLDOWN: 2000, ATTACK_DAMAGE: 200, VISION_RANGE: 400, EXP: 500 },
     SKELETON: { MAX_HP: 200, RESPAWN_TIME: 10000, SPEED: 8, ATTACK_COOLDOWN: 1000, ATTACK_DAMAGE: 30, VISION_RANGE: 400, EXP: 50, DEFENSE: 0 },
     PLAYER: { MAX_HP: 500, RESPAWN_TIME: 10000, BASE_STATS: {
-        barbaro: { fuerza: 18, defensaFisica: 8, defensaMagica: 0, agilidad: 8, vitalidad: 12, attackSpeed: 0.7, baseDamage: 60, mana: 50 },
+        barbaro: { fuerza: 18, defensaFisica: 10, defensaMagica: 0, agilidad: 8, vitalidad: 12, attackSpeed: 0.7, baseDamage: 60, mana: 50 },
         caballero: { fuerza: 12, defensaFisica: 15, defensaMagica: 0, agilidad: 8, vitalidad: 14, attackSpeed: 0.9, baseDamage: 45, mana: 60 },
         warrior: { fuerza: 10, defensaFisica: 10, defensaMagica: 0, agilidad: 15, vitalidad: 10, attackSpeed: 1.0, baseDamage: 50, mana: 60 },
         mago: { fuerza: 5, defensaFisica: 0, defensaMagica: 40, agilidad: 12, vitalidad: 8, attackSpeed: 0.7, baseDamage: 35, mana: 150 },
@@ -38,26 +38,47 @@ let playerTeam = {};
 
 function getDistance(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
 
+// ✅ CORREGIDO: La vitalidad NO se suma como defensa
 function getPlayerDefenseFisica(playerId) {
     const j = players[playerId];
-    if (!j) return 0;
+    if (!j) {
+        console.log(`⚠️ Jugador ${playerId} no encontrado`);
+        return 10;
+    }
+    
     const inv = inventariosJugadores[playerId];
-    if (!inv) return 0;
+    if (!inv) {
+        console.log(`⚠️ Inventario de ${j.name} no encontrado`);
+        return 10;
+    }
+    
     let def = 0;
     const statsBase = CONFIG.PLAYER.BASE_STATS[j.class] || CONFIG.PLAYER.BASE_STATS.warrior;
     def += statsBase.defensaFisica || 0;
+    
+    // ✅ CORREGIDO: La vitalidad ahora da 0.5 de defensa por punto (opcional)
+    const vitalidad = Math.floor(j.stats?.vitalidad || 0);
+    def += Math.floor(vitalidad * 0.5);
+    
+    // Equipo
     const escudoId = j.equipamiento?.escudo;
     if (escudoId) {
         const item = inv.items.find(i => i.id === escudoId);
-        if (item && item.defensaFisica) def += item.defensaFisica;
+        if (item && item.defensaFisica) {
+            def += item.defensaFisica;
+        }
     }
+    
     const armaduraId = j.equipamiento?.armadura;
     if (armaduraId) {
         const item = inv.items.find(i => i.id === armaduraId);
-        if (item && item.defensaFisica) def += item.defensaFisica;
+        if (item && item.defensaFisica) {
+            def += item.defensaFisica;
+        }
     }
-    def += Math.floor(j.stats?.vitalidad || 0);
-    return def;
+    
+    // ✅ CORREGIDO: Sin límite mínimo forzado
+    return Math.max(0, def);
 }
 
 function getPlayerDefensaMagica(playerId) {
@@ -79,30 +100,52 @@ function getPlayerDefensaMagica(playerId) {
         if (item && item.defensaMagica) def += item.defensaMagica;
     }
     def += Math.floor((j.stats?.inteligencia || 0) / 2);
-    return def;
+    return Math.max(0, def);
 }
 
 function calcularDañoFinal(objetivoId, dañoBase, tipo = 'fisico', elemento = null) {
+    const j = players[objetivoId];
+    let daño = dañoBase;
+    
+    if (j && j.className === 'CABALLERO' && j.stats && j.stats.sacrificio > 0) {
+        const sacrificioBonus = (j.stats.sacrificio || 0) * 0.15;
+        const dañoAbsorbido = Math.floor(daño * Math.min(sacrificioBonus, 0.5));
+        if (dañoAbsorbido > 0) {
+            j.hp = Math.min(j.maxHp || 500, j.hp + dañoAbsorbido);
+            daño = Math.max(1, daño - dañoAbsorbido);
+            io.emit('playerStatsUpdate', { id: j.id, hp: j.hp });
+            io.to(j.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🛡️ Sacrificio absorbió ${dañoAbsorbido} de daño` });
+        }
+    }
+    
     let defensa = 0;
     if (tipo === 'fisico') {
         defensa = getPlayerDefenseFisica(objetivoId);
     } else if (tipo === 'magico' && elemento) {
-        const j = players[objetivoId];
-        if (j && j.stats) {
+        const j2 = players[objetivoId];
+        if (j2 && j2.stats) {
             switch(elemento) {
-                case 'fuego': defensa = j.stats.defFuego || 0; break;
-                case 'agua': defensa = j.stats.defAgua || 0; break;
-                case 'viento': defensa = j.stats.defViento || 0; break;
-                case 'rayo': defensa = j.stats.defRayo || 0; break;
-                case 'luz': defensa = j.stats.defLuz || 0; break;
-                case 'oscuridad': defensa = j.stats.defOscuridad || 0; break;
+                case 'fuego': defensa = j2.stats.defFuego || 0; break;
+                case 'agua': defensa = j2.stats.defAgua || 0; break;
+                case 'viento': defensa = j2.stats.defViento || 0; break;
+                case 'rayo': defensa = j2.stats.defRayo || 0; break;
+                case 'luz': defensa = j2.stats.defLuz || 0; break;
+                case 'oscuridad': defensa = j2.stats.defOscuridad || 0; break;
                 default: defensa = 0;
             }
         }
     } else {
         defensa = getPlayerDefensaMagica(objetivoId);
     }
-    return Math.max(1, dañoBase - defensa);
+    
+    // ✅ DEFENSA NUNCA NEGATIVA
+    if (defensa < 0) defensa = 0;
+    
+    // ✅ Debug para ver los cálculos
+    const nombreJugador = j ? j.name : 'Desconocido';
+    console.log(`🛡️ ${nombreJugador}: Daño base=${dañoBase}, Defensa=${defensa}, Daño final=${Math.max(1, daño - defensa)}`);
+    
+    return Math.max(1, daño - defensa);
 }
 
 function darExpAJugadorYEquipo(socketId, exp) {
@@ -226,6 +269,22 @@ function tieneHachaLegendaria(jugador) {
 
 function dañarEsqueleto(esqueleto, atacanteId, daño) {
     if (!esqueleto || !esqueleto.isAlive) return;
+    
+    const jugador = players[atacanteId];
+    if (jugador && jugador.stats && jugador.stats.brutalidad > 0) {
+        const knockback = 5 + (jugador.stats.brutalidad || 0) * 1.5;
+        const angle = Math.atan2(esqueleto.y - jugador.y, esqueleto.x - jugador.x);
+        esqueleto.x = Math.min(Math.max(esqueleto.x + Math.cos(angle) * knockback, 50), 2950);
+        esqueleto.y = Math.min(Math.max(esqueleto.y + Math.sin(angle) * knockback, 50), 2950);
+        io.emit('esqueletoMoved', { 
+            id: esqueleto.id, 
+            x: esqueleto.x, 
+            y: esqueleto.y, 
+            dir: esqueleto.dir, 
+            isMoving: true 
+        });
+    }
+    
     if (!esqueleto.attackers) esqueleto.attackers = [];
     if (!esqueleto.attackers.includes(atacanteId)) esqueleto.attackers.push(atacanteId);
     esqueleto.hp = Math.max(0, esqueleto.hp - daño);
@@ -278,6 +337,15 @@ generarRocas();
 generarEsqueletosIniciales();
 console.log(`✅ Mundo generado: ${arboles.length} árboles, ${rocas.length} rocas, ${esqueletos.length} esqueletos`);
 
+// RESETEA DAMAGEBONUS DE ESQUELETOS ENEMIGOS (CADA 1 SEGUNDO)
+setInterval(() => {
+    esqueletos.forEach(e => {
+        if (!e.isAlly) {
+            e.damageBonus = 0;
+        }
+    });
+}, 1000);
+
 io.on('connection', (socket) => {
     console.log('✅ Cliente conectado:', socket.id);
     skillCooldowns[socket.id] = { furiaNecrotica: 0 };
@@ -289,31 +357,45 @@ io.on('connection', (socket) => {
     socket.emit('demonlordState', { hp: demonlord.hp, isAlive: demonlord.isAlive, x: demonlord.x, y: demonlord.y, dir: demonlord.dir });
 
     socket.on('newPlayer', (d) => {
-        const bs = CONFIG.PLAYER.BASE_STATS[d.class] || CONFIG.PLAYER.BASE_STATS.warrior;
-        let atq = 15;
-        if (d.className === 'BARBARO') atq = 80;
-        else if (d.className === 'CABALLERO') atq = 50;
-        else if (d.className === 'WARRIOR') atq = 50;
-        else if (d.className === 'MAGO' || d.className === 'NECROMANCER') atq = 15;
+    const bs = CONFIG.PLAYER.BASE_STATS[d.class] || CONFIG.PLAYER.BASE_STATS.warrior;
+    let atq = 15;
+    let hpInicial = 500;
+    
+    // ✅ HP por clase
+    if (d.className === 'BARBARO') { atq = 80; hpInicial = 800; }
+    else if (d.className === 'CABALLERO') { atq = 50; hpInicial = 500; }
+    else if (d.className === 'WARRIOR') { atq = 50; hpInicial = 500; }
+    else if (d.className === 'MAGO') { atq = 15; hpInicial = 300; }
+    else if (d.className === 'NECROMANCER') { atq = 15; hpInicial = 300; }
 
-        players[socket.id] = {
-            id: socket.id, x: 512, y: 512, class: d.class, name: d.name, className: d.className,
-            hp: CONFIG.PLAYER.MAX_HP, maxHp: CONFIG.PLAYER.MAX_HP, isAlive: true,
-            deathCount: 0, deathPosition: null, team: 'Sin Team', level: 1, exp: 0, dir: 'Abajo',
-            stats: { fuerza: bs.fuerza, defensaFisica: bs.defensaFisica, defensaMagica: bs.defensaMagica, agilidad: bs.agilidad, vitalidad: bs.vitalidad, puntosDisponibles: 5, defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0 },
-            minerales: {},
-            equipamiento: { cabeza: null, pecho: null, piernas: null, pies: null, arma: null, escudo: null, ring1: null, ring2: null },
-            mana: bs.mana || 100, maxMana: bs.mana || 100,
-            esqueletosSummon: 0,
-            skillsEquipadas: d.className === 'NECROMANCER' ? ['levantar_muerto', 'furia_necrotica', 'ataque_distancia'] : (d.className === 'MAGO' ? ['ataque_distancia'] : []),
-            attackSpeedModifier: bs.attackSpeed || 1.0,
-            baseDamage: bs.baseDamage || 50,
-            ataqueFisico: atq,
-            contraGolpeContador: 0,
-            contraGolpeDañoAcumulado: 0,
-            contraGolpeCargado: false,
-            contraGolpeBonus: 0
-        };
+    players[socket.id] = {
+        id: socket.id, x: 512, y: 512, class: d.class, name: d.name, className: d.className,
+        hp: hpInicial,        // ✅ HP correcto según clase
+        maxHp: hpInicial,     // ✅ HP máximo correcto
+        isAlive: true,
+        deathCount: 0, deathPosition: null, team: 'Sin Team', level: 1, exp: 0, dir: 'Abajo',
+        stats: { 
+            fuerza: bs.fuerza, defensaFisica: bs.defensaFisica, defensaMagica: bs.defensaMagica, 
+            agilidad: bs.agilidad, vitalidad: bs.vitalidad, puntosDisponibles: 5, 
+            defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0,
+            corte: 0, regeneracion: 0, destreza: 0, virtuoso: 0, brutalidad: 0,
+            actoFugaz: 0, bendito: 0, sacrificio: 0, furia: 0, critico: 0,
+            atqFuego: 0, atqAgua: 0, atqViento: 0, atqTierra: 0, atqLuz: 0, atqOscuridad: 0
+        },
+        minerales: {},
+        equipamiento: { cabeza: null, pecho: null, piernas: null, pies: null, arma: null, escudo: null, ring1: null, ring2: null },
+        mana: bs.mana || 100, maxMana: bs.mana || 100,
+        esqueletosSummon: 0,
+        skillsEquipadas: d.className === 'NECROMANCER' ? ['levantar_muerto', 'furia_necrotica', 'ataque_distancia'] : (d.className === 'MAGO' ? ['ataque_distancia'] : []),
+        attackSpeedModifier: bs.attackSpeed || 1.0,
+        baseDamage: bs.baseDamage || 50,
+        ataqueFisico: atq,
+        contraGolpeContador: 0,
+        contraGolpeDañoAcumulado: 0,
+        contraGolpeCargado: false,
+        contraGolpeBonus: 0
+    };
+    // ... resto del código
 
         if (!inventariosJugadores[socket.id]) inventariosJugadores[socket.id] = { items: [], equipamiento: {} };
         inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Pocion de Vida', icono: 'pocion_img', cantidad: 2, slot: 0 });
@@ -340,6 +422,33 @@ io.on('connection', (socket) => {
             }
         }
         if (data.equipamiento) inventariosJugadores[socket.id].equipamiento = data.equipamiento;
+        
+        if (data.playerStats) {
+            const stats = data.playerStats;
+            
+            j.stats.vitalidad = Math.max(0, stats.vitalidad || 0);
+            j.stats.fuerza = Math.max(0, stats.fuerza || 0);
+            j.stats.inteligencia = Math.max(0, stats.inteligencia || 0);
+            j.stats.agilidad = Math.max(0, stats.agilidad || 0);
+            j.stats.sabiduria = Math.max(0, stats.sabiduria || 0);
+            
+            j.stats.corte = Math.max(0, stats.corte || 0);
+            j.stats.regeneracion = Math.max(0, stats.regeneracion || 0);
+            j.stats.destreza = Math.max(0, stats.destreza || 0);
+            j.stats.virtuoso = Math.max(0, stats.virtuoso || 0);
+            j.stats.brutalidad = Math.max(0, stats.brutalidad || 0);
+            j.stats.actoFugaz = Math.max(0, stats.actoFugaz || 0);
+            j.stats.bendito = Math.max(0, stats.bendito || 0);
+            j.stats.sacrificio = Math.max(0, stats.sacrificio || 0);
+            j.stats.furia = Math.max(0, stats.furia || 0);
+            j.stats.critico = Math.max(0, stats.critico || 0);
+            j.stats.atqFuego = Math.max(0, stats.atqFuego || 0);
+            j.stats.atqAgua = Math.max(0, stats.atqAgua || 0);
+            j.stats.atqViento = Math.max(0, stats.atqViento || 0);
+            j.stats.atqTierra = Math.max(0, stats.atqTierra || 0);
+            j.stats.atqLuz = Math.max(0, stats.atqLuz || 0);
+            j.stats.atqOscuridad = Math.max(0, stats.atqOscuridad || 0);
+        }
     });
 
     socket.on('usarPocion', (data) => {
@@ -385,7 +494,9 @@ io.on('connection', (socket) => {
                 esqCercano = e;
             }
         }
-        if (esqCercano) dañarEsqueleto(esqCercano, socket.id, Math.max(1, Math.floor(dañoTotal)));
+        if (esqCercano) {
+            dañarEsqueleto(esqCercano, socket.id, Math.max(1, Math.floor(dañoTotal)));
+        }
     });
 
     socket.on('esqueletoHit', (data) => {
@@ -673,12 +784,24 @@ setInterval(() => {
             demonlord.attackCooldown = CONFIG.DEMONLORD.ATTACK_COOLDOWN;
             const isPlayer = players[closest.id] ? true : false;
             let damage = CONFIG.DEMONLORD.ATTACK_DAMAGE;
-            io.emit('demonlordAtkVisual', { dir: demonlord.dir, esFuerte: false });
+            
+            io.emit('demonlordAtkVisual', { dir: demonlord.dir, esFuerte: Math.random() < 0.2 });
+            
             setTimeout(() => {
                 if (!demonlord.isAlive || !closest) return;
                 if (isPlayer && closest.hp <= 0) return;
                 if (!isPlayer && !closest.isAlive) return;
                 if (isPlayer) {
+                    const jugadorObj = players[closest.id];
+                    if (jugadorObj && jugadorObj.stats && jugadorObj.stats.destreza > 0) {
+                        const esquivaChance = 5 + (jugadorObj.stats.destreza || 0);
+                        if (Math.random() * 100 < esquivaChance) {
+                            io.to(closest.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `💨 ¡Esquivaste el ataque del Demonlord!` });
+                            io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: 0, hp: demonlord.hp });
+                            return;
+                        }
+                    }
+                    
                     let offX = 0, offY = 0;
                     switch (demonlord.dir) {
                         case 'Derecha': offX = 30; break;
@@ -736,7 +859,7 @@ setInterval(() => {
     esqueletos.forEach(e => {
         if (!e.isAlive) return;
 
-        // ✅ ESQUELETOS ALIADOS
+        // ESQUELETOS ALIADOS
         if (e.isAlly) {
             let closest = null, closestDist = Infinity;
             if (demonlord && demonlord.isAlive) {
@@ -750,7 +873,6 @@ setInterval(() => {
                 }
             }
             if (!closest) {
-                // ✅ Seguir al dueño si no hay enemigos
                 const owner = players[e.ownerId];
                 if (owner && owner.isAlive) {
                     const d = getDistance(e.x, e.y, owner.x, owner.y);
@@ -813,7 +935,9 @@ setInterval(() => {
             return;
         }
 
-        // ✅ ESQUELETOS ENEMIGOS
+        // ==========================================
+        // ESQUELETOS ENEMIGOS - DAÑO FIJO (SIN DAMAGEBONUS)
+        // ==========================================
         let closest = null, closestDist = Infinity;
         for (let id in players) {
             let p = players[id];
@@ -849,10 +973,15 @@ setInterval(() => {
         }
         if (e.attackCooldown <= 0 && closestDist < 45) {
             e.attackCooldown = CONFIG.SKELETON.ATTACK_COOLDOWN;
-            let dañoBase = CONFIG.SKELETON.ATTACK_DAMAGE + (e.damageBonus || 0);
+            // ✅ DAÑO FIJO: SOLO EL BASE, SIN DAMAGEBONUS
+            let dañoBase = CONFIG.SKELETON.ATTACK_DAMAGE;
             let damage;
+            
             if (players[closest.id]) {
+                const jugador = players[closest.id];
+                
                 damage = calcularDañoFinal(closest.id, dañoBase, 'fisico');
+                
                 const j = players[closest.id];
                 if (j && tieneHachaLegendaria(j)) {
                     j.contraGolpeContador = (j.contraGolpeContador || 0) + 1;
@@ -906,6 +1035,17 @@ setInterval(() => {
 
 setInterval(() => { const vivos = esqueletos.filter(e => e.isAlive).length; console.log(`🦴 Esqueletos vivos: ${vivos}/50`); }, 10000);
 setInterval(() => { if (demonlord.isAlive && Math.random() < 0.3) io.emit('demonlordAtkVisual', { dir: demonlord.dir, esFuerte: Math.random() < 0.3 }); }, 2000);
+
+// ============================================
+// RESETEA DAMAGEBONUS DE ESQUELETOS ENEMIGOS
+// ============================================
+setInterval(() => {
+    esqueletos.forEach(e => {
+        if (!e.isAlly) {
+            e.damageBonus = 0;
+        }
+    });
+}, 1000);
 
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`🔥 DEVILAND - Puerto ${PORT}`));
