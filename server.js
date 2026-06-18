@@ -149,31 +149,52 @@ function obtenerTop10() {
 function calcularDañoFinal(objetivoId, dañoBase, tipo = 'fisico', elemento = null) {
     const j = players[objetivoId];
     let daño = dañoBase;
-    if (j && j.className === 'CABALLERO' && j.stats && j.stats.sacrificio > 0) {
-        const sacrificioBonus = (j.stats.sacrificio || 0) * 0.15;
-        const dañoAbsorbido = Math.floor(daño * Math.min(sacrificioBonus, 0.5));
-        if (dañoAbsorbido > 0) {
-            j.hp = Math.min(j.maxHp || 500, j.hp + dañoAbsorbido);
-            daño = Math.max(1, daño - dañoAbsorbido);
-            io.emit('playerStatsUpdate', { id: j.id, hp: j.hp });
-            io.to(j.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🛡️ Sacrificio absorbió ${dañoAbsorbido} de daño` });
+    
+    // Buscar Caballeros aliados en rango con sacrificio
+    const tid = playerTeam[objetivoId];
+    if (tid && teams[tid]) {
+        const team = teams[tid];
+        let caballeroCercano = null;
+        let menorDistancia = Infinity;
+        
+        team.miembros.forEach(m => {
+            if (m !== objetivoId && players[m] && players[m].className === 'CABALLERO' && players[m].isAlive) {
+                const cab = players[m];
+                if (cab.stats && cab.stats.sacrificio > 0) {
+                    const rango = 50 + (cab.stats.sacrificio || 0);
+                    const dist = getDistance(j.x, j.y, cab.x, cab.y);
+                    if (dist < rango && dist < menorDistancia) {
+                        menorDistancia = dist;
+                        caballeroCercano = cab;
+                    }
+                }
+            }
+        });
+        
+        if (caballeroCercano) {
+            const dañoAbsorbido = Math.floor(daño * 0.15);
+            if (dañoAbsorbido > 0) {
+                caballeroCercano.hp = Math.max(0, caballeroCercano.hp - dañoAbsorbido);
+                daño = Math.max(1, daño - dañoAbsorbido);
+                io.emit('playerStatsUpdate', { id: caballeroCercano.id, hp: caballeroCercano.hp });
+                io.to(caballeroCercano.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🛡️ Sacrificio: absorbiste ${dañoAbsorbido} de daño de ${j.name}` });
+                io.to(objetivoId).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🛡️ ${caballeroCercano.name} absorbió ${dañoAbsorbido} de daño por ti` });
+            }
         }
     }
+    
     let defensa = 0;
     if (tipo === 'fisico') {
         defensa = getPlayerDefenseFisica(objetivoId);
     } else if (tipo === 'magico' && elemento) {
-        const j2 = players[objetivoId];
-        if (j2 && j2.stats) {
-            switch(elemento) {
-                case 'fuego': defensa = j2.stats.defFuego || 0; break;
-                case 'agua': defensa = j2.stats.defAgua || 0; break;
-                case 'viento': defensa = j2.stats.defViento || 0; break;
-                case 'rayo': defensa = j2.stats.defRayo || 0; break;
-                case 'luz': defensa = j2.stats.defLuz || 0; break;
-                case 'oscuridad': defensa = j2.stats.defOscuridad || 0; break;
-                default: defensa = 0;
-            }
+        switch(elemento) {
+            case 'fuego': defensa = j?.stats?.defFuego || 0; break;
+            case 'agua': defensa = j?.stats?.defAgua || 0; break;
+            case 'viento': defensa = j?.stats?.defViento || 0; break;
+            case 'rayo': defensa = j?.stats?.defRayo || 0; break;
+            case 'luz': defensa = j?.stats?.defLuz || 0; break;
+            case 'oscuridad': defensa = j?.stats?.defOscuridad || 0; break;
+            default: defensa = 0;
         }
     } else {
         defensa = getPlayerDefensaMagica(objetivoId);
@@ -205,7 +226,7 @@ function revivirJugador(socketId) {
     j.hp = j.maxHp || CONFIG.PLAYER.MAX_HP;
     j.mana = (CONFIG.PLAYER.BASE_STATS[j.class]?.mana || 100);
     j.x = 512;
-    j.y = 512;
+    j.y = 470;
     io.emit('playerRespawn', { id: socketId, x: 512, y: 512 });
 }
 
@@ -644,7 +665,7 @@ io.on('connection', (socket) => {
         else if (d.className === 'MAGO') { atq = 15; hpInicial = 300; }
         else if (d.className === 'NECROMANCER') { atq = 15; hpInicial = 300; }
         players[socket.id] = {
-            id: socket.id, x: 512, y: 512, class: d.class, name: d.name, className: d.className,
+            id: socket.id, x: 512, y: 470, class: d.class, name: d.name, className: d.className,
             hp: hpInicial, maxHp: hpInicial, isAlive: true, deathCount: 0, deathPosition: null,
             team: 'Sin Team', level: 1, exp: 0, dir: 'Abajo',
             stats: { fuerza: bs.fuerza, defensaFisica: bs.defensaFisica, defensaMagica: bs.defensaMagica, agilidad: bs.agilidad, vitalidad: bs.vitalidad, puntosDisponibles: 5, defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0, corte: 0, regeneracion: 0, destreza: 0, virtuoso: 0, brutalidad: 0, actoFugaz: 0, bendito: 0, sacrificio: 0, furia: 0, critico: 0, atqFuego: 0, atqAgua: 0, atqViento: 0, atqTierra: 0, atqLuz: 0, atqOscuridad: 0 },
@@ -891,6 +912,7 @@ io.on('connection', (socket) => {
     socket.on('crearProyectil', (data) => socket.broadcast.emit('proyectilCreado', data));
     socket.on('solicitarEsqueletos', () => { if (players[socket.id]) socket.emit('esqueletosIniciales', esqueletos.filter(e => e.isAlive === true)); });
     socket.on('solicitarRanking', () => { const ranking = obtenerTop10(); socket.emit('rankingTop10', { ranking: ranking }); });
+    socket.on('solicitarInfoTeam', () => { const tid = playerTeam[socket.id]; if (tid && teams[tid]) { const team = teams[tid]; socket.emit('infoTeamRecibida', { enTeam: true, lider: players[team.lider]?.name || '???', miembros: team.miembros.map(m => players[m]?.name || '???') }); } else { socket.emit('infoTeamRecibida', { enTeam: false }); } });
     socket.on('solicitarPoder', () => { if (players[socket.id]) { const poder = calcularPoderJugador(socket.id); socket.emit('poderJugador', { poder: poder }); } });
 
     socket.on('chatMessage', (msg) => {
@@ -920,7 +942,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('aceptarInvitacion', (data) => {
-        const invitacion = invitacionesPendientes[socket.id];
+   const invitacion = invitacionesPendientes[socket.id];
         if (!invitacion) { socket.emit('mensaje', '❌ No tenés invitaciones pendientes'); return; }
         const lider = players[invitacion.de];
         if (!lider) { socket.emit('mensaje', '❌ El jugador que te invitó ya no está'); delete invitacionesPendientes[socket.id]; return; }
@@ -932,11 +954,7 @@ io.on('connection', (socket) => {
         players[invitacion.de].team = teams[teamId].nombre;
         delete invitacionesPendientes[socket.id];
         teams[teamId].miembros.forEach(m => { io.to(m).emit('mensaje', `✅ ${players[socket.id].name} se unió al equipo`); });
-    });
-
-    socket.on('rechazarInvitacion', () => {
-        const invitacion = invitacionesPendientes[socket.id];
-        if (invitacion) { io.to(invitacion.de).emit('mensaje', `❌ ${players[socket.id]?.name || 'Jugador'} rechazó la invitación`); delete invitacionesPendientes[socket.id]; }
+        const teamActual = teams[teamId]; io.to(socket.id).emit('infoTeamRecibida', { enTeam: true, lider: players[teamActual.lider]?.name, miembros: teamActual.miembros.map(m => players[m]?.name) }); io.to(teamActual.lider).emit('infoTeamRecibida', { enTeam: true, lider: players[teamActual.lider]?.name, miembros: teamActual.miembros.map(m => players[m]?.name) });
     });
 
     socket.on('salirEquipo', () => {
@@ -951,6 +969,7 @@ io.on('connection', (socket) => {
         else if (team.lider === socket.id) team.lider = team.miembros[0];
         socket.emit('mensaje', 'Saliste del equipo');
         io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${players[socket.id].name} salio del equipo` });
+        socket.emit('infoTeamRecibida', { enTeam: false }); if (team && team.miembros) { team.miembros.forEach(m => { if (players[m]) { io.to(m).emit('infoTeamRecibida', { enTeam: team.miembros.length > 0, lider: players[team.lider]?.name || '???', miembros: team.miembros.map(mi => players[mi]?.name || '???') }); } }); }
     });
 
     socket.on('talarArbol', (data) => {
