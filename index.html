@@ -162,6 +162,8 @@
 // VARIABLES GLOBALES
 // ============================================
 let socket, player, demonlord_sprite, otherPlayers, keys, pName, pClass, pClassName;
+let aroJugador = null;
+let aroSacrificio = null;
 let currentScene = null;
 let ultimoAtaqueDistancia = 0;
 let proyectiles = [];
@@ -216,6 +218,16 @@ window.volumenMusica = 0.3;
 window.debugHitboxes = false;
 window.guardadoPendiente = null;
 window.ataqueEnProceso = false;
+
+// ============================================
+// MAPA NEVADO
+// ============================================
+let enMapaNevado = false;
+let portalANevado = null;
+let portalAPrincipal = null;
+let mapaNevadoGroup = null;
+let nieveParticulas = null;
+let nieveEmitterNevado = null;
 
 // ============================================
 // DATOS DE SKILLS
@@ -448,8 +460,6 @@ function ganarExp(cantidad) {
     guardarPartida();
 }
 
-
-
 function desequiparItem(tipo) {
     if (equipamiento[tipo]) {
         equipamiento[tipo] = null;
@@ -597,6 +607,300 @@ function iniciarJuegoConCarga(g) {
     window.guardadoPendiente = g;
     setInterval(() => regenerarMana(), 5000);
     new Phaser.Game({ type: Phaser.AUTO, width: window.innerWidth, height: window.innerHeight, physics: { default: 'arcade' }, scene: { preload: preload, create: create, update: update } });
+}
+
+// ============================================
+// FUNCION DEL ARO DEL JUGADOR
+// ============================================
+function crearAroJugador() {
+    if (!currentScene || !player || !player.active) return;
+    
+    // Crear aro base si no existe
+    if (!aroJugador) {
+        aroJugador = currentScene.add.image(player.x, player.y, 'aro');
+        aroJugador.setDepth(player.y - 1);
+        aroJugador.setAlpha(0.5);
+        aroJugador.setScale(0.7);
+        aroJugador.setTint(0xffffff);
+    }
+    
+    // Actualizar posición del aro base
+    aroJugador.setPosition(player.x, player.y + 3);
+    aroJugador.setDepth(player.y - 1);
+    
+    // SOLO si el jugador es CABALLERO y tiene sacrificio
+    if (pClassName === 'CABALLERO' && (playerStats.sacrificio || 0) > 0) {
+        const nivelSacrificio = playerStats.sacrificio || 0;
+        const rangoSacrificio = 50 + nivelSacrificio;
+        
+        if (!aroSacrificio) {
+            aroSacrificio = currentScene.add.image(player.x, player.y, 'aro');
+            aroSacrificio.setDepth(player.y - 2);
+            aroSacrificio.setTint(0x00ff88);
+        }
+        
+        aroSacrificio.setVisible(true);
+        aroSacrificio.setPosition(player.x, player.y + 3);
+        aroSacrificio.setDepth(player.y - 2);
+        
+        const escalaSacrificio = 0.5 * (rangoSacrificio / 50);
+        aroSacrificio.setScale(escalaSacrificio);
+        
+        // Verificar si hay compañeros de team en el área
+        let hayCompañerosEnArea = false;
+        const teamActual = window.teamInfo;
+        
+        if (teamActual && teamActual.enTeam && teamActual.miembros && socket && window.otherPlayers) {
+            for (let miembroId of teamActual.miembros) {
+                if (miembroId === socket.id) continue;
+                
+                const compañero = window.otherPlayers.getChildren().find(p => p.id === miembroId);
+                if (compañero && compañero.active) {
+                    const distancia = Phaser.Math.Distance.Between(player.x, player.y, compañero.x, compañero.y);
+                    if (distancia <= rangoSacrificio) {
+                        hayCompañerosEnArea = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Detener tweens anteriores para evitar conflictos
+        if (aroSacrificio.tweenActual) {
+            currentScene.tweens.remove(aroSacrificio.tweenActual);
+        }
+        
+        if (hayCompañerosEnArea) {
+            aroSacrificio.setAlpha(0.7);
+            // Agrandar el aro cuando hay compañeros
+            aroSacrificio.tweenActual = currentScene.tweens.add({
+                targets: aroSacrificio,
+                scale: escalaSacrificio * 1.3,
+                alpha: 0.8,
+                duration: 600,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        } else {
+            aroSacrificio.setAlpha(0.3);
+            // Mantener tamaño normal sin compañeros
+            aroSacrificio.tweenActual = currentScene.tweens.add({
+                targets: aroSacrificio,
+                scale: escalaSacrificio,
+                alpha: 0.3,
+                duration: 1000,
+                yoyo: false,
+                repeat: 0,
+                ease: 'Sine.easeInOut'
+            });
+        }
+    } else {
+        if (aroSacrificio) {
+            aroSacrificio.setVisible(false);
+        }
+    }
+}
+
+// ============================================
+// FUNCIONES DE PORTALES Y MAPA NEVADO
+// ============================================
+function crearPortales() {
+    if (!currentScene) return;
+    
+    // Portal al mapa nevado (círculo rojo) - arriba cerca de los pinos en el primer mapa
+    const portalX = 800 + Math.random() * 400;
+    const portalY = 300 + Math.random() * 200;
+    
+    portalANevado = currentScene.add.circle(portalX, portalY, 15, 0xff0000, 0.8);
+    portalANevado.setDepth(10000);
+    portalANevado.setInteractive({ useHandCursor: true });
+    
+    const textoPortal = currentScene.add.text(portalX, portalY - 25, '🌨️ NEVADO', { 
+        fontSize: '10px', fill: '#ffffff', fontFamily: 'monospace', 
+        stroke: '#000', strokeThickness: 2 
+    }).setOrigin(0.5).setDepth(10001);
+    
+    // Efecto de brillo en el portal
+    currentScene.tweens.add({
+        targets: portalANevado,
+        alpha: 0.4,
+        duration: 1000,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+    });
+    
+    portalANevado.on('pointerdown', () => {
+        if (!player || !player.isAlive) return;
+        if (Phaser.Math.Distance.Between(player.x, player.y, portalANevado.x, portalANevado.y) < 80) {
+            teletransportarANevado();
+        } else {
+            mostrarMensaje('❌ Debes acercarte más al portal', 'error');
+        }
+    });
+}
+
+function crearMapaNevado() {
+    if (!currentScene) return;
+    
+    enMapaNevado = true;
+    
+    // Cambiar el suelo del mapa principal a nieve
+    if (currentScene.ground) {
+        currentScene.ground.setTexture('suelo_nieve');
+    }
+    
+    // Ocultar elementos del mapa principal
+    if (currentScene.arbolesTransicionGroup) {
+        currentScene.arbolesTransicionGroup.getChildren().forEach(tree => {
+            tree.setVisible(false);
+        });
+    }
+    
+    // Crear pinos con nieve en el mapa nevado
+    mapaNevadoGroup = currentScene.add.group();
+    for (let i = 0; i < 100; i++) {
+        const x = Math.random() * 3000;
+        const y = Math.random() * 800;
+        const tree = currentScene.add.image(x, y, 'pino_con_nieve');
+        tree.setOrigin(0.5, 1);
+        tree.setDepth(y);
+        tree.setScale(0.7 + Math.random() * 0.5);
+        mapaNevadoGroup.add(tree);
+    }
+    
+        // ============================================
+    // NIEVE QUE SIGUE A LA CÁMARA (MÉTODO MANUAL)
+    // ============================================
+    if (nieveParticulas) {
+        nieveParticulas.destroy();
+        nieveParticulas = null;
+    }
+    
+    // Verificar que la textura existe, si no, crearla
+    if (!currentScene.textures.exists('particula_nieve')) {
+        const graphics = currentScene.add.graphics();
+        graphics.fillStyle(0xffffff, 1);
+        graphics.fillCircle(4, 4, 4);
+        graphics.generateTexture('particula_nieve', 8, 8);
+        graphics.destroy();
+    }
+    
+    // Emisor simple que sigue al jugador manualmente
+    nieveParticulas = currentScene.add.particles(player.x, player.y - 400, 'particula_nieve', {
+        x: { min: -window.innerWidth/2, max: window.innerWidth/2 },
+        y: { min: -window.innerHeight/2, max: window.innerHeight/2 },
+        speedY: { min: 15, max: 40 },
+        speedX: { min: -10, max: 10 },
+        scale: { start: 1.2, end: 0.1 },
+        alpha: { start: 0.8, end: 0 },
+        tint: [0xffffff, 0xeeeeff, 0xddddff, 0xccccff],
+        lifespan: 5000,
+        frequency: 30,
+        quantity: 3,
+        maxParticles: 150,
+        blendMode: 'NORMAL',
+        rotate: { min: 0, max: 360 }
+    });
+    
+    nieveParticulas.setDepth(9999);
+
+    // Portal de regreso al mapa principal (abajo del mapa nevado)
+    portalAPrincipal = currentScene.add.circle(1500, 750, 15, 0x00ff00, 0.8);
+    portalAPrincipal.setDepth(10000);
+    portalAPrincipal.setInteractive({ useHandCursor: true });
+    
+    const textoPortalVuelta = currentScene.add.text(1500, 725, '🏠 VOLVER', { 
+        fontSize: '10px', fill: '#ffffff', fontFamily: 'monospace', 
+        stroke: '#000', strokeThickness: 2 
+    }).setOrigin(0.5).setDepth(10001);
+    
+    currentScene.tweens.add({
+        targets: portalAPrincipal,
+        alpha: 0.4,
+        duration: 1000,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+    });
+    
+    portalAPrincipal.on('pointerdown', () => {
+        if (!player || !player.isAlive) return;
+        if (Phaser.Math.Distance.Between(player.x, player.y, portalAPrincipal.x, portalAPrincipal.y) < 80) {
+            volverAMapaPrincipal();
+        } else {
+            mostrarMensaje('❌ Debes acercarte más al portal', 'error');
+        }
+    });
+    
+    // Reposicionar al jugador en el mapa nevado
+    player.setPosition(1500, 100);
+    player.setDepth(100);
+    
+    mostrarMensaje('🌨️ ¡Has entrado al mapa nevado!', 'exito');
+}
+
+function teletransportarANevado() {
+    if (!currentScene || enMapaNevado) return;
+    
+    // Guardar posición actual
+    if (player && player.active) {
+        localStorage.setItem('posicion_previa_mapa', JSON.stringify({ x: player.x, y: player.y }));
+    }
+    
+    crearMapaNevado();
+}
+
+function volverAMapaPrincipal() {
+    if (!currentScene || !enMapaNevado) return;
+    
+    enMapaNevado = false;
+    
+    // Restaurar el suelo
+    if (currentScene.ground) {
+        currentScene.ground.setTexture('suelo');
+    }
+    
+    // Mostrar elementos del mapa principal
+    if (currentScene.arbolesTransicionGroup) {
+        currentScene.arbolesTransicionGroup.getChildren().forEach(tree => {
+            tree.setVisible(true);
+        });
+    }
+    
+    // Destruir elementos del mapa nevado
+    if (mapaNevadoGroup) {
+        mapaNevadoGroup.destroy(true);
+        mapaNevadoGroup = null;
+    }
+    
+    if (nieveParticulas) {
+        nieveParticulas.destroy();
+        nieveParticulas = null;
+    }
+    
+    if (portalAPrincipal) {
+        portalAPrincipal.destroy();
+        portalAPrincipal = null;
+    }
+    
+    // Reposicionar al jugador
+    const posicionPrevia = localStorage.getItem('posicion_previa_mapa');
+    if (posicionPrevia) {
+        try {
+            const pos = JSON.parse(posicionPrevia);
+            player.setPosition(pos.x, pos.y);
+        } catch(e) {
+            player.setPosition(806, 1000);
+        }
+    } else {
+        player.setPosition(806, 1000);
+    }
+    
+    player.setDepth(player.y);
+    
+    mostrarMensaje('🏠 ¡Has vuelto al mapa principal!', 'exito');
 }
 
 // ============================================
@@ -1231,6 +1535,8 @@ function preload() {
     this.load.on('progress', (value) => { actualizarBarraCarga(Math.floor(value * 100)); });
     this.load.on('complete', () => { actualizarBarraCarga(100); });
     this.load.image('suelo', 'ground_stone1.png');
+    this.load.image('suelo_nieve', 'ground_stone2.png');
+    this.load.image('aro', 'aro.png');
     this.load.image('pino_sin_nieve', 'assets/pino_sin_nieve.png');
     this.load.image('pino_con_nieve', 'assets/pino_con_nieve.png');
     this.load.image('pino_1', 'pino_1.png');
@@ -1254,6 +1560,7 @@ function preload() {
     this.load.image('bastonderayodrop', 'bastonderayodrop.png');
     this.load.image('templo1', 'templo1.png');
     this.load.image('estatuaderanking', 'estatuaderanking.png');
+    this.load.image('particula_nieve', 'particula_nieve.png');
     this.load.spritesheet('mago_sprite', 'mago.png', { frameWidth: 255, frameHeight: 255 });
     this.load.spritesheet('necromancer_sprite', 'necromancer.png', { frameWidth: 255, frameHeight: 255 });
     this.load.spritesheet('barbaro', 'Barbaro.png', { frameWidth: 128, frameHeight: 128 });
@@ -1288,8 +1595,18 @@ function create() {
     window.minasGrupo = this.add.group();
     window.esqueletosGrupo = this.add.group();
     const chatInput = document.getElementById('chat-input');
-    chatInput.addEventListener('focus', () => { currentScene.input.keyboard.enabled = false; });
-    chatInput.addEventListener('blur', () => { currentScene.input.keyboard.enabled = true; });
+    
+    chatInput.addEventListener('focus', () => {
+        if (currentScene && currentScene.input && currentScene.input.keyboard) {
+            currentScene.input.keyboard.enabled = false;
+        }
+    });
+    chatInput.addEventListener('blur', () => {
+        if (currentScene && currentScene.input && currentScene.input.keyboard) {
+            currentScene.input.keyboard.enabled = true;
+        }
+    });
+    
     const chatSend = document.getElementById('chat-send');
     function enviarMensaje() { const msg = chatInput.value.trim(); if (msg !== "" && socket && socket.connected) { socket.emit('chatMessage', msg); chatInput.value = ""; } }
     if (chatSend) chatSend.addEventListener('click', enviarMensaje);
@@ -1297,11 +1614,11 @@ function create() {
     this.physics.world.setBounds(0, 0, 3000, 3000);
     this.cameras.main.setBounds(0, 0, 3000, 3000);
     this.ground = this.add.tileSprite(1500, 1500, 3000, 3000, 'suelo'); this.ground.setAlpha(0.6);
-   keys = this.input.keyboard.addKeys('SPACE,SHIFT');
-this.teclaW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
-this.teclaA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
-this.teclaS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
-this.teclaD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+    keys = this.input.keyboard.addKeys('SPACE,SHIFT');
+    this.teclaW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+    this.teclaA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+    this.teclaS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+    this.teclaD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
     otherPlayers = this.add.group();
     const musica = this.sound.add('musicaFondo', { loop: true, volume: window.volumenMusica }); musica.play();
     initControlesVolumen();
@@ -1322,6 +1639,11 @@ this.teclaD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
         { dir: 'Derecha', walkStart: 32, atk1: 36, atk2: 37, dieStart: 38, dieCount: 2, walkCount: 4 },
         { dir: 'Abajo', walkStart: 48, atk1: 52, atk2: 53, dieStart: 54, dieCount: 2, walkCount: 4 }
     ];
+
+    const texturaEsqueleto = this.textures.get('esqueleto');
+    if (texturaEsqueleto) {
+        texturaEsqueleto.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    }
     necroAnims.forEach(anim => { const wf = []; for (let i = 0; i < anim.walkCount; i++) wf.push({ key: 'necromancer_sprite', frame: anim.walkStart + i }); this.anims.create({ key: `necromancer_sprite_walk_${anim.dir}`, frames: wf, frameRate: 10, repeat: -1 }); this.anims.create({ key: `necromancer_sprite_idle_${anim.dir}`, frames: [{ key: 'necromancer_sprite', frame: anim.walkStart }], frameRate: 1 }); this.anims.create({ key: `necromancer_sprite_atk_${anim.dir}`, frames: [{ key: 'necromancer_sprite', frame: anim.atk1 }, { key: 'necromancer_sprite', frame: anim.atk2 }], frameRate: 12, repeat: 0 }); const df = []; for (let i = 0; i < anim.dieCount; i++) df.push({ key: 'necromancer_sprite', frame: anim.dieStart + i }); this.anims.create({ key: `necromancer_sprite_die_${anim.dir}`, frames: df, frameRate: 8 }); });
     const magoAnims = [
         { dir: 'Izquierda', walkStart: 0, atk1: 4, atk2: 5, dieStart: 6, dieCount: 2, walkCount: 4 },
@@ -1332,10 +1654,10 @@ this.teclaD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
     magoAnims.forEach(anim => { const wf = []; for (let i = 0; i < anim.walkCount; i++) wf.push({ key: 'mago_sprite', frame: anim.walkStart + i }); this.anims.create({ key: `mago_sprite_walk_${anim.dir}`, frames: wf, frameRate: 10, repeat: -1 }); this.anims.create({ key: `mago_sprite_idle_${anim.dir}`, frames: [{ key: 'mago_sprite', frame: anim.walkStart }], frameRate: 1 }); this.anims.create({ key: `mago_sprite_atk_${anim.dir}`, frames: [{ key: 'mago_sprite', frame: anim.atk1 }, { key: 'mago_sprite', frame: anim.atk2 }], frameRate: 12, repeat: 0 }); const df = []; for (let i = 0; i < anim.dieCount; i++) df.push({ key: 'mago_sprite', frame: anim.dieStart + i }); this.anims.create({ key: `mago_sprite_die_${anim.dir}`, frames: df, frameRate: 8 }); });
 
     this.arbolesTransicionGroup = this.add.group();
-    for (let i = 0; i < 80; i++) { const x = Math.random() * 3000; const y = Math.random() * 800; let probNieve = 1 - (y / 800); probNieve = Math.max(0, Math.min(1, probNieve)); const esNevado = Math.random() < probNieve; const treeType = esNevado ? 'pino_con_nieve' : 'pino_sin_nieve'; const tree = this.add.image(x, y, treeType); tree.setOrigin(0.5, 1); tree.setDepth(y); tree.setScale(0.7 + Math.random() * 0.5); this.arbolesTransicionGroup.add(tree); }
-    // Nevada suave en zona de pinos
-    this.particulasNieve = this.add.particles(0, 0, 'suelo', { x: { min: 0, max: 3000 }, y: { min: -20, max: 0 }, speedY: { min: 10, max: 20 }, speedX: { min: -3, max: 3 }, scale: { min: 0.3, max: 0.8 }, alpha: { min: 0.3, max: 0.6 }, tint: 0xffffff, lifespan: 8000, frequency: 300, quantity: 1, maxParticles: 20 });
-    this.particulasNieve.setDepth(9999);
+    for (let i = 0; i < 80; i++) { const x = Math.random() * 3000; const y = Math.random() * 800; const tree = this.add.image(x, y, 'pino_con_nieve'); tree.setOrigin(0.5, 1); tree.setDepth(y); tree.setScale(0.7 + Math.random() * 0.5); this.arbolesTransicionGroup.add(tree); }
+    this.particulasNieve = this.add.particles(0, 0, 'particula_nieve', { x: { min: -500, max: 3500 }, y: { min: -500, max: 3500 }, speedY: { min: 50, max: 100 }, speedX: { min: -20, max: 20 }, scale: { min: 0.2, max: 0.6 }, alpha: { min: 0.3, max: 0.7 }, lifespan: 15000, frequency: 10, quantity: 10, maxParticles: 1000, emitZone: { type: 'random', source: new Phaser.Geom.Rectangle(-500, -500, 4000, 4000) } }).setDepth(9999);
+    // Crear portales
+    crearPortales();
 
     this.anims.create({ key: 'dl_idle_Derecha', frames: this.anims.generateFrameNumbers('demonlord', { start: 0, end: 7 }), frameRate: 10, repeat: -1 });
     this.anims.create({ key: 'dl_idle_Arriba', frames: this.anims.generateFrameNumbers('demonlord', { start: 8, end: 15 }), frameRate: 10, repeat: -1 });
@@ -1361,12 +1683,13 @@ this.teclaD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
     estatuaRanking.on('pointerover', () => estatuaRanking.setAlpha(1));
     estatuaRanking.on('pointerout', () => estatuaRanking.setAlpha(0.7));
     estatuaRanking.on('pointerdown', () => toggleRanking());
-        const colisionEstatua = this.add.zone(851, 1060, 140, 110).setDepth(1057);
+    const colisionEstatua = this.add.zone(851, 1060, 140, 110).setDepth(1057);
     this.physics.add.existing(colisionEstatua, true);
     this.physics.add.collider(player, colisionEstatua);
     this.colisionEstatua = colisionEstatua;
     player.lastDir = 'Abajo'; player.attacking = false; player.isAlive = true;
     this.cameras.main.startFollow(player, true, 0.1, 0.1);
+    crearAroJugador();
     demonlord_sprite = this.physics.add.sprite(1500, 1500, 'demonlord').setScale(2.5).setDepth(1500);
     demonlord_sprite.body.setSize(8, 8); demonlord_sprite.body.setOffset(60, 60);
     demonlord_sprite.cDir = 'Abajo'; demonlord_sprite.play('dl_idle_Abajo', true);
@@ -1436,7 +1759,7 @@ this.teclaD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
     btnAttack.addEventListener('click', () => { if (window.simularAtaque) window.simularAtaque(); });
     this.input.keyboard.on('keydown-SPACE', () => { if (window.simularAtaque) window.simularAtaque(); });
 
-       // ============================================
+    // ============================================
     // SOCKET EVENTS
     // ============================================
     socket.on('currentPlayers', (ps) => { Object.keys(ps).forEach(id => { if (id !== socket.id) addOtherPlayer(this, ps[id]); }); });
@@ -1473,14 +1796,15 @@ this.teclaD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
     socket.on('rankingTop10', (data) => { const lista = document.getElementById('ranking-lista'); if (!lista) return; let html = ''; data.ranking.forEach((j, index) => { const medalla = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : '  ')); const colorClase = j.clase === 'BARBARO' ? '#ff6666' : (j.clase === 'MAGO' ? '#6666ff' : (j.clase === 'NECROMANCER' ? '#9966ff' : (j.clase === 'CABALLERO' ? '#ffaa66' : '#88ff88'))); html += `<div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid #333; ${j.id === socket.id ? 'background:#222;' : ''}"><span>${medalla} #${index + 1}</span><span style="color:${colorClase}">${j.nombre}</span><span>Lv.${j.nivel}</span><span>⚡${j.poder}</span></div>`; }); if (data.ranking.length === 0) html = '<div style="text-align:center; color:#666;">No hay jugadores</div>'; lista.innerHTML = html; });
     socket.on('poderJugador', (data) => { poderActual = data.poder; const poderElem = document.getElementById('stat-poder'); if (poderElem) poderElem.textContent = poderActual; });
     socket.on('estadoTerminado', (data) => { if (data.tipo === 'aturdimiento') { if (data.id === 'demonlord') { mostrarMensaje(`⚡ El Demonlord se ha liberado del aturdimiento`, 'info'); } else { mostrarMensaje(`⚡ El esqueleto se ha liberado del aturdimiento`, 'info'); } } });
-    socket.on('infoTeamRecibida', (data) => { const info = document.getElementById('team-info'); const btnSalir = document.getElementById('btn-salir-team'); const tabTeam = document.getElementById('tab-team'); if (data.enTeam) { tabTeam.style.display = 'block'; let html = `<div style="color:#ffaa00; font-size:13px; margin-bottom:5px;">LIDER: ${data.lider}</div>`; html += `<div style="margin-top:8px; text-align:left;">`; data.miembros.forEach(m => { const esLider = m === data.lider; html += `<div style="padding:3px 5px; ${esLider ? 'color:#ffaa00;' : 'color:#fff;'}">${esLider ? '* ' : '- '}${m}</div>`; }); html += `</div>`; info.innerHTML = html; btnSalir.style.display = 'block'; } else { tabTeam.style.display = 'none'; info.innerHTML = '<div style="color:#666;">No estas en un equipo</div>'; btnSalir.style.display = 'none'; } });
-    socket.on('esqueletosIniciales', (data) => { if (!window.esqueletosGrupo) window.esqueletosGrupo = this.add.group(); window.esqueletosGrupo.clear(true, true); data.forEach(esqueleto => { if (esqueleto.isAlive !== false) { const img = this.physics.add.sprite(esqueleto.x, esqueleto.y, 'esqueleto').setScale(0.3); img.esqueletoId = esqueleto.id; img.isAlly = esqueleto.isAlly || false; img.currentDir = esqueleto.dir || 'Abajo'; img.setCollideWorldBounds(true); img.setSize(40, 40); img.setOffset(108, 155); img.body.setImmovable(true); img.play('esqueleto_idle_Abajo', true); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = esqueleto.id; mostrarMensaje(`💀 Esqueleto ${esqueleto.isAlly ? 'aliado' : 'enemigo'} seleccionado`, 'info'); }); window.esqueletosGrupo.add(img); if (this.colisionEstatua) this.physics.add.collider(img, this.colisionEstatua); } }); });
+    socket.on('infoTeamRecibida', (data) => { window.teamInfo = data; const info = document.getElementById('team-info'); const btnSalir = document.getElementById('btn-salir-team'); const tabTeam = document.getElementById('tab-team'); if (data.enTeam) { tabTeam.style.display = 'block'; let html = `<div style="color:#ffaa00; font-size:13px; margin-bottom:5px;">LIDER: ${data.lider}</div>`; html += `<div style="margin-top:8px; text-align:left;">`; data.miembros.forEach(m => { const esLider = m === data.lider; html += `<div style="padding:3px 5px; ${esLider ? 'color:#ffaa00;' : 'color:#fff;'}">${esLider ? '* ' : '- '}${m}</div>`; }); html += `</div>`; info.innerHTML = html; btnSalir.style.display = 'block'; } else { tabTeam.style.display = 'none'; info.innerHTML = '<div style="color:#666;">No estas en un equipo</div>'; btnSalir.style.display = 'none'; } });
+    socket.on('esqueletosIniciales', (data) => { if (!window.esqueletosGrupo) window.esqueletosGrupo = this.add.group(); window.esqueletosGrupo.clear(true, true); data.forEach(esqueleto => { if (esqueleto.isAlive !== false) { const img = this.physics.add.sprite(esqueleto.x, esqueleto.y, 'esqueleto').setScale(0.4); img.esqueletoId = esqueleto.id; img.isAlly = esqueleto.isAlly || false; img.currentDir = esqueleto.dir || 'Abajo'; img.setCollideWorldBounds(true); img.setSize(40, 40); img.setOffset(108, 155); img.body.setImmovable(true); img.play('esqueleto_idle_Abajo', true); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = esqueleto.id; mostrarMensaje(`💀 Esqueleto ${esqueleto.isAlly ? 'aliado' : 'enemigo'} seleccionado`, 'info'); }); window.esqueletosGrupo.add(img); if (this.colisionEstatua) this.physics.add.collider(img, this.colisionEstatua); } }); });
     socket.on('esqueletoMoved', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id && esq.active) { esq.setPosition(data.x, data.y); esq.setDepth(data.y); esq.currentDir = data.dir; if (data.isMoving) esq.play(`esqueleto_walk_${data.dir}`, true); else esq.play(`esqueleto_idle_${data.dir}`, true); } }); } });
     socket.on('esqueletoAttackAnim', (data) => { if (!window.esqueletosGrupo || !currentScene) return; window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id && esq.active) { esq.currentDir = data.dir; const animKey = `esqueleto_atk_${data.dir}`; if (currentScene.anims.exists(animKey)) { if (esq.anims.isPlaying) esq.anims.stop(); esq.play(animKey, true); esq.once('animationcomplete', () => { if (esq.active) esq.play(`esqueleto_idle_${data.dir}`, true); }); } } }); });
     socket.on('esqueletoAttackHit', (data) => { if (!currentScene) return; const hitbox = currentScene.add.rectangle(data.espadaX, data.espadaY, 20, 20, 0xff0000, 0); hitbox.setDepth(10001); currentScene.time.delayedCall(200, () => { if (hitbox && hitbox.active) hitbox.destroy(); }); if (data.targetId === socket.id && player && player.isAlive) { crearTextoDmg(currentScene, player.x, player.y - 30, `-${Math.floor(data.damage)}`, "#ff4444", "18px"); } });
     socket.on('esqueletoAttackMiss', (data) => { if (!currentScene) return; if (data.targetId === socket.id && player && player.isAlive) { crearTextoDmg(currentScene, player.x, player.y - 30, "MISS", "#ffff00", "14px"); } });
-    socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('esqueletoMuere'); if (sonido && muerteSoundsCount < 4) { muerteSoundsCount++; sonido.setVolume(window.volumenFX); sonido.play(); setTimeout(() => muerteSoundsCount--, 500); } } if (currentScene && Math.random() < 0.3) { crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id && esq.active) { let currentDir = esq.currentDir || data.dir || 'Abajo'; const dieAnim = `esqueleto_die_${currentDir}`; if (currentScene && currentScene.anims.exists(dieAnim)) { if (esq.anims.isPlaying) esq.anims.stop(); esq.play(dieAnim, true); if (esq.body) esq.body.enable = false; esq.once('animationcomplete', () => { if (esq && esq.active) esq.destroy(); }); } else { esq.destroy(); } if (data.exp > 0 && data.attackers && data.attackers.includes(socket.id)) ganarExp(data.exp); return; } }); } });
-    socket.on('esqueletoDestroy', (data) => { if (window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id && esq.active) esq.destroy(); }); });    socket.on('esqueletoNew', (data) => { if (!currentScene) return; const img = currentScene.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3); img.esqueletoId = data.id; img.isAlly = false; img.currentDir = 'Abajo'; img.setCollideWorldBounds(true); img.setSize(40, 40); img.setOffset(108, 155); img.body.setImmovable(true); img.play('esqueleto_idle_Abajo', true); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto enemigo seleccionado.`, 'info'); }); window.esqueletosGrupo.add(img); if (this.colisionEstatua) this.physics.add.collider(img, this.colisionEstatua); });
+    socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('esqueletoMuere'); if (sonido && muerteSoundsCount < 4) { muerteSoundsCount++; sonido.setVolume(window.volumenFX); sonido.play(); setTimeout(() => muerteSoundsCount--, 500); } } if (currentScene && Math.random() < 0.3) { crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id && esq.active) { let currentDir = esq.currentDir || data.dir || 'Abajo'; const dieAnim = `esqueleto_die_${currentDir}`; if (currentScene && currentScene.anims.exists(dieAnim)) { if (esq.anims.isPlaying) esq.anims.stop(); esq.play(dieAnim, true); if (esq.body) esq.body.enable = false; esq.once('animationcomplete', () => { if (esq && esq.active) esq.destroy(); }); } else { esq.destroy(); } if (data.exp > 0 && data.attackers && data.attackers.includes(socket.id)) ganarExp(data.exp); return    ; } }); } });
+    socket.on('esqueletoDestroy', (data) => { if (window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id && esq.active) esq.destroy(); }); });
+    socket.on('esqueletoNew', (data) => { if (!currentScene) return; const img = currentScene.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3); img.esqueletoId = data.id; img.isAlly = false; img.currentDir = 'Abajo'; img.setCollideWorldBounds(true); img.setSize(40, 40); img.setOffset(108, 155); img.body.setImmovable(true); img.play('esqueleto_idle_Abajo', true); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto enemigo seleccionado.`, 'info'); }); window.esqueletosGrupo.add(img); if (this.colisionEstatua) this.physics.add.collider(img, this.colisionEstatua); });
     socket.on('esqueletoRevive', (data) => { if (!currentScene) return; const img = currentScene.physics.add.sprite(data.x, data.y, 'esqueleto').setScale(0.3); img.esqueletoId = data.id; img.isAlly = true; img.currentDir = 'Abajo'; img.setCollideWorldBounds(true); img.setSize(40, 40); img.setOffset(108, 155); img.body.setImmovable(true); img.play('esqueleto_idle_Abajo', true); img.setTint(0x88ff88); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto aliado seleccionado`, 'info'); }); window.esqueletosGrupo.add(img); if (this.colisionEstatua) this.physics.add.collider(img, this.colisionEstatua); mostrarMensaje(`💀 ¡Esqueleto aliado revivido!`, 'exito'); });
     socket.on('furiaNecroticaEffect', (data) => { if (data.playerId === socket.id) { mostrarMensaje(`🔥 ¡Furia Necrotica! +${Math.floor(data.bonusPorcentaje * 100)}% danio`, 'exito'); if (window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (data.esqueletosIds.includes(esq.esqueletoId)) esq.setTint(0xff3333); }); setTimeout(() => { if (window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (data.esqueletosIds.includes(esq.esqueletoId)) { esq.clearTint(); if (esq.isAlly) esq.setTint(0x88ff88); } }); }, 10000); } });
     socket.on('furiaNecroticaEnd', (data) => { if (data.playerId === socket.id && window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.isAlly) esq.setTint(0x88ff88); }); });
@@ -1530,7 +1854,12 @@ function addOtherPlayer(self, info) {
 }
 
 function update() {
-    if (!player || player.attacking || !player.isAlive) return;
+    if (!player || !player.isAlive) return;
+    
+    // Actualizar posición del aro
+    crearAroJugador();
+    
+    if (player.attacking) return;
     let velocidadActual = getVelocidadActual();
     let spd = this.input.keyboard.checkDown(Phaser.Input.Keyboard.KeyCodes.SHIFT) ? velocidadActual * 1.8 : velocidadActual;
     let vx = 0, vy = 0;
@@ -1551,9 +1880,14 @@ function update() {
     if (!window.regeneracionTimer) window.regeneracionTimer = 0;
     window.regeneracionTimer++;
     if (window.regeneracionTimer % 120 === 0) { const regenHP = 2 + (playerStats.regeneracion || 0) * 1.0; if (playerHP < playerMaxHP) { playerHP = Math.min(playerMaxHP, playerHP + regenHP); actualizarStatsUI(); } }
-    const playerY = player.y;
+       const playerY = player.y;
     if (playerY < 400) { if (this.ground) this.ground.setTint(0xddddff); } else { if (this.ground) this.ground.clearTint(); }
     actualizarBarrasEnemigos();
+    
+    // Mover el emisor de nieve con el jugador en el mapa nevado
+    if (enMapaNevado && nieveParticulas && nieveParticulas.active) {
+        nieveParticulas.setPosition(player.x, player.y - 400);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => { document.getElementById('menu-ui').style.display = 'flex'; document.getElementById('class-ui').style.display = 'none'; document.getElementById('loading-ui').style.display = 'none'; });
