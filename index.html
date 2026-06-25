@@ -25,7 +25,7 @@
         #chat-input-container { display: flex; margin-top: 5px; gap: 5px; padding: 5px; background: #111; border: 1px solid #444; border-top: none; border-radius: 0 0 5px 5px; }
         #chat-input { flex: 1; background: #000; border: 1px solid #444; color: #fff; padding: 5px; font-family: monospace; font-size: 11px; }
         #chat-send { background: #000; border: 1px solid #444; color: #fff; padding: 5px 10px; cursor: pointer; font-size: 11px; }
-        #stats-container, #skills-bar, #btn-attack, .floating-tabs, #demonlord-hp-bar, #demonlord-hp-text { display: none !important; }
+        #stats-container, #skills-bar, #btn-attack, .floating-tabs, #demonlord-hp-bar, #demonlord-hp-text { display: none !important; } 
         body.juego-activo #stats-container { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex !important; gap: 25px; align-items: center; z-index: 10000; }
         body.juego-activo #skills-bar { display: flex !important; gap: 10px; background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 50px; }
         body.juego-activo #btn-attack, body.juego-activo .floating-tabs, body.juego-activo #demonlord-hp-bar, body.juego-activo #demonlord-hp-text { display: flex !important; }
@@ -39,7 +39,8 @@
         .skills-grid { display: flex; flex-wrap: wrap; gap: 5px; }
         #especialidades-grid { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
         .drag-over { border: 2px solid #88ff88; background: #2a2a2a; }
-        #btn-attack { position: fixed; bottom: 15px; right: 15px; width: 60px; height: 60px; border-radius: 30px; background: rgba(0,0,0,0.8); border: 2px solid #fff; color: #fff; font-size: 28px; cursor: pointer; z-index: 10000; display: flex; align-items: center; justify-content: center; }
+        .floating-tabs { position: fixed; top: 20px; left: 20px; z-index: 10000; display: flex; gap: 10px; }
+        #skills-bar, #demonlord-hp-bar, #demonlord-hp-text { display: none !important; }
         #inventario-ui { position: fixed !important; top: 45% !important; left: 50% !important; transform: translate(-50%, -50%) !important; background: #000 !important; border: 3px solid #fff !important; padding: 10px !important; z-index: 99999 !important; width: auto !important; max-width: 95vw !important; max-height: 85vh !important; overflow: auto !important; display: none; }
         .inventario-grid { display: grid; grid-template-columns: repeat(6, 60px); gap: 5px; background: #111; padding: 10px; justify-content: center; margin: 0 auto; }
         .slot { background: #1a1a1a; border: 1px solid #444; width: 60px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; }
@@ -97,20 +98,8 @@
 <button class="class-btn" onclick="seleccionarClase('mago_sprite','MAGO')">MAGO</button>
 <button class="class-btn" onclick="seleccionarClase('necromancer_sprite','NECROMANCER')">NECROMANCER</button></div></div>
 <div id="chat-container"><div id="chat-header" onclick="toggleChat()"><span>CHAT</span><span>▼</span></div><div id="chat-logs"></div><div id="chat-input-container"><input type="text" id="chat-input" placeholder="Escribe... /ayuda" autocomplete="off"><button id="chat-send">Enviar</button></div></div>
-<div id="stats-container">
-    <div class="orb-wrapper"><div id="hp-orb" class="orb-container"><div id="hp-fill-vertical" class="orb-fill"></div><div id="hp-orb-sprite" class="orb-sprite"></div><div class="orb-text">❤️ <span id="hp-text-inline">500</span></div></div><div id="hp-angel" class="orb-angel"></div></div>
-    <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
-        <div id="skills-bar"></div>
-        <div id="exp-bar-container"><div id="exp-bar-fill"></div></div>
-        <div style="color:#fff; font-size:8px;">EXP: <span id="exp-bar-text">0/100</span></div>
-    </div>
-    <div class="orb-wrapper"><div id="mana-orb" class="orb-container"><div id="mana-fill-vertical" class="orb-fill"></div><div id="mana-orb-sprite" class="orb-sprite"></div><div class="orb-text">💙 <span id="mana-text-inline">100</span></div></div><div id="mana-angel" class="orb-angel"></div></div>
-</div>
-<div id="btn-attack">⚔️</div>
-<div class="floating-tabs">
-    <div class="floating-tab" onclick="toggleInventario()">INVENTARIO</div>
-    <div class="floating-tab" onclick="toggleTeam()" id="tab-team" style="display:none">TEAM</div>
-</div>
+<div id="stats-container" style="position:fixed;bottom:15px;left:50%;transform:translateX(-50%);display:flex;gap:25px;align-items:center;z-index:10000;"><span id="puntos-disponibles" hidden>5</span><span id="puntos-especialidad" hidden>0</span><div class="orb-wrapper"><div id="hp-orb" class="orb-container"><div id="hp-fill-vertical" class="orb-fill"></div><div id="hp-orb-sprite" class="orb-sprite"></div><div class="orb-text">❤️ <span id="hp-text-inline">500</span></div></div><div id="hp-angel" class="orb-angel"></div></div><div style="display:flex;flex-direction:column;align-items:center;gap:5px;"><div id="skills-bar"></div><div id="exp-bar-container"><div id="exp-bar-fill"></div></div><div style="color:#fff;font-size:8px;">EXP: <span id="exp-bar-text">0/100</span></div></div><div class="orb-wrapper"><div id="mana-orb" class="orb-container"><div id="mana-fill-vertical" class="orb-fill"></div><div id="mana-orb-sprite" class="orb-sprite"></div><div class="orb-text">💙 <span id="mana-text-inline">100</span></div></div><div id="mana-angel" class="orb-angel"></div></div></div>
+<div id="btn-attack" style="position:fixed!important;bottom:15px!important;right:15px!important;left:auto!important;transform:none!important;width:60px;height:60px;border-radius:30px;background:rgba(0,0,0,0.8);border:2px solid #fff;color:#fff;font-size:28px;cursor:pointer;z-index:99999;display:flex!important;align-items:center;justify-content:center;">⚔️</div>
 <div id="team-ui" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#000; border:3px solid #fff; padding:15px; z-index:999999; min-width:250px;">
     <div style="text-align:center; color:#fff; margin-bottom:10px;"><h3 style="margin:0;">EQUIPO</h3></div>
     <div id="team-info" style="color:#fff; font-size:11px; text-align:center;"><div style="color:#666;">No estas en un equipo</div></div>
@@ -140,7 +129,6 @@
                 <div class="volumen-control" style="margin-top:15px"><div class="section-title">🎵 VOLUMEN</div><div class="stat-row"><span>🎼 Música:</span><input type="range" id="volumen-musica" min="0" max="100" value="30"><span id="volumen-musica-valor" style="width:35px">30%</span></div><div class="stat-row"><span>💥 Efectos:</span><input type="range" id="volumen-fx" min="0" max="100" value="60"><span id="volumen-fx-valor" style="width:35px">60%</span></div></div>
             </div>
         </div>
-        <button onclick="toggleInventario()" style="margin-top:10px;padding:5px 15px;cursor:pointer">CERRAR</button>
     </div>
 </div>
 <div id="context-menu" class="context-menu">
@@ -440,25 +428,7 @@ function aumentarStat(stat) {
     mostrarMensaje(`+1 ${stat.toUpperCase()}`, 'exito');
 }
 
-function ganarExp(cantidad) {
-    if (!juegoIniciado) return;
-    playerStats.exp += cantidad;
-    mostrarMensaje('+' + cantidad + ' EXP', 'exito');
-    while (playerStats.exp >= playerStats.expNeeded) {
-        playerStats.exp -= playerStats.expNeeded;
-        playerStats.level++;
-        playerStats.puntos += 5;
-        playerStats.puntosEspecialidad += 2;
-        playerStats.puntosEspecialidadesUsados = 0;
-        playerStats.expNeeded = Math.floor(playerStats.expNeeded * 1.2);
-        mostrarMensaje('NIVEL ' + playerStats.level + '! +5 puntos (max 2 en especialidades)', 'exito');
-        if (currentScene && player && player.active) {
-            crearTextoDmg(currentScene, player.x, player.y - 50, 'LEVEL UP!', '#ffff00', '22px');
-        }
-    }
-    actualizarStatsUI();
-    guardarPartida();
-}
+function ganarExp(cantidad) { if (!juegoIniciado) return; playerStats.exp += cantidad; mostrarMensaje('+' + cantidad + ' EXP', 'exito'); while (playerStats.exp >= playerStats.expNeeded) { playerStats.exp -= playerStats.expNeeded; playerStats.level++; playerStats.puntos += 5; playerStats.puntosEspecialidad = (playerStats.puntosEspecialidad || 0) + 2; playerStats.expNeeded = Math.floor(playerStats.expNeeded * 1.2); mostrarMensaje('NIVEL ' + playerStats.level + '! +5 puntos +2 especialidad', 'exito'); if (currentScene && player && player.active) { crearTextoDmg(currentScene, player.x, player.y - 50, 'LEVEL UP!', '#ffff00', '22px'); } } actualizarStatsUI(); guardarPartida(); }
 
 function desequiparItem(tipo) {
     if (equipamiento[tipo]) {
@@ -1487,7 +1457,7 @@ function usarSkill(skillId) {
         mostrarMensaje(`⚡ ¡Trueno! -15 mana`, 'exito');
         const ex = enemigoMasCercano.x, ey = enemigoMasCercano.y;
         let ataqueMagicoTotal = (classStats['MAGO'].ataqueMagico || 0) + Math.floor((playerStats.inteligencia) * 1.5);
-        const danioTotal = Math.floor(ataqueMagicoTotal * 0.1) + (playerStats.atqLuz || 0) + bonusArmaLuz;
+        const danioTotal = Math.floor(ataqueMagicoTotal) + (playerStats.atqLuz || 0) + bonusArmaLuz;
         if (currentScene && currentScene.sound) { const sonidoTrueno = currentScene.sound.get('fireballimpact'); if (sonidoTrueno) reproducirSonido(sonidoTrueno, window.volumenFX); else currentScene.sound.play('fireballimpact', { volume: window.volumenFX }); }
         const truenoSprite = currentScene.add.sprite(ex, ey - 20, 'trueno_sprite'); truenoSprite.setScale(1.5); truenoSprite.setDepth(10000); truenoSprite.setOrigin(0.5, 1);
         if (window.esqueletosGrupo && currentScene) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.active && !esq.isAlly) { const dist = Phaser.Math.Distance.Between(ex, ey, esq.x, esq.y); if (dist < 60) { if (socket && socket.connected) socket.emit('esqueletoHit', { id: esq.esqueletoId, damageBonus: danioTotal, elemento: 'luz' }); } } }); }
@@ -1497,6 +1467,7 @@ function usarSkill(skillId) {
         if (currentScene.anims.exists('trueno_anim')) truenoSprite.play('trueno_anim');
         truenoSprite.once('animationcomplete', () => { if (truenoSprite && truenoSprite.active) truenoSprite.destroy(); });
         currentScene.time.delayedCall(1500, () => { if (truenoSprite && truenoSprite.active) truenoSprite.destroy(); });
+        if (socket && socket.connected) { socket.emit('truenoRemoto', { origenX: player.x, origenY: player.y, targetX: enemigoMasCercano.x, targetY: enemigoMasCercano.y }); }
     } else if (skillId === 'golpe_brutal') {
         if (pClassName !== 'BARBARO') { mostrarMensaje(`❌ Solo los Bárbaros`, 'error'); return; }
         if (playerMana < 20) { mostrarMensaje(`❌ Mana insuficiente (20)`, 'error'); return; }
@@ -1698,7 +1669,7 @@ function create() {
         if (guardado.inventarioSlots) inventarioSlots = guardado.inventarioSlots;
         else { inventarioSlots = []; for (let i = 0; i < 36; i++) inventarioSlots.push(null); }
         equipamiento = guardado.equipamiento || { arma: null, escudo: null, armadura: null };
-        playerStats = guardado.playerStats || { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 };
+        playerStats = guardado.playerStats || { level: 1, exp: 0, expNeeded: 100, puntos: 0, puntosEspecialidad: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0 };
         if (guardado.ultimaPosicion) player.setPosition(guardado.ultimaPosicion.x, guardado.ultimaPosicion.y);
         attackSpeedModifier = classStats[pClassName]?.attackSpeed || 1.0;
         if (guardado.skillsEquipadas) skillsEquipadas = guardado.skillsEquipadas;
@@ -1758,6 +1729,7 @@ function create() {
 
     btnAttack.addEventListener('click', () => { if (window.simularAtaque) window.simularAtaque(); });
     this.input.keyboard.on('keydown-SPACE', () => { if (window.simularAtaque) window.simularAtaque(); });
+    this.input.keyboard.on('keydown-ESC', () => { toggleInventario(); });
 
     // ============================================
     // SOCKET EVENTS
@@ -1772,7 +1744,7 @@ function create() {
     socket.on('dropItem', (data) => { const statsConTextoVerde = { ...data.stats, calidad: data.calidad, textoVerde: data.textoVerde || false, textoDorado: data.textoDorado || false }; if (data.itemId === 'hachadehierroleg') crearDropHachaDeHierro(data.x, data.y, data.itemId, data.nombre, data.tipo, data.icono, statsConTextoVerde); else if (data.tipo === 'espada') crearDropEspada(data.x, data.y, data.itemId, data.nombre, data.tipo, data.icono, statsConTextoVerde); else if (data.tipo === 'escudo') crearDropEscudo(data.x, data.y, data.itemId, data.nombre, data.tipo, data.icono, statsConTextoVerde); else if (data.tipo === 'armadura') crearDropArmadura(data.x, data.y, data.itemId, data.nombre, data.tipo, data.icono, statsConTextoVerde); else if (data.tipo === 'arma_magica' || (data.itemId && (data.itemId.includes('bastondefuego') || data.itemId.includes('bastonderayo')))) crearDropBaston(data.x, data.y, data.itemId, data.nombre, data.tipo, data.icono, statsConTextoVerde); else crearDropHachaDeHierro(data.x, data.y, data.itemId, data.nombre, data.tipo, data.icono, statsConTextoVerde); });
     socket.on('dropPocion', (data) => { if (!currentScene) return; if (data.tipo === 'hp') { const drop = currentScene.add.image(data.x, data.y, 'frascohpdrop'); drop.setScale(0.8); drop.setDepth(data.y); drop.tipo = 'hp'; drop.cantidad = data.cantidad || 1; drop.recogida = false; drop.itemNombre = 'Pocion de Vida'; drop.timestamp = Date.now(); const texto = currentScene.add.text(data.x, data.y - 22, drop.itemNombre, { fontSize: '9px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5).setDepth(data.y + 5); texto.setVisible(false); drop.texto = texto; drop.setInteractive({ useHandCursor: true }); drop.on('pointerdown', () => { if (!player?.isAlive || drop.recogida) return; Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y) < 60 ? recogerPocionSuelo(drop) : mostrarMensaje(`❌ Muy lejos`, 'error'); }); dropsSuelo.push(drop); } else { const drop = currentScene.add.image(data.x, data.y, 'frascompdrop'); drop.setScale(0.8); drop.setDepth(data.y); drop.tipo = 'mana'; drop.cantidad = data.cantidad || 1; drop.recogida = false; drop.itemNombre = 'Pocion de Mana'; drop.timestamp = Date.now(); const texto = currentScene.add.text(data.x, data.y - 22, drop.itemNombre, { fontSize: '9px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5).setDepth(data.y + 5); texto.setVisible(false); drop.texto = texto; drop.setInteractive({ useHandCursor: true }); drop.on('pointerdown', () => { if (!player?.isAlive || drop.recogida) return; Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y) < 60 ? recogerPocionSuelo(drop) : mostrarMensaje(`❌ Muy lejos`, 'error'); }); dropsSuelo.push(drop); } });
     socket.on('barbaroAsesinato', (data) => { if (data.playerId === socket.id && barbaroTieneHacha && pClassName === 'BARBARO') { if (barbaroContadorAsesinatos < 10) barbaroContadorAsesinatos++; if (barbaroContadorAsesinatos >= 10) { mostrarMensaje(`🔥 ¡HABILIDAD ESPECIAL DISPONIBLE! 🔥`, 'exito'); if (player) player.setTint(0xff6600); } } });
-    socket.on('playerStatsUpdate', (data) => { if (data.id === socket.id) { const hpAnterior = playerHP; if (data.hp !== undefined) playerHP = data.hp; if (data.mana !== undefined) playerMana = data.mana; if (data.hp !== undefined && data.hp < hpAnterior && player && currentScene) { const danioRecibido = Math.floor(hpAnterior - data.hp); crearTextoDmg(currentScene, player.x, player.y - 30, `-${danioRecibido}`, "#ff4444", "24px"); } actualizarStatsUI(); } });
+    socket.on('playerStatsUpdate', (data) => { if (data.id === socket.id) { if (data.hp !== undefined) playerHP = data.hp; if (data.mana !== undefined) playerMana = data.mana; actualizarStatsUI(); } });
     socket.on('playerExpGain', (data) => { if (data.id === socket.id) ganarExp(data.exp); });
     socket.on('playerDeath', (data) => { if (data.id === socket.id) { player.setVisible(false); player.body.enable = false; player.attacking = true; player.isAlive = false; } });
     socket.on('playerRespawn', (data) => { if (data.id === socket.id && !player.isAlive) { player.setPosition(data.x, data.y); player.setVisible(true); player.body.enable = true; player.attacking = false; player.isAlive = true; let statsBase = classStats[pClassName]; playerHP = statsBase.hp; playerMana = statsBase.mana; actualizarStatsUI(); guardarPartida(); socket.emit('solicitarEsqueletos'); } });
@@ -1800,7 +1772,7 @@ function create() {
     socket.on('esqueletosIniciales', (data) => { if (!window.esqueletosGrupo) window.esqueletosGrupo = this.add.group(); window.esqueletosGrupo.clear(true, true); data.forEach(esqueleto => { if (esqueleto.isAlive !== false) { const img = this.physics.add.sprite(esqueleto.x, esqueleto.y, 'esqueleto').setScale(0.4); img.esqueletoId = esqueleto.id; img.isAlly = esqueleto.isAlly || false; img.currentDir = esqueleto.dir || 'Abajo'; img.setCollideWorldBounds(true); img.setSize(40, 40); img.setOffset(108, 155); img.body.setImmovable(true); img.play('esqueleto_idle_Abajo', true); img.setInteractive(); img.on('pointerdown', () => { ultimoEsqueletoClickeado = esqueleto.id; mostrarMensaje(`💀 Esqueleto ${esqueleto.isAlly ? 'aliado' : 'enemigo'} seleccionado`, 'info'); }); window.esqueletosGrupo.add(img); if (this.colisionEstatua) this.physics.add.collider(img, this.colisionEstatua); } }); });
     socket.on('esqueletoMoved', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id && esq.active) { esq.setPosition(data.x, data.y); esq.setDepth(data.y); esq.currentDir = data.dir; if (data.isMoving) esq.play(`esqueleto_walk_${data.dir}`, true); else esq.play(`esqueleto_idle_${data.dir}`, true); } }); } });
     socket.on('esqueletoAttackAnim', (data) => { if (!window.esqueletosGrupo || !currentScene) return; window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id && esq.active) { esq.currentDir = data.dir; const animKey = `esqueleto_atk_${data.dir}`; if (currentScene.anims.exists(animKey)) { if (esq.anims.isPlaying) esq.anims.stop(); esq.play(animKey, true); esq.once('animationcomplete', () => { if (esq.active) esq.play(`esqueleto_idle_${data.dir}`, true); }); } } }); });
-    socket.on('esqueletoAttackHit', (data) => { if (!currentScene) return; const hitbox = currentScene.add.rectangle(data.espadaX, data.espadaY, 20, 20, 0xff0000, 0); hitbox.setDepth(10001); currentScene.time.delayedCall(200, () => { if (hitbox && hitbox.active) hitbox.destroy(); }); if (data.targetId === socket.id && player && player.isAlive) { crearTextoDmg(currentScene, player.x, player.y - 30, `-${Math.floor(data.damage)}`, "#ff4444", "18px"); } });
+    socket.on('esqueletoAttackHit', (data) => { if (!currentScene) return; const hitbox = currentScene.add.rectangle(data.espadaX, data.espadaY, 20, 20, 0xff0000, 0); hitbox.setDepth(10001); currentScene.time.delayedCall(200, () => { if (hitbox && hitbox.active) hitbox.destroy(); }); if (data.targetId === socket.id && player && player.isAlive) { crearTextoDmg(currentScene, player.x, player.y - 30, `${Math.floor(data.damage)}`, "#ff4444", "18px"); } });
     socket.on('esqueletoAttackMiss', (data) => { if (!currentScene) return; if (data.targetId === socket.id && player && player.isAlive) { crearTextoDmg(currentScene, player.x, player.y - 30, "MISS", "#ffff00", "14px"); } });
     socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('esqueletoMuere'); if (sonido && muerteSoundsCount < 4) { muerteSoundsCount++; sonido.setVolume(window.volumenFX); sonido.play(); setTimeout(() => muerteSoundsCount--, 500); } } if (currentScene && Math.random() < 0.3) { crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id && esq.active) { let currentDir = esq.currentDir || data.dir || 'Abajo'; const dieAnim = `esqueleto_die_${currentDir}`; if (currentScene && currentScene.anims.exists(dieAnim)) { if (esq.anims.isPlaying) esq.anims.stop(); esq.play(dieAnim, true); if (esq.body) esq.body.enable = false; esq.once('animationcomplete', () => { if (esq && esq.active) esq.destroy(); }); } else { esq.destroy(); } if (data.exp > 0 && data.attackers && data.attackers.includes(socket.id)) ganarExp(data.exp); return    ; } }); } });
     socket.on('esqueletoDestroy', (data) => { if (window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id && esq.active) esq.destroy(); }); });
@@ -1815,6 +1787,7 @@ function create() {
     socket.on('rocasIniciales', (data) => { if (!window.rocasGrupo) window.rocasGrupo = this.add.group(); window.rocasGrupo.clear(true, true); data.forEach(r => { if (r.activo !== false) { const img = this.add.image(r.x, r.y, 'roca').setScale(0.8).setDepth(r.y); img.rocaId = r.id; window.rocasGrupo.add(img); } }); });
     socket.on('rocaObtenida', () => { agregarItemAlInventario('roca', 'material', 'Roca', 'roca_img', 1, true); });
     socket.on('rocaDesaparece', (data) => { if (window.rocasGrupo) window.rocasGrupo.getChildren().forEach(r => { if (r.rocaId === data.id) r.destroy(); }); });
+    socket.on('truenoVisual', (data) => { if (!currentScene) return; const trueno = currentScene.add.sprite(data.targetX, data.targetY - 20, 'trueno_sprite'); trueno.setScale(1.5); trueno.setDepth(10000); trueno.setOrigin(0.5, 1); if (currentScene.anims.exists('trueno_anim')) trueno.play('trueno_anim'); trueno.once('animationcomplete', () => { if (trueno && trueno.active) trueno.destroy(); }); if (currentScene.sound && currentScene.sound.get('truenosound')) { const s = currentScene.sound.get('truenosound'); s.setVolume(window.volumenFX); s.play(); } currentScene.cameras.main.shake(150, 0.012); setTimeout(() => { if (trueno && trueno.active) trueno.destroy(); }, 1500); });
     socket.on('rocaRespawn', (data) => { const img = this.add.image(data.x, data.y, 'roca').setScale(0.8).setDepth(data.y); img.rocaId = data.id; if (window.rocasGrupo) window.rocasGrupo.add(img); });
 
     setInterval(() => { if (!player || !player.isAlive) return; monedasSuelo.forEach(m => { if (m && m.texto) m.texto.setVisible(Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 100); }); dropsSuelo.forEach(d => { if (d && d.texto) d.texto.setVisible(Phaser.Math.Distance.Between(player.x, player.y, d.x, d.y) < 100); }); }, 100);
@@ -1879,7 +1852,7 @@ function update() {
     if (moviendo && ahora - ultimoGuardadoPosicionTime > 10000) { ultimoGuardadoPosicionTime = ahora; guardarPartida(); }
     if (!window.regeneracionTimer) window.regeneracionTimer = 0;
     window.regeneracionTimer++;
-    if (window.regeneracionTimer % 120 === 0) { const regenHP = 2 + (playerStats.regeneracion || 0) * 1.0; if (playerHP < playerMaxHP) { playerHP = Math.min(playerMaxHP, playerHP + regenHP); actualizarStatsUI(); } }
+    if (window.regeneracionTimer % 120 === 0) { if (pClassName !== 'MAGO' && pClassName !== 'NECROMANCER') { const regenHP = 2 + (playerStats.regeneracion || 0) * 1.0; if (playerHP < playerMaxHP) { playerHP = Math.min(playerMaxHP, playerHP + regenHP); actualizarStatsUI(); } } }
        const playerY = player.y;
     if (playerY < 400) { if (this.ground) this.ground.setTint(0xddddff); } else { if (this.ground) this.ground.clearTint(); }
     actualizarBarrasEnemigos();
