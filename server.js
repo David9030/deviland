@@ -48,6 +48,10 @@ let sacrificioActivoServer = {};
 
 function getDistance(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
 
+function rectanguloColisiona(r1, r2) {
+    return !(r1.x + r1.w < r2.x || r1.x > r2.x + r2.w || r1.y + r1.h < r2.y || r1.y > r2.y + r2.h);
+}
+
 function getPlayerDefenseFisica(playerId) { const j = players[playerId]; if (!j) return 0; const inv = inventariosJugadores[playerId]; let def = 0; let claseKey = (j.className || j.class || 'warrior').toLowerCase(); if (claseKey.includes('mago')) claseKey = 'mago'; if (claseKey.includes('necromancer')) claseKey = 'necromancer'; const statsBase = CONFIG.PLAYER.BASE_STATS[claseKey] || CONFIG.PLAYER.BASE_STATS.warrior; def += (statsBase.defensaFisica || 0); if (inv && inv.items) { const cabezaId = j.equipamiento?.cabeza; if (cabezaId) { const item = inv.items.find(i => i.id === cabezaId); if (item && item.defensaFisica) def += Math.floor(item.defensaFisica); } const pechoId = j.equipamiento?.pecho; if (pechoId) { const item = inv.items.find(i => i.id === pechoId); if (item && item.defensaFisica) def += Math.floor(item.defensaFisica); } const armaduraId = j.equipamiento?.armadura; if (armaduraId) { const item = inv.items.find(i => i.id === armaduraId); if (item && item.defensaFisica) def += Math.floor(item.defensaFisica); } const piernasId = j.equipamiento?.piernas; if (piernasId) { const item = inv.items.find(i => i.id === piernasId); if (item && item.defensaFisica) def += Math.floor(item.defensaFisica); } const piesId = j.equipamiento?.pies; if (piesId) { const item = inv.items.find(i => i.id === piesId); if (item && item.defensaFisica) def += Math.floor(item.defensaFisica); } const escudoId = j.equipamiento?.escudo; if (escudoId) { const item = inv.items.find(i => i.id === escudoId); if (item && item.defensaFisica) def += Math.floor(item.defensaFisica); } } return Math.max(0, Math.floor(def)); }
 
 function getPlayerDefensaMagica(playerId) { const j = players[playerId]; if (!j) return 0; const inv = inventariosJugadores[playerId]; let def = 0; let claseKey = (j.className || j.class || 'warrior').toLowerCase(); if (claseKey.includes('mago')) claseKey = 'mago'; if (claseKey.includes('necromancer')) claseKey = 'necromancer'; const statsBase = CONFIG.PLAYER.BASE_STATS[claseKey] || CONFIG.PLAYER.BASE_STATS.warrior; def += (statsBase.defensaMagica || 0); def += Math.floor((j.stats?.inteligencia || 0) / 2); if (inv && inv.items) { const cabezaId = j.equipamiento?.cabeza; if (cabezaId) { const item = inv.items.find(i => i.id === cabezaId); if (item && item.defensaMagica) def += Math.floor(item.defensaMagica); } const pechoId = j.equipamiento?.pecho; if (pechoId) { const item = inv.items.find(i => i.id === pechoId); if (item && item.defensaMagica) def += Math.floor(item.defensaMagica); } const armaduraId = j.equipamiento?.armadura; if (armaduraId) { const item = inv.items.find(i => i.id === armaduraId); if (item && item.defensaMagica) def += Math.floor(item.defensaMagica); } const piernasId = j.equipamiento?.piernas; if (piernasId) { const item = inv.items.find(i => i.id === piernasId); if (item && item.defensaMagica) def += Math.floor(item.defensaMagica); } const piesId = j.equipamiento?.pies; if (piesId) { const item = inv.items.find(i => i.id === piesId); if (item && item.defensaMagica) def += Math.floor(item.defensaMagica); } const escudoId = j.equipamiento?.escudo; if (escudoId) { const item = inv.items.find(i => i.id === escudoId); if (item && item.defensaMagica) def += Math.floor(item.defensaMagica); } } return Math.max(0, Math.floor(def)); }
@@ -114,11 +118,110 @@ io.on('connection', (socket) => {
     socket.on('playerMovement', (data) => { let p = players[socket.id]; if (p && p.isAlive) { if (!colisionaConObjeto(data.x, data.y, 20)) { p.x = data.x; p.y = data.y; p.dir = data.dir; p.isMoving = data.isMoving; socket.broadcast.emit('playerMoved', { id: socket.id, x: data.x, y: data.y, dir: data.dir, isMoving: data.isMoving, hp: p.hp, maxHp: p.maxHp, timestamp: data.timestamp, auraVisible: data.auraVisible || false }); } else { socket.emit('playerMovementBlocked', { x: p.x, y: p.y }); } } });
     socket.on('truenoRemoto', (data) => { socket.broadcast.emit('truenoVisual', data); });
     socket.on('cambiarMapa', (data) => { if (players[socket.id] && data.mapa) { cambiarJugadorDeMapa(socket.id, data.mapa); } });
-    socket.on('playerAttack', (data) => { const j = players[socket.id]; if (!j || !j.isAlive) return; const ahora = Date.now(); if (ultimoAtaque.get(socket.id) && ahora - ultimoAtaque.get(socket.id) < 100) return; ultimoAtaque.set(socket.id, ahora); socket.broadcast.emit('playerAttacked', { id: socket.id, dir: j.dir, class: j.class }); let dañoTotal = data.damageBonus || j.ataqueFisico; if (j.contraGolpeCargado && j.contraGolpeBonus > 0) { dañoTotal += j.contraGolpeBonus; io.emit('contraGolpeActivado', { playerId: socket.id, x: j.x, y: j.y, bonus: j.contraGolpeBonus }); io.emit('contraGolpeUsado', { playerId: socket.id }); j.contraGolpeCargado = false; j.contraGolpeBonus = 0; } let esqCercano = null, distMin = 80; for (let e of esqueletos) { if (e.isAlive && !e.isAlly && getDistance(j.x, j.y, e.x, e.y) < distMin) { distMin = getDistance(j.x, j.y, e.x, e.y); esqCercano = e; } } if (esqCercano) daniarEsqueleto(esqCercano, socket.id, Math.floor(Math.max(1, dañoTotal))); });
-    socket.on('esqueletoHit', (data) => { const j = players[socket.id]; if (!j || !j.isAlive) return; let dañoTotal = data.damageBonus || 0; if (j.contraGolpeCargado && j.contraGolpeBonus > 0) { dañoTotal += j.contraGolpeBonus; io.emit('contraGolpeActivado', { playerId: socket.id, x: j.x, y: j.y, bonus: j.contraGolpeBonus }); io.emit('contraGolpeUsado', { playerId: socket.id }); j.contraGolpeCargado = false; j.contraGolpeBonus = 0; } let e = esqueletos.find(e => e.id === data.id && e.isAlive); if (e) daniarEsqueleto(e, socket.id, Math.floor(Math.max(1, dañoTotal)), data.elemento || null); });
+    
+    // ========== NUEVO SISTEMA DE ATAQUE CON RECTÁNGULO ==========
+    socket.on('playerAttack', (data) => {
+        const j = players[socket.id];
+        if (!j || !j.isAlive) return;
+        const ahora = Date.now();
+        if (ultimoAtaque.get(socket.id) && ahora - ultimoAtaque.get(socket.id) < 100) return;
+        ultimoAtaque.set(socket.id, ahora);
+        
+        socket.broadcast.emit('playerAttacked', { id: socket.id, dir: j.dir, class: j.class });
+        
+        let dañoTotal = data.damageBonus || j.ataqueFisico;
+        if (j.contraGolpeCargado && j.contraGolpeBonus > 0) {
+            dañoTotal += j.contraGolpeBonus;
+            io.emit('contraGolpeActivado', { playerId: socket.id, x: j.x, y: j.y, bonus: j.contraGolpeBonus });
+            io.emit('contraGolpeUsado', { playerId: socket.id });
+            j.contraGolpeCargado = false;
+            j.contraGolpeBonus = 0;
+        }
+        
+        // Calcular hitbox según dirección
+               let hitbox = data.hitbox || { x: j.x - 5, y: j.y - 10, w: 10, h: 22 };
+        
+        let golpeo = false;
+        
+        // Verificar colisión con Demonlord
+        if (demonlord.isAlive && demonlord.hp > 0) {
+            const dlBody = { x: demonlord.x - 25, y: demonlord.y - 40, w: 50, h: 80 };
+            if (rectanguloColisiona(hitbox, dlBody)) {
+                let dmg = Math.floor(Math.max(1, dañoTotal));
+                if (data.esCritico) dmg *= 2;
+                demonlord.hp = Math.max(0, demonlord.hp - dmg);
+                if (!demonlord.attackers) demonlord.attackers = [];
+                if (!demonlord.attackers.includes(socket.id)) demonlord.attackers.push(socket.id);
+                io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: dmg, hp: demonlord.hp });
+                io.emit('playerAttackHit', { playerId: socket.id, targetId: 'demonlord', hitbox: hitbox, damage: dmg });
+                golpeo = true;
+                
+                if (demonlord.hp <= 0) {
+                    demonlord.isAlive = false;
+                    demonlord.aturdido = false;
+                    if (Math.random() < 0.15) dropearItem(demonlord.x, demonlord.y, 'hachadehierroleg');
+                    if (demonlord.attackers && demonlord.attackers.length > 0) demonlord.attackers.forEach(a => darExpAJugadorYEquipo(a, CONFIG.DEMONLORD.EXP));
+                    else darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP);
+                    for (let i = 0; i < 20; i++) { const ang = (i/20)*Math.PI*2; const dist = 60 + Math.random()*80; io.emit('crearMonedaServidor', { x: demonlord.x + Math.cos(ang)*dist, y: demonlord.y + Math.sin(ang)*dist, cantidad: Math.floor(Math.random()*50)+20 }); }
+                    if (Math.random() < 0.3) { const rand = Math.random(); if (rand < 0.03) dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_3'); else if (rand < 0.15) dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_2'); else dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_1'); }
+                    io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
+                    setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; demonlord.aturdido = false; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME);
+                }
+            }
+        }
+        
+        // Verificar colisión con esqueletos
+        if (!golpeo) {
+            for (let e of esqueletos) {
+                if (e.isAlive && !e.isAlly) {
+                    const eBody = { x: e.x - 20, y: e.y - 20, w: 40, h: 40 };
+                    if (rectanguloColisiona(hitbox, eBody)) {
+                        daniarEsqueleto(e, socket.id, Math.floor(Math.max(1, dañoTotal)));
+                        io.emit('playerAttackHit', { playerId: socket.id, targetId: e.id, hitbox: hitbox, damage: Math.floor(Math.max(1, dañoTotal)) });
+                        golpeo = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (!golpeo) {
+            io.emit('playerAttackHit', { playerId: socket.id, targetId: null, hitbox: hitbox, damage: 0 });
+        }
+    });
+    
+    socket.on('esqueletoHit', (data) => {
+        const j = players[socket.id];
+        if (!j || !j.isAlive) return;
+        let dañoTotal = data.damageBonus || 0;
+        if (j.contraGolpeCargado && j.contraGolpeBonus > 0) {
+            dañoTotal += j.contraGolpeBonus;
+            io.emit('contraGolpeActivado', { playerId: socket.id, x: j.x, y: j.y, bonus: j.contraGolpeBonus });
+            io.emit('contraGolpeUsado', { playerId: socket.id });
+            j.contraGolpeCargado = false;
+            j.contraGolpeBonus = 0;
+        }
+        let e = esqueletos.find(e => e.id === data.id && e.isAlive);
+        if (e) daniarEsqueleto(e, socket.id, Math.floor(Math.max(1, dañoTotal)), data.elemento || null);
+    });
     socket.on('playerMurio', (data) => { const j = players[data.id]; if (j && j.isAlive) { j.isAlive = false; j.hp = 0; io.emit('playerDeath', { id: data.id, name: j.name }); esqueletos.forEach(e => { if (e.targetId === data.id) { e.targetId = null; e.targetType = null; } }); } });
     socket.on('playerRespawn', (data) => { if (data.id === socket.id) revivirJugador(socket.id); });
-    socket.on('demonlordHit', (data) => { if (!demonlord.isAlive) return; const j = players[socket.id]; if (!j || !j.isAlive) return; if (!demonlord.attackers) demonlord.attackers = []; if (!demonlord.attackers.includes(socket.id)) demonlord.attackers.push(socket.id); let dmg = Math.floor(data.damageBonus || j.ataqueFisico); if (data.esCritico) dmg *= 2; demonlord.hp = Math.max(0, demonlord.hp - dmg); io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: dmg, hp: demonlord.hp }); if (j && data.elemento === 'fuego') { const armaId = j.equipamiento?.arma; if (armaId) { const inv = inventariosJugadores[socket.id]; if (inv) { const arma = inv.items.find(i => i.id === armaId); if (arma && (arma.idBase === 'bastondefuegoleg' || arma.nombre === 'Baston de Fuego Legendario')) { if (Math.random() < 0.15) { const dañoFuegoTotal = (j.stats?.atqFuego || 0) + 500; aplicarQuemadura('demonlord', dañoFuegoTotal, 5); io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${j.name} aplico QUEMADURA al Demonlord!` }); } } } } } if (j && data.elemento === 'luz') { const armaId = j.equipamiento?.arma; if (armaId) { const inv = inventariosJugadores[socket.id]; if (inv) { const arma = inv.items.find(i => i.id === armaId); if (arma && (arma.idBase === 'bastonderayoleg' || arma.nombre === 'Baston de Rayo Legendario')) { if (Math.random() < 0.15) { aplicarAturdimiento('demonlord', 5); io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${j.name} aplico ATURDIMIENTO al Demonlord!` }); } } } } } if (demonlord.hp <= 0) { demonlord.isAlive = false; demonlord.aturdido = false; if (Math.random() < 0.15) dropearItem(demonlord.x, demonlord.y, 'hachadehierroleg'); if (demonlord.attackers && demonlord.attackers.length > 0) demonlord.attackers.forEach(a => darExpAJugadorYEquipo(a, CONFIG.DEMONLORD.EXP)); else darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP); for (let i = 0; i < 20; i++) { const ang = (i/20)*Math.PI*2; const dist = 60 + Math.random()*80; io.emit('crearMonedaServidor', { x: demonlord.x + Math.cos(ang)*dist, y: demonlord.y + Math.sin(ang)*dist, cantidad: Math.floor(Math.random()*50)+20 }); } if (Math.random() < 0.3) { const rand = Math.random(); if (rand < 0.03) dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_3'); else if (rand < 0.15) dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_2'); else dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_1'); } io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] }); setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; demonlord.aturdido = false; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME); } });
+    
+    socket.on('demonlordHit', (data) => {
+        if (!demonlord.isAlive) return;
+        const j = players[socket.id];
+        if (!j || !j.isAlive) return;
+        if (!demonlord.attackers) demonlord.attackers = [];
+        if (!demonlord.attackers.includes(socket.id)) demonlord.attackers.push(socket.id);
+        let dmg = Math.floor(data.damageBonus || j.ataqueFisico);
+        if (data.esCritico) dmg *= 2;
+        demonlord.hp = Math.max(0, demonlord.hp - dmg);
+        io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: dmg, hp: demonlord.hp });
+        if (j && data.elemento === 'fuego') { const armaId = j.equipamiento?.arma; if (armaId) { const inv = inventariosJugadores[socket.id]; if (inv) { const arma = inv.items.find(i => i.id === armaId); if (arma && (arma.idBase === 'bastondefuegoleg' || arma.nombre === 'Baston de Fuego Legendario')) { if (Math.random() < 0.15) { const dañoFuegoTotal = (j.stats?.atqFuego || 0) + 500; aplicarQuemadura('demonlord', dañoFuegoTotal, 5); io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${j.name} aplico QUEMADURA al Demonlord!` }); } } } } }
+        if (j && data.elemento === 'luz') { const armaId = j.equipamiento?.arma; if (armaId) { const inv = inventariosJugadores[socket.id]; if (inv) { const arma = inv.items.find(i => i.id === armaId); if (arma && (arma.idBase === 'bastonderayoleg' || arma.nombre === 'Baston de Rayo Legendario')) { if (Math.random() < 0.15) { aplicarAturdimiento('demonlord', 5); io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${j.name} aplico ATURDIMIENTO al Demonlord!` }); } } } } }
+        if (demonlord.hp <= 0) { demonlord.isAlive = false; demonlord.aturdido = false; if (Math.random() < 0.15) dropearItem(demonlord.x, demonlord.y, 'hachadehierroleg'); if (demonlord.attackers && demonlord.attackers.length > 0) demonlord.attackers.forEach(a => darExpAJugadorYEquipo(a, CONFIG.DEMONLORD.EXP)); else darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP); for (let i = 0; i < 20; i++) { const ang = (i/20)*Math.PI*2; const dist = 60 + Math.random()*80; io.emit('crearMonedaServidor', { x: demonlord.x + Math.cos(ang)*dist, y: demonlord.y + Math.sin(ang)*dist, cantidad: Math.floor(Math.random()*50)+20 }); } if (Math.random() < 0.3) { const rand = Math.random(); if (rand < 0.03) dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_3'); else if (rand < 0.15) dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_2'); else dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_1'); } io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] }); setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; demonlord.aturdido = false; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME); }
+    });
+    
     socket.on('solicitarDemonlordHP', () => { const j = players[socket.id]; if (!j) return; const dist = getDistance(demonlord.x, demonlord.y, j.x, j.y); if (dist < CONFIG.DEMONLORD.VISION_RANGE + 100) socket.emit('demonlordHPResponse', { hp: demonlord.hp, maxHp: demonlord.maxHp, visible: true }); else socket.emit('demonlordHPResponse', { visible: false }); });
     socket.on('levantarEsqueleto', (data) => { const j = players[socket.id]; if (!j || j.className !== 'NECROMANCER') { socket.emit('mensaje', 'Solo Necromancer'); return; } let cadaver = esqueletos.find(e => e.id === data.id && !e.isAlive && !e.isAlly); if (!cadaver) { socket.emit('mensaje', 'No hay cadaver'); return; } if (getDistance(j.x, j.y, cadaver.x, cadaver.y) > 100) { socket.emit('mensaje', 'Muy lejos'); return; } cadaver.isAlive = true; cadaver.isAlly = true; cadaver.ownerId = socket.id; cadaver.hp = cadaver.maxHp; cadaver.x = j.x + (Math.random()*100-50); cadaver.y = j.y + (Math.random()*100-50); cadaver.attackers = []; j.esqueletosSummon = (j.esqueletosSummon||0)+1; io.emit('esqueletoRevive', { id: cadaver.id, x: cadaver.x, y: cadaver.y, ownerId: socket.id }); io.emit('playerStatsUpdate', { id: socket.id, hp: j.hp, mana: j.mana }); });
     socket.on('furiaNecrotica', () => { const j = players[socket.id]; if (!j || j.className !== 'NECROMANCER') { socket.emit('mensaje', 'Solo Necromancer'); return; } const now = Date.now(); const last = skillCooldowns[socket.id].furiaNecrotica; if (last > 0 && now - last < 120000) { socket.emit('mensaje', 'Cooldown'); return; } const aliados = esqueletos.filter(e => e.isAlly === true && e.ownerId === socket.id && e.isAlive === true); const cant = aliados.length; if (cant === 0) { socket.emit('mensaje', 'Sin esqueletos'); return; } const cost = cant * 10; if (j.mana < cost) { socket.emit('mensaje', `Necesitas ${cost} mana`); return; } j.mana -= cost; io.emit('playerStatsUpdate', { id: socket.id, mana: j.mana }); const bonus = cant * 0.07; const bonusDamage = Math.floor(CONFIG.SKELETON.ATTACK_DAMAGE * bonus); const ids = []; aliados.forEach(e => { e.damageBonus = bonusDamage; ids.push(e.id); }); skillCooldowns[socket.id].furiaNecrotica = now; io.emit('furiaNecroticaEffect', { playerId: socket.id, duracion: 10, esqueletosIds: ids, bonusPorcentaje: bonus }); setTimeout(() => { esqueletos.filter(e => e.isAlly && e.ownerId === socket.id && e.isAlive).forEach(e => e.damageBonus = 0); io.emit('furiaNecroticaEnd', { playerId: socket.id }); }, 10000); });
@@ -154,7 +257,71 @@ setInterval(() => {
     if (Math.abs(dx) > Math.abs(dy)) demonlord.dir = dx > 0 ? 'Derecha' : 'Izquierda'; else demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
     if (dist < 400) {
         if (dist > 70) { const moveX = (dx/dist)*CONFIG.DEMONLORD.SPEED, moveY = (dy/dist)*CONFIG.DEMONLORD.SPEED; const newX = Math.min(Math.max(demonlord.x+moveX,50),2950), newY = Math.min(Math.max(demonlord.y+moveY,50),2950); if (!colisionaConObjeto(newX,newY,50)) { demonlord.x = newX; demonlord.y = newY; } io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: true }); } else { io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false }); }
-        if (demonlord.attackCooldown <= 0 && dist < 70) { demonlord.attackCooldown = CONFIG.DEMONLORD.ATTACK_COOLDOWN; io.emit('demonlordAtkVisual', { dir: demonlord.dir, esFuerte: Math.random()<0.2 }); let golpeX = demonlord.x, golpeY = demonlord.y; const alcanceGolpe = 50; switch(demonlord.dir) { case 'Derecha': golpeX = demonlord.x+alcanceGolpe; golpeY = demonlord.y+10; break; case 'Izquierda': golpeX = demonlord.x-alcanceGolpe; golpeY = demonlord.y+10; break; case 'Arriba': golpeX = demonlord.x; golpeY = demonlord.y-alcanceGolpe; break; case 'Abajo': golpeX = demonlord.x; golpeY = demonlord.y+alcanceGolpe; break; } io.emit('demonlordAttack',{targetId:closest.id,damage:0,x:demonlord.x,y:demonlord.y,dir:demonlord.dir}); const closestRef = closest, golpeXRef = golpeX, golpeYRef = golpeY; setTimeout(() => { if (!demonlord.isAlive || !closestRef) return; if (players[closestRef.id] && closestRef.hp <= 0) return; if (!players[closestRef.id] && !closestRef.isAlive) return; const distGolpe = getDistance(golpeXRef, golpeYRef, closestRef.x, closestRef.y); if (distGolpe < 55) { if (players[closestRef.id]) { const jugadorObj = players[closestRef.id]; if (jugadorObj && jugadorObj.stats && jugadorObj.stats.destreza > 0) { const esquivaChance = 5 + (jugadorObj.stats.destreza||0); if (Math.random()*100 < esquivaChance) { io.to(closestRef.id).emit('chatMessage', { type:'system', name:'Sistema', msg:'Esquivaste el ataque del Demonlord!' }); io.emit('demonlordAttackMiss', { targetId: closestRef.id }); return; } } let damage = calcularDañoFinal(closestRef.id, CONFIG.DEMONLORD.ATTACK_DAMAGE, 'fisico'); damage = Math.max(0, damage); const j = players[closestRef.id]; if (j && tieneHachaLegendaria(j)) { j.contraGolpeContador = (j.contraGolpeContador||0)+1; j.contraGolpeDanioAcumulado = (j.contraGolpeDanioAcumulado||0)+damage; if (j.contraGolpeContador >= 10) { j.contraGolpeBonus = Math.floor(j.contraGolpeDanioAcumulado*0.15); j.contraGolpeCargado = true; io.emit('contraGolpeCargado', { playerId: j.id }); j.contraGolpeContador = 0; j.contraGolpeDanioAcumulado = 0; io.to(j.id).emit('chatMessage', { type:'system', name:'Sistema', msg:`Contra-golpe listo! +${j.contraGolpeBonus} de daño.` }); } } closestRef.hp = Math.max(0, closestRef.hp - damage); io.emit('playerStatsUpdate', { id: closestRef.id, hp: closestRef.hp }); io.emit('demonlordAttackHit', { targetId: closestRef.id, damage: Math.max(0, Math.floor(damage)), golpeX: golpeXRef, golpeY: golpeYRef }); if (closestRef.hp <= 0) { closestRef.isAlive = false; io.emit('playerDeath', { id: closestRef.id, name: closestRef.name }); setTimeout(() => revivirJugador(closestRef.id), CONFIG.PLAYER.RESPAWN_TIME); } } else { closestRef.hp = Math.max(0, closestRef.hp - Math.floor(CONFIG.DEMONLORD.ATTACK_DAMAGE)); io.emit('demonlordAttackHit', { targetId: closestRef.id, damage: Math.floor(CONFIG.DEMONLORD.ATTACK_DAMAGE), golpeX: golpeXRef, golpeY: golpeYRef }); if (closestRef.hp <= 0) { closestRef.isAlive = false; io.emit('esqueletoDeath', { id: closestRef.id, x: closestRef.x, y: closestRef.y, exp: CONFIG.SKELETON.EXP, attackers: ['demonlord'], dir: closestRef.dir || 'Abajo' }); } } } else { io.emit('demonlordAttackMiss', { targetId: closestRef.id }); } }, 400); } } else { io.emit('demonlordMoved',{x:demonlord.x,y:demonlord.y,dir:demonlord.dir,isMoving:false}); } if(demonlord.attackCooldown>0)demonlord.attackCooldown-=100;
+        if (demonlord.attackCooldown <= 0 && dist < 70) {
+            demonlord.attackCooldown = CONFIG.DEMONLORD.ATTACK_COOLDOWN;
+            io.emit('demonlordAtkVisual', { dir: demonlord.dir, esFuerte: Math.random()<0.2 });
+            
+            // Calcular hitbox del ataque del Demonlord
+            let hitbox = { x: demonlord.x - 25, y: demonlord.y + 10, w: 50, h: 30 };
+            switch(demonlord.dir) {
+                case 'Derecha': hitbox = { x: demonlord.x + 25, y: demonlord.y - 15, w: 45, h: 30 }; break;
+                case 'Izquierda': hitbox = { x: demonlord.x - 70, y: demonlord.y - 15, w: 45, h: 30 }; break;
+                case 'Arriba': hitbox = { x: demonlord.x - 25, y: demonlord.y - 60, w: 50, h: 30 }; break;
+                case 'Abajo': hitbox = { x: demonlord.x - 25, y: demonlord.y + 10, w: 50, h: 30 }; break;
+            }
+            
+            io.emit('demonlordAttack',{targetId:closest.id,damage:0,x:demonlord.x,y:demonlord.y,dir:demonlord.dir,hitbox:hitbox});
+            const closestRef = closest, hitboxRef = hitbox;
+            setTimeout(() => {
+                if (!demonlord.isAlive || !closestRef) return;
+                if (players[closestRef.id] && closestRef.hp <= 0) return;
+                if (!players[closestRef.id] && !closestRef.isAlive) return;
+                
+                // Verificar colisión del hitbox con el body del objetivo
+                let objetivoBody;
+                if (players[closestRef.id]) {
+                    objetivoBody = { x: closestRef.x - 20, y: closestRef.y - 20, w: 40, h: 40 };
+                } else {
+                    objetivoBody = { x: closestRef.x - 20, y: closestRef.y - 20, w: 40, h: 40 };
+                }
+                
+                if (rectanguloColisiona(hitboxRef, objetivoBody)) {
+                    if (players[closestRef.id]) {
+                        const jugadorObj = players[closestRef.id];
+                        if (jugadorObj && jugadorObj.stats && jugadorObj.stats.destreza > 0) {
+                            const esquivaChance = 5 + (jugadorObj.stats.destreza||0);
+                            if (Math.random()*100 < esquivaChance) {
+                                io.to(closestRef.id).emit('chatMessage', { type:'system', name:'Sistema', msg:'Esquivaste el ataque del Demonlord!' });
+                                io.emit('demonlordAttackMiss', { targetId: closestRef.id });
+                                return;
+                            }
+                        }
+                        let damage = calcularDañoFinal(closestRef.id, CONFIG.DEMONLORD.ATTACK_DAMAGE, 'fisico');
+                        damage = Math.max(0, damage);
+                        const j = players[closestRef.id];
+                        if (j && tieneHachaLegendaria(j)) {
+                            j.contraGolpeContador = (j.contraGolpeContador||0)+1;
+                            j.contraGolpeDanioAcumulado = (j.contraGolpeDanioAcumulado||0)+damage;
+                            if (j.contraGolpeContador >= 10) { j.contraGolpeBonus = Math.floor(j.contraGolpeDanioAcumulado*0.15); j.contraGolpeCargado = true; io.emit('contraGolpeCargado', { playerId: j.id }); j.contraGolpeContador = 0; j.contraGolpeDanioAcumulado = 0; io.to(j.id).emit('chatMessage', { type:'system', name:'Sistema', msg:`Contra-golpe listo! +${j.contraGolpeBonus} de daño.` }); }
+                        }
+                        closestRef.hp = Math.max(0, closestRef.hp - damage);
+                        io.emit('playerStatsUpdate', { id: closestRef.id, hp: closestRef.hp });
+                        io.emit('demonlordAttackHit', { targetId: closestRef.id, damage: Math.max(0, Math.floor(damage)), golpeX: hitboxRef.x + hitboxRef.w/2, golpeY: hitboxRef.y + hitboxRef.h/2 });
+                        if (closestRef.hp <= 0) { closestRef.isAlive = false; io.emit('playerDeath', { id: closestRef.id, name: closestRef.name }); setTimeout(() => revivirJugador(closestRef.id), CONFIG.PLAYER.RESPAWN_TIME); }
+                    } else {
+                        closestRef.hp = Math.max(0, closestRef.hp - Math.floor(CONFIG.DEMONLORD.ATTACK_DAMAGE));
+                        io.emit('demonlordAttackHit', { targetId: closestRef.id, damage: Math.floor(CONFIG.DEMONLORD.ATTACK_DAMAGE), golpeX: hitboxRef.x + hitboxRef.w/2, golpeY: hitboxRef.y + hitboxRef.h/2 });
+                        if (closestRef.hp <= 0) { closestRef.isAlive = false; io.emit('esqueletoDeath', { id: closestRef.id, x: closestRef.x, y: closestRef.y, exp: CONFIG.SKELETON.EXP, attackers: ['demonlord'], dir: closestRef.dir || 'Abajo' }); }
+                    }
+                } else {
+                    io.emit('demonlordAttackMiss', { targetId: closestRef.id });
+                }
+            }, 400);
+        }
+    } else {
+        io.emit('demonlordMoved',{x:demonlord.x,y:demonlord.y,dir:demonlord.dir,isMoving:false});
+    }
+    if(demonlord.attackCooldown>0)demonlord.attackCooldown-=100;
 }, 100);
 
 setInterval(() => {
@@ -168,7 +335,54 @@ setInterval(() => {
             if (!closest) { const owner = players[e.ownerId]; if (owner && owner.isAlive) { const d = getDistance(e.x, e.y, owner.x, owner.y); if (d > 80) { const dx = owner.x - e.x, dy = owner.y - e.y; const moveX = (dx/d)*CONFIG.SKELETON.SPEED, moveY = (dy/d)*CONFIG.SKELETON.SPEED; const newX = Math.min(Math.max(e.x+moveX,50),2950), newY = Math.min(Math.max(e.y+moveY,50),2950); if (!colisionaConObjeto(newX,newY,20)) { e.x = newX; e.y = newY; } if (Math.abs(dx)>Math.abs(dy)) e.dir = dx>0?'Derecha':'Izquierda'; else e.dir = dy>0?'Abajo':'Arriba'; io.emit('esqueletoMoved',{id:e.id,x:e.x,y:e.y,dir:e.dir,isMoving:true}); } else { io.emit('esqueletoMoved',{id:e.id,x:e.x,y:e.y,dir:e.dir,isMoving:false}); } } else { io.emit('esqueletoMoved',{id:e.id,x:e.x,y:e.y,dir:e.dir,isMoving:false}); } return; }
             const dx = closest.x - e.x, dy = closest.y - e.y, dist = Math.hypot(dx, dy);
             if (dist > 35) { moverEsqueletoHaciaObjetivo(e, closest); } else { io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: false }); }
-            if (e.attackCooldown <= 0 && closestDist < 45) { e.attackCooldown = CONFIG.SKELETON.ATTACK_COOLDOWN; let espadaX = e.x, espadaY = e.y; const alcanceEspada = 10; switch(e.dir) { case 'Derecha': espadaX = e.x+alcanceEspada; espadaY = e.y+15; break; case 'Izquierda': espadaX = e.x-alcanceEspada; espadaY = e.y+15; break; case 'Arriba': espadaX = e.x; espadaY = e.y-alcanceEspada-5; break; case 'Abajo': espadaX = e.x; espadaY = e.y+alcanceEspada+5; break; } io.emit('esqueletoAttackAnim', { id: e.id, targetId: closest.id, damage: 0, x: e.x, y: e.y, dir: e.dir }); const esqueletoRef = e, closestRef = closest, espadaXRef = espadaX, espadaYRef = espadaY; setTimeout(() => { if (!esqueletoRef.isAlive) return; const distEspada = getDistance(espadaXRef, espadaYRef, closestRef.x, closestRef.y); if (distEspada < 45) { let damage = Math.max(0, CONFIG.SKELETON.ATTACK_DAMAGE + (esqueletoRef.damageBonus || 0)); if (closestRef.id === 'demonlord') { demonlord.hp = Math.max(0, demonlord.hp - damage); io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: Math.max(0, Math.floor(damage)) }); io.emit('esqueletoAttackHit', { id: esqueletoRef.id, targetId: closestRef.id, damage: Math.max(0, Math.floor(damage)), espadaX: espadaXRef, espadaY: espadaYRef }); if (demonlord.hp <= 0) { demonlord.isAlive = false; io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y }); setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME); } } else if (closestRef.isAlive && !closestRef.isAlly) { closestRef.hp = Math.max(0, closestRef.hp - damage); io.emit('enemyDamaged', { id: closestRef.id, x: closestRef.x, y: closestRef.y, dmg: Math.max(0, Math.floor(damage)) }); io.emit('esqueletoAttackHit', { id: esqueletoRef.id, targetId: closestRef.id, damage: Math.max(0, Math.floor(damage)), espadaX: espadaXRef, espadaY: espadaYRef }); if (closestRef.hp <= 0) { closestRef.isAlive = false; io.emit('esqueletoDeath', { id: closestRef.id, x: closestRef.x, y: closestRef.y, exp: CONFIG.SKELETON.EXP, attackers: [esqueletoRef.ownerId || 'esqueleto_aliado'], dir: closestRef.dir || 'Abajo' }); } } } else { io.emit('esqueletoAttackMiss', { id: esqueletoRef.id, targetId: closestRef.id }); } }, 400); } if (e.attackCooldown > 0) e.attackCooldown -= 100; return; }
+            if (e.attackCooldown <= 0 && closestDist < 45) {
+                e.attackCooldown = CONFIG.SKELETON.ATTACK_COOLDOWN;
+                
+                // Calcular hitbox del esqueleto
+                let hitbox = { x: e.x - 15, y: e.y + 5, w: 30, h: 20 };
+                switch(e.dir) {
+                    case 'Derecha': hitbox = { x: e.x + 15, y: e.y - 10, w: 25, h: 20 }; break;
+                    case 'Izquierda': hitbox = { x: e.x - 40, y: e.y - 10, w: 25, h: 20 }; break;
+                    case 'Arriba': hitbox = { x: e.x - 15, y: e.y - 35, w: 30, h: 20 }; break;
+                    case 'Abajo': hitbox = { x: e.x - 15, y: e.y + 5, w: 30, h: 20 }; break;
+                }
+                
+                io.emit('esqueletoAttackAnim', { id: e.id, targetId: closest.id, damage: 0, x: e.x, y: e.y, dir: e.dir, hitbox: hitbox });
+                const esqueletoRef = e, closestRef = closest, hitboxRef = hitbox;
+                setTimeout(() => {
+                    if (!esqueletoRef.isAlive) return;
+                    
+                    let objetivoBody;
+                    if (closestRef.id === 'demonlord') {
+                        objetivoBody = { x: demonlord.x - 25, y: demonlord.y - 40, w: 50, h: 80 };
+                    } else if (closestRef.isAlive) {
+                        objetivoBody = { x: closestRef.x - 20, y: closestRef.y - 20, w: 40, h: 40 };
+                    } else {
+                        io.emit('esqueletoAttackMiss', { id: esqueletoRef.id, targetId: closestRef.id });
+                        return;
+                    }
+                    
+                    if (rectanguloColisiona(hitboxRef, objetivoBody)) {
+                        let damage = Math.max(0, CONFIG.SKELETON.ATTACK_DAMAGE + (esqueletoRef.damageBonus || 0));
+                        if (closestRef.id === 'demonlord') {
+                            demonlord.hp = Math.max(0, demonlord.hp - damage);
+                            io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: Math.max(0, Math.floor(damage)) });
+                            io.emit('esqueletoAttackHit', { id: esqueletoRef.id, targetId: closestRef.id, damage: Math.max(0, Math.floor(damage)), espadaX: hitboxRef.x + hitboxRef.w/2, espadaY: hitboxRef.y + hitboxRef.h/2 });
+                            if (demonlord.hp <= 0) { demonlord.isAlive = false; io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y }); setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME); }
+                        } else if (closestRef.isAlive && !closestRef.isAlly) {
+                            closestRef.hp = Math.max(0, closestRef.hp - damage);
+                            io.emit('enemyDamaged', { id: closestRef.id, x: closestRef.x, y: closestRef.y, dmg: Math.max(0, Math.floor(damage)) });
+                            io.emit('esqueletoAttackHit', { id: esqueletoRef.id, targetId: closestRef.id, damage: Math.max(0, Math.floor(damage)), espadaX: hitboxRef.x + hitboxRef.w/2, espadaY: hitboxRef.y + hitboxRef.h/2 });
+                            if (closestRef.hp <= 0) { closestRef.isAlive = false; io.emit('esqueletoDeath', { id: closestRef.id, x: closestRef.x, y: closestRef.y, exp: CONFIG.SKELETON.EXP, attackers: [esqueletoRef.ownerId || 'esqueleto_aliado'], dir: closestRef.dir || 'Abajo' }); }
+                        }
+                    } else {
+                        io.emit('esqueletoAttackMiss', { id: esqueletoRef.id, targetId: closestRef.id });
+                    }
+                }, 400);
+            }
+            if (e.attackCooldown > 0) e.attackCooldown -= 100;
+            return;
+        }
         let closest = null, closestDist = Infinity;
         for (let id in players) { let p = players[id]; if (p && p.isAlive) { let d = getDistance(e.x, e.y, p.x, p.y); if (d < closestDist && d < CONFIG.SKELETON.VISION_RANGE) { closestDist = d; closest = p; } } }
         if (!closest && demonlord && demonlord.isAlive) { let d = getDistance(e.x, e.y, demonlord.x, demonlord.y); if (d < CONFIG.SKELETON.VISION_RANGE) { closest = demonlord; closestDist = d; } }
@@ -176,7 +390,53 @@ setInterval(() => {
         if (!closest) { io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: false }); return; }
         const dx = closest.x - e.x, dy = closest.y - e.y, dist = Math.hypot(dx, dy);
         if (dist > 35) { moverEsqueletoHaciaObjetivo(e, closest); } else { io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: false }); }
-        if (e.attackCooldown <= 0 && closestDist < 45) { e.attackCooldown = CONFIG.SKELETON.ATTACK_COOLDOWN; let espadaX = e.x, espadaY = e.y; const alcanceEspada = 10; switch(e.dir) { case 'Derecha': espadaX = e.x+alcanceEspada; espadaY = e.y+15; break; case 'Izquierda': espadaX = e.x-alcanceEspada; espadaY = e.y+15; break; case 'Arriba': espadaX = e.x; espadaY = e.y-alcanceEspada-5; break; case 'Abajo': espadaX = e.x; espadaY = e.y+alcanceEspada+5; break; } io.emit('esqueletoAttackAnim', { id: e.id, targetId: closest.id, damage: 0, x: e.x, y: e.y, dir: e.dir }); const esqueletoRef = e, closestRef = closest, espadaXRef = espadaX, espadaYRef = espadaY; setTimeout(() => { if (!esqueletoRef.isAlive) return; const distEspada = getDistance(espadaXRef, espadaYRef, closestRef.x, closestRef.y); if (distEspada < 45) { let danioBase = Math.max(0, CONFIG.SKELETON.ATTACK_DAMAGE), damage; if (players[closestRef.id]) { damage = Math.max(0, Math.floor(calcularDañoFinal(closestRef.id, danioBase, 'fisico'))); const j = players[closestRef.id]; if (j && tieneHachaLegendaria(j)) { j.contraGolpeContador = (j.contraGolpeContador||0)+1; j.contraGolpeDanioAcumulado = (j.contraGolpeDanioAcumulado||0)+damage; if (j.contraGolpeContador >= 10) { j.contraGolpeBonus = Math.floor(j.contraGolpeDanioAcumulado*0.15); j.contraGolpeCargado = true; io.emit('contraGolpeCargado', { playerId: j.id }); j.contraGolpeContador = 0; j.contraGolpeDanioAcumulado = 0; io.to(j.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `Contra-golpe listo! +${j.contraGolpeBonus} de daño.` }); } } closestRef.hp = Math.max(0, closestRef.hp - damage); io.emit('playerStatsUpdate', { id: closestRef.id, hp: closestRef.hp }); } else if (closestRef.id === 'demonlord') { damage = danioBase; closestRef.hp = Math.max(0, closestRef.hp - damage); } else if (closestRef.isAlly) { damage = danioBase; closestRef.hp = Math.max(0, closestRef.hp - damage); io.emit('enemyDamaged', { id: closestRef.id, x: closestRef.x, y: closestRef.y, dmg: Math.max(0, Math.floor(damage)) }); if (closestRef.hp <= 0) { closestRef.isAlive = false; io.emit('esqueletoDeath', { id: closestRef.id, x: closestRef.x, y: closestRef.y, exp: 0, attackers: [], dir: closestRef.dir || 'Abajo' }); } } io.emit('esqueletoAttackHit', { id: esqueletoRef.id, targetId: closestRef.id, damage: Math.max(0, Math.floor(damage)), espadaX: espadaXRef, espadaY: espadaYRef }); if (closestRef.hp <= 0) { if (closestRef.id === 'demonlord') { closestRef.isAlive = false; io.emit('demonlordDeath', { x: closestRef.x, y: closestRef.y }); setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME); } else if (players[closestRef.id]) { closestRef.isAlive = false; io.emit('playerDeath', { id: closestRef.id, name: closestRef.name }); setTimeout(() => revivirJugador(closestRef.id), CONFIG.PLAYER.RESPAWN_TIME); } } } else { io.emit('esqueletoAttackMiss', { id: esqueletoRef.id, targetId: closestRef.id }); } }, 400); } if (e.attackCooldown > 0) e.attackCooldown -= 100;
+        if (e.attackCooldown <= 0 && closestDist < 45) {
+            e.attackCooldown = CONFIG.SKELETON.ATTACK_COOLDOWN;
+            
+            // Calcular hitbox del esqueleto enemigo
+            let hitbox = { x: e.x - 15, y: e.y + 5, w: 30, h: 20 };
+            switch(e.dir) {
+                case 'Derecha': hitbox = { x: e.x + 15, y: e.y - 10, w: 25, h: 20 }; break;
+                case 'Izquierda': hitbox = { x: e.x - 40, y: e.y - 10, w: 25, h: 20 }; break;
+                case 'Arriba': hitbox = { x: e.x - 15, y: e.y - 35, w: 30, h: 20 }; break;
+                case 'Abajo': hitbox = { x: e.x - 15, y: e.y + 5, w: 30, h: 20 }; break;
+            }
+            
+            io.emit('esqueletoAttackAnim', { id: e.id, targetId: closest.id, damage: 0, x: e.x, y: e.y, dir: e.dir, hitbox: hitbox });
+            const esqueletoRef = e, closestRef = closest, hitboxRef = hitbox;
+            setTimeout(() => {
+                if (!esqueletoRef.isAlive) return;
+                
+                let objetivoBody;
+                if (players[closestRef.id]) {
+                    objetivoBody = { x: closestRef.x - 20, y: closestRef.y - 20, w: 40, h: 40 };
+                } else if (closestRef.id === 'demonlord') {
+                    objetivoBody = { x: demonlord.x - 25, y: demonlord.y - 40, w: 50, h: 80 };
+                } else if (closestRef.isAlly) {
+                    objetivoBody = { x: closestRef.x - 20, y: closestRef.y - 20, w: 40, h: 40 };
+                } else {
+                    io.emit('esqueletoAttackMiss', { id: esqueletoRef.id, targetId: closestRef.id });
+                    return;
+                }
+                
+                if (rectanguloColisiona(hitboxRef, objetivoBody)) {
+                    let danioBase = Math.max(0, CONFIG.SKELETON.ATTACK_DAMAGE), damage;
+                    if (players[closestRef.id]) {
+                        damage = Math.max(0, Math.floor(calcularDañoFinal(closestRef.id, danioBase, 'fisico')));
+                        const j = players[closestRef.id];
+                        if (j && tieneHachaLegendaria(j)) { j.contraGolpeContador = (j.contraGolpeContador||0)+1; j.contraGolpeDanioAcumulado = (j.contraGolpeDanioAcumulado||0)+damage; if (j.contraGolpeContador >= 10) { j.contraGolpeBonus = Math.floor(j.contraGolpeDanioAcumulado*0.15); j.contraGolpeCargado = true; io.emit('contraGolpeCargado', { playerId: j.id }); j.contraGolpeContador = 0; j.contraGolpeDanioAcumulado = 0; io.to(j.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `Contra-golpe listo! +${j.contraGolpeBonus} de daño.` }); } }
+                        closestRef.hp = Math.max(0, closestRef.hp - damage);
+                        io.emit('playerStatsUpdate', { id: closestRef.id, hp: closestRef.hp });
+                    } else if (closestRef.id === 'demonlord') { damage = danioBase; closestRef.hp = Math.max(0, closestRef.hp - damage); }
+                    else if (closestRef.isAlly) { damage = danioBase; closestRef.hp = Math.max(0, closestRef.hp - damage); io.emit('enemyDamaged', { id: closestRef.id, x: closestRef.x, y: closestRef.y, dmg: Math.max(0, Math.floor(damage)) }); if (closestRef.hp <= 0) { closestRef.isAlive = false; io.emit('esqueletoDeath', { id: closestRef.id, x: closestRef.x, y: closestRef.y, exp: 0, attackers: [], dir: closestRef.dir || 'Abajo' }); } }
+                    io.emit('esqueletoAttackHit', { id: esqueletoRef.id, targetId: closestRef.id, damage: Math.max(0, Math.floor(damage)), espadaX: hitboxRef.x + hitboxRef.w/2, espadaY: hitboxRef.y + hitboxRef.h/2 });
+                    if (closestRef.hp <= 0) { if (closestRef.id === 'demonlord') { closestRef.isAlive = false; io.emit('demonlordDeath', { x: closestRef.x, y: closestRef.y }); setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME); } else if (players[closestRef.id]) { closestRef.isAlive = false; io.emit('playerDeath', { id: closestRef.id, name: closestRef.name }); setTimeout(() => revivirJugador(closestRef.id), CONFIG.PLAYER.RESPAWN_TIME); } }
+                } else {
+                    io.emit('esqueletoAttackMiss', { id: esqueletoRef.id, targetId: closestRef.id });
+                }
+            }, 400);
+        }
+        if (e.attackCooldown > 0) e.attackCooldown -= 100;
     });
 }, 150);
 
