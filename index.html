@@ -88,15 +88,15 @@
 canvas { height: 100vh !important; display: block !important; }
 
         /* ═══════════════════════════════════════════ */
-        /* 📱 ADAPTACIÓN MÓVIL                          */
+        /* 📱 ADAPTACIÓN MÓVIL (LANDSCAPE)              */
         /* ═══════════════════════════════════════════ */
         #joystick-virtual {
             display: none;
             position: fixed;
-            bottom: 90px;
+            bottom: 25px;
             left: 20px;
-            width: 150px;
-            height: 150px;
+            width: 130px;
+            height: 130px;
             border-radius: 50%;
             background: rgba(0,0,0,0.35);
             border: 2px solid rgba(255,255,255,0.4);
@@ -107,7 +107,7 @@ canvas { height: 100vh !important; display: block !important; }
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%,-50%);
-            width: 60px; height: 60px;
+            width: 55px; height: 55px;
             border-radius: 50%;
             background: rgba(255,255,255,0.3);
             border: 2px solid rgba(255,255,255,0.6);
@@ -119,7 +119,7 @@ canvas { height: 100vh !important; display: block !important; }
             display: flex !important;
             position: fixed !important;
             bottom: 20px !important;
-            right: 20px !important;
+            right: 190px !important;
             left: auto !important;
             gap: 8px !important;
             background: rgba(0,0,0,0.5) !important;
@@ -128,42 +128,48 @@ canvas { height: 100vh !important; display: block !important; }
             z-index: 99999 !important;
         }
         body.modo-movil .skill-slot-small {
-            width: 70px !important;
-            height: 70px !important;
-        }
-        body.modo-movil .skill-slot-small .skill-icon-img {
             width: 60px !important;
             height: 60px !important;
+        }
+        body.modo-movil .skill-slot-small .skill-icon-img {
+            width: 50px !important;
+            height: 50px !important;
         }
         body.modo-movil.juego-activo #btn-attack {
             display: flex !important;
         }
         body.modo-movil #btn-attack {
-            width: 80px !important;
-            height: 80px !important;
+            width: 75px !important;
+            height: 75px !important;
             border-radius: 50% !important;
-            bottom: 100px !important;
-            right: 20px !important;
+            bottom: 25px !important;
+            right: 25px !important;
             background-size: 55% !important;
         }
         body.modo-movil.juego-activo #team-icon {
             display: flex !important;
         }
         body.modo-movil #team-icon {
-            width: 55px !important;
-            height: 55px !important;
-        }
-        body.modo-movil #stats-container {
-            transform: translateX(-50%) scale(0.85) !important;
-            bottom: 5px !important;
-        }
-        body.modo-movil #pociones-rapidas {
-            bottom: 15px !important;
-            right: 180px !important;
-        }
-        body.modo-movil #pociones-rapidas .slot {
             width: 50px !important;
             height: 50px !important;
+            top: 15px !important;
+            left: 15px !important;
+        }
+        body.modo-movil #stats-container {
+            transform: translateX(-50%) scale(0.7) !important;
+            bottom: auto !important;
+            top: 10px !important;
+            left: 50% !important;
+        }
+        body.modo-movil #pociones-rapidas {
+            bottom: 25px !important;
+            right: 190px !important;
+            flex-direction: row !important;
+            gap: 5px !important;
+        }
+        body.modo-movil #pociones-rapidas .slot {
+            width: 60px !important;
+            height: 60px !important;
         }
         body.modo-movil .inventario-grid {
             grid-template-columns: repeat(6, 50px) !important;
@@ -192,8 +198,8 @@ canvas { height: 100vh !important; display: block !important; }
             border-radius: 4px !important;
         }
         body.modo-movil #stats-container .orb-container {
-            width: 60px !important;
-            height: 60px !important;
+            width: 55px !important;
+            height: 55px !important;
         }
         body.modo-movil #hp-angel, body.modo-movil #mana-angel {
             display: none !important;
@@ -215,6 +221,23 @@ canvas { height: 100vh !important; display: block !important; }
             max-width: 80vw;
         }
         #toast-movil.visible { display: block; }
+        @media (max-width: 900px) and (orientation: portrait) {
+            body::before {
+                content: "📱 Girá el teléfono horizontal para jugar mejor";
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: #000;
+                color: #fff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                z-index: 9999999;
+                text-align: center;
+                padding: 20px;
+                font-family: monospace;
+            }
+        }
     </style>
 </head>
 <body>
@@ -245,7 +268,7 @@ canvas { height: 100vh !important; display: block !important; }
 <button class="class-btn" onclick="seleccionarClase('necromancer_sprite','NECROMANCER')">NECROMANCER</button></div></div>
 <div id="chat-container"><div id="chat-header" onclick="toggleChat()"><span>CHAT</span><span>▼</span></div><div id="chat-logs"></div><div id="chat-input-container"><input type="text" id="chat-input" placeholder="Escribe... /ayuda" autocomplete="off"><button id="chat-send">Enviar</button></div></div>
 <div id="stats-container" style="position:fixed;bottom:15px;left:50%;transform:translateX(-50%);display:none;gap:25px;align-items:center;z-index:10000;"><span id="puntos-disponibles" hidden>5</span><span id="puntos-especialidad" hidden>0</span><div class="orb-wrapper"><div id="hp-orb" class="orb-container"><div id="hp-fill-vertical" class="orb-fill"></div><div id="hp-orb-sprite" class="orb-sprite"></div><div class="orb-text">❤️ <span id="hp-text-inline">500</span></div></div><div id="hp-angel" class="orb-angel"></div></div><div style="display:flex;flex-direction:column;align-items:center;gap:5px;"><div id="skills-bar"></div><div id="exp-bar-container"><div id="exp-bar-fill"></div></div><div style="color:#fff;font-size:8px;">EXP: <span id="exp-bar-text">0/100</span></div></div><div class="orb-wrapper"><div id="mana-orb" class="orb-container" style="overflow:hidden;"><div id="mana-fill-vertical" class="orb-fill" style="position:absolute;top:0;left:0;width:50%;height:100%;background-color:blue;"></div><div id="aguante-fill-vertical" class="orb-fill" style="position:absolute;top:0;left:50%;width:50%;height:100%;background-color:green;display:none;"></div><div id="mana-orb-sprite" class="orb-sprite"></div><div class="orb-text"><span id="mana-text-inline">100</span></div></div><div id="mana-angel" class="orb-angel"></div></div></div>
-<div id="btn-attack" style="position:fixed!important;bottom:20px!important;right:20px!important;left:auto!important;transform:none!important;width:70px;height:70px;border-radius:50%;background:rgba(0,0,0,0.75);border:2px solid #fff;cursor:pointer;z-index:999999;display:none!important;align-items:center;justify-content:center;background-image:url('iconos/ataque_boton.png');background-size:60%;background-repeat:no-repeat;background-position:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation;"></div>
+<div id="btn-attack" style="position:fixed!important;bottom:20px!important;right:20px!important;left:auto!important;transform:none!important;width:70px;height:70px;border-radius:50%;background:rgba(0,0,0,0.75);border:2px solid #fff;cursor:pointer;z-index:999999;align-items:center;justify-content:center;background-image:url('iconos/ataque_boton.png');background-size:60%;background-repeat:no-repeat;background-position:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation;"></div>
 <div id="team-icon" style="display:none; position:fixed; top:10px; left:10px; width:50px; height:50px; background:rgba(0,0,0,0.75); border:2px solid #ffaa00; border-radius:8px; cursor:pointer; z-index:999999; align-items:center; justify-content:center; background-image:url('iconos/team_boton.png'); background-size:70%; background-repeat:no-repeat; background-position:center; -webkit-tap-highlight-color:transparent;" onclick="toggleTeam()"><span id="team-dot" style="display:none; position:absolute; top:-5px; right:-5px; width:12px; height:12px; background:red; border-radius:50%;"></span></div>
 <div id="pociones-rapidas" style="position:fixed; bottom:15px; right:90px; display:flex; gap:5px; z-index:99999;">
     <div id="slot-pocion-1" class="slot" onclick="usarPocionSlot(0)" ondrop="dropPocionRapida(event, 0)" ondragover="event.preventDefault()" style="width:60px; height:60px;">
@@ -291,8 +314,6 @@ canvas { height: 100vh !important; display: block !important; }
     </div>
 </div>
 <div id="stat-preview" class="stat-preview" style="display:none;"></div>
-</body>
-</html>
 <script>
 
 // ============================================
