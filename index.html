@@ -118,14 +118,15 @@ canvas { height: 100vh !important; display: block !important; }
         body.modo-movil #skills-bar {
             display: flex !important;
             position: fixed !important;
-            bottom: 75px !important;
+            top: 75px !important;
             right: 15px !important;
             left: auto !important;
+            bottom: auto !important;
             transform: none !important;
-            flex-direction: row !important;
-            gap: 5px !important;
+            flex-direction: column !important;
+            gap: 6px !important;
             background: rgba(0,0,0,0.5) !important;
-            padding: 5px !important;
+            padding: 6px !important;
             border-radius: 12px !important;
             z-index: 99999 !important;
         }
@@ -286,7 +287,7 @@ canvas { height: 100vh !important; display: block !important; }
 <div id="stats-container" style="position:fixed;bottom:15px;left:50%;transform:translateX(-50%);display:none;gap:25px;align-items:center;z-index:10000;"><span id="puntos-disponibles" hidden>5</span><span id="puntos-especialidad" hidden>0</span><div class="orb-wrapper"><div id="hp-orb" class="orb-container"><div id="hp-fill-vertical" class="orb-fill"></div><div id="hp-orb-sprite" class="orb-sprite"></div><div class="orb-text">❤️ <span id="hp-text-inline">500</span></div></div><div id="hp-angel" class="orb-angel"></div></div><div style="display:flex;flex-direction:column;align-items:center;gap:5px;"><div id="skills-bar"></div><div id="exp-bar-container"><div id="exp-bar-fill"></div></div><div style="color:#fff;font-size:8px;">EXP: <span id="exp-bar-text">0/100</span></div></div><div class="orb-wrapper"><div id="mana-orb" class="orb-container" style="overflow:hidden;"><div id="mana-fill-vertical" class="orb-fill" style="position:absolute;top:0;left:0;width:50%;height:100%;background-color:blue;"></div><div id="aguante-fill-vertical" class="orb-fill" style="position:absolute;top:0;left:50%;width:50%;height:100%;background-color:green;display:none;"></div><div id="mana-orb-sprite" class="orb-sprite"></div><div class="orb-text"><span id="mana-text-inline">100</span></div></div><div id="mana-angel" class="orb-angel"></div></div></div>
 <div id="btn-attack" style="position:fixed!important;bottom:20px!important;right:20px!important;left:auto!important;transform:none!important;width:70px;height:70px;border-radius:50%;background:rgba(0,0,0,0.75);border:2px solid #fff;cursor:pointer;z-index:999999;align-items:center;justify-content:center;background-image:url('iconos/ataque_boton.png');background-size:60%;background-repeat:no-repeat;background-position:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation;"></div>
 <div id="team-icon" style="display:none; position:fixed; top:10px; left:10px; width:50px; height:50px; background:rgba(0,0,0,0.75); border:2px solid #ffaa00; border-radius:8px; cursor:pointer; z-index:999999; align-items:center; justify-content:center; background-image:url('iconos/team_boton.png'); background-size:70%; background-repeat:no-repeat; background-position:center; -webkit-tap-highlight-color:transparent;" onclick="toggleTeam()"><span id="team-dot" style="display:none; position:absolute; top:-5px; right:-5px; width:12px; height:12px; background:red; border-radius:50%;"></span></div>
-<div id="btn-inventario-movil" onclick="toggleInventario()" style="display:none; position:fixed; top:15px; right:15px; width:50px; height:50px; background:rgba(0,0,0,0.75); border:2px solid #fff; border-radius:8px; cursor:pointer; z-index:999999; align-items:center; justify-content:center; background-image:url('iconos/inventario.png'); background-size:70%; background-repeat:no-repeat; background-position:center; -webkit-tap-highlight-color:transparent;"></div>
+<div id="btn-inventario-movil" onclick="toggleInventario()" style="display:none; position:fixed; top:15px; right:15px; width:50px; height:50px; background-color:rgba(0,0,0,0.75); border:2px solid #fff; border-radius:8px; cursor:pointer; z-index:999999; background-image:url('iconos/inventario.png'); background-size:80%; background-repeat:no-repeat; background-position:center; -webkit-tap-highlight-color:transparent;"></div>
 <div id="btn-fullscreen-movil" onclick="toggleFullscreen()" style="display:none; position:fixed; top:15px; right:75px; width:50px; height:50px; background:rgba(0,0,0,0.75); border:2px solid #fff; border-radius:8px; cursor:pointer; z-index:999999; align-items:center; justify-content:center; font-size:26px; color:#fff; -webkit-tap-highlight-color:transparent;">⛶</div>
 <div id="pociones-rapidas" style="position:fixed; bottom:15px; right:90px; display:flex; gap:5px; z-index:99999;">
     <div id="slot-pocion-1" class="slot" onclick="usarPocionSlot(0)" ondrop="dropPocionRapida(event, 0)" ondragover="event.preventDefault()" style="width:60px; height:60px;">
