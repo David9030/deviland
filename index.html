@@ -145,20 +145,20 @@ canvas { height: 100vh !important; display: block !important; }
             width: 40px !important;
             height: 40px !important;
         }
-/* Slot 1: IZQUIERDA del botón de ataque */
+/* Skill 1: debajo de las pociones */
 body.modo-movil #skills-bar .skill-slot-small:nth-child(1) {
-    bottom: 45px !important;
-    right: 115px !important;
+    bottom: 140px !important;
+    right: 25px !important;
 }
-/* Slot 2: ARRIBA del Slot 1 */
+/* Skill 2: debajo de Skill 1 */
 body.modo-movil #skills-bar .skill-slot-small:nth-child(2) {
-    bottom: 100px !important;
-    right: 115px !important;
+    bottom: 87px !important;
+    right: 25px !important;
 }
-/* Slot 3: ARRIBA del botón de ataque */
+/* Skill 3: debajo de Skill 2, arriba del ataque */
 body.modo-movil #skills-bar .skill-slot-small:nth-child(3) {
-    bottom: 100px !important;
-    right: 40px !important;
+    bottom: 34px !important;
+    right: 25px !important;
 }
         body.modo-movil #skills-bar .skill-slot-small:nth-child(n+4) {
             display: none !important;
@@ -198,18 +198,18 @@ body.modo-movil #skills-bar .skill-slot-small:nth-child(3) {
             top: auto !important;
             left: 50% !important;
         }
-        body.modo-movil #pociones-rapidas {
-            top: 15px !important;
-            right: 15px !important;
-            bottom: auto !important;
-            left: auto !important;
-            flex-direction: column !important;
-            gap: 5px !important;
-        }
-        body.modo-movil #pociones-rapidas .slot {
-            width: 50px !important;
-            height: 50px !important;
-        }
+body.modo-movil #pociones-rapidas {
+    bottom: 245px !important;
+    right: 25px !important;
+    top: auto !important;
+    left: auto !important;
+    flex-direction: column !important;
+    gap: 5px !important;
+}
+body.modo-movil #pociones-rapidas .slot {
+    width: 48px !important;
+    height: 48px !important;
+}
         body.modo-movil .inventario-grid {
             grid-template-columns: repeat(6, 50px) !important;
         }
