@@ -115,31 +115,49 @@ canvas { height: 100vh !important; display: block !important; }
         }
         body.juego-activo #joystick-virtual { display: block; }
         body.modo-movil.juego-activo #joystick-virtual { display: block; }
-body.modo-movil #skills-bar {
-    display: flex !important;
-    position: fixed !important;
-    top: auto !important;
-    bottom: 110px !important;
-    right: 10px !important;
-    left: auto !important;
-    transform: none !important;
-    flex-direction: column !important;
-    gap: 6px !important;
-    background: rgba(0,0,0,0.5) !important;
-    padding: 6px !important;
-    border-radius: 12px !important;
-    z-index: 99999 !important;
-    align-items: center !important;
-}
-        body.modo-movil .skill-slot-small {
+        body.modo-movil #skills-bar {
+            display: flex !important;
+            position: fixed !important;
+            top: auto !important;
+            bottom: 25px !important;
+            right: 25px !important;
+            left: auto !important;
+            transform: none !important;
+            flex-direction: row !important;
+            gap: 0 !important;
+            background: transparent !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+            z-index: 999999 !important;
+            width: auto !important;
+            height: auto !important;
+            pointer-events: none !important;
+        }
+        body.modo-movil #skills-bar .skill-slot-small {
+            position: fixed !important;
+            pointer-events: auto !important;
             width: 48px !important;
             height: 48px !important;
+            margin: 0 !important;
+            border-radius: 50% !important;
         }
         body.modo-movil .skill-slot-small .skill-icon-img {
             width: 40px !important;
             height: 40px !important;
         }
-        body.modo-movil .skill-slot-small:nth-child(n+4) {
+        body.modo-movil #skills-bar .skill-slot-small:nth-child(1) {
+            bottom: 113px !important;
+            right: 38px !important;
+        }
+        body.modo-movil #skills-bar .skill-slot-small:nth-child(2) {
+            bottom: 38px !important;
+            right: 113px !important;
+        }
+        body.modo-movil #skills-bar .skill-slot-small:nth-child(3) {
+            bottom: 91px !important;
+            right: 91px !important;
+        }
+        body.modo-movil #skills-bar .skill-slot-small:nth-child(n+4) {
             display: none !important;
         }
         body.modo-movil.juego-activo #btn-attack {
@@ -178,9 +196,11 @@ body.modo-movil #skills-bar {
             left: 50% !important;
         }
         body.modo-movil #pociones-rapidas {
-            bottom: 25px !important;
-            right: 115px !important;
-            flex-direction: row !important;
+            top: 15px !important;
+            right: 15px !important;
+            bottom: auto !important;
+            left: auto !important;
+            flex-direction: column !important;
             gap: 5px !important;
         }
         body.modo-movil #pociones-rapidas .slot {
