@@ -1254,7 +1254,41 @@ function crearSlotElement(slot, index, origen) {
 
 function renderizarInventario() { const g = document.getElementById('inventario-grid'); if (!g) return; g.innerHTML = ''; for (let i = 0; i < inventarioSlots.length; i++) { const s = inventarioSlots[i]; const d = crearSlotElement(s, i, 'inventario'); g.appendChild(d); } }
 function equiparPocionASlot(item, tipo) { const index = inventarioSlots.findIndex(s => s && s.id === item.id); if (index === -1) return; let slotMismoTipo = pocionesEquipadas.findIndex(p => p && p.tipo === tipo); if (slotMismoTipo !== -1) { pocionesEquipadas[slotMismoTipo].cantidad += item.cantidad; inventarioSlots[index] = null; actualizarSlotsPocionesUI(); renderizarInventario(); guardarPartida(); mostrarMensaje(`🧪 +${item.cantidad} ${item.nombre} agregado al slot rápido`, 'exito'); return; } let slotLibre = pocionesEquipadas.findIndex(p => p === null); if (slotLibre === -1) { const nombres = pocionesEquipadas.map((p, i) => p ? `${i+1}: ${p.nombre} x${p.cantidad}` : `${i+1}: Vacío`); const elegido = prompt(`Slots ocupados:\n${nombres.join('\n')}\n\nNúmero de slot a reemplazar (1-2):`); if (elegido && elegido >= 1 && elegido <= 2) { const slotIdx = elegido - 1; if (pocionesEquipadas[slotIdx]) { const itemViejo = { id: pocionesEquipadas[slotIdx].id || ('pocion_' + Date.now()), tipo: pocionesEquipadas[slotIdx].tipo, nombre: pocionesEquipadas[slotIdx].nombre, icono: pocionesEquipadas[slotIdx].tipo === 'mana' || pocionesEquipadas[slotIdx].tipo === 'pocion_mana' ? 'pocion_mana_img' : 'pocion_img', cantidad: pocionesEquipadas[slotIdx].cantidad }; inventarioSlots[index] = itemViejo; } pocionesEquipadas[slotIdx] = { ...item, tipo: tipo, cantidad: item.cantidad }; inventarioSlots[index] = null; } else return; } else { pocionesEquipadas[slotLibre] = { ...item, tipo: tipo, cantidad: item.cantidad }; inventarioSlots[index] = null; } actualizarSlotsPocionesUI(); renderizarInventario(); guardarPartida(); mostrarMensaje(`🧪 ${item.nombre} equipado en slot rápido`, 'exito'); }
-function usarPocionSlot(slotIndex) { if (!player || !player.isAlive) return; const pocion = pocionesEquipadas[slotIndex]; if (!pocion || pocion.cantidad <= 0) { pocionesEquipadas[slotIndex] = null; actualizarSlotsPocionesUI(); mostrarMensaje(`❌ Slot vacío`, 'error'); return; } if (pocion.tipo === 'hp' || pocion.tipo === 'pocion') { if (playerHP < playerMaxHP) { playerHP = Math.min(playerHP + 50, playerMaxHP); pocion.cantidad--; if (pocion.cantidad <= 0) pocionesEquipadas[slotIndex] = null; actualizarStatsUI(); actualizarSlotsPocionesUI(); guardarPartida(); mostrarMensaje(`❤️ +50 HP`, 'exito'); if (socket && socket.connected) socket.emit('usarPocion', { curacion: 50 }); } else mostrarMensaje(`❤️ Vida al máximo`, 'error'); } else if (pocion.tipo === 'mana' || pocion.tipo === 'pocion_mana') { if (playerMana < playerMaxMana) { playerMana = Math.min(playerMana + 30, playerMaxMana); pocion.cantidad--; if (pocion.cantidad <= 0) pocionesEquipadas[slotIndex] = null; actualizarStatsUI(); actualizarSlotsPocionesUI(); guardarPartida(); mostrarMensaje(`💙 +30 Maná`, 'exito'); if (socket && socket.connected) socket.emit('usarPocionMana', { restauracion: 30 }); } else mostrarMensaje(`💙 Maná al máximo`, 'error'); } }
+function usarPocionSlot(slotIndex) {
+    if (!player || !player.isAlive) return;
+    const pocion = pocionesEquipadas[slotIndex];
+    if (!pocion || pocion.cantidad <= 0) {
+        pocionesEquipadas[slotIndex] = null;
+        actualizarSlotsPocionesUI();
+        mostrarMensaje(`❌ Slot vacío`, 'error');
+        return;
+    }
+    if (pocion.tipo === 'hp' || pocion.tipo === 'pocion') {
+        if (playerHP < playerMaxHP) {
+            // NO modificar playerHP localmente. Avisar al server con el HP actual.
+            if (socket && socket.connected) socket.emit('usarPocion', { curacion: 50, hpActual: playerHP });
+            pocion.cantidad--;
+            if (pocion.cantidad <= 0) pocionesEquipadas[slotIndex] = null;
+            actualizarSlotsPocionesUI();
+            guardarPartida();
+            mostrarMensaje(`❤️ +50 HP`, 'exito');
+        } else {
+            mostrarMensaje(`❤️ Vida al máximo`, 'error');
+        }
+    } else if (pocion.tipo === 'mana' || pocion.tipo === 'pocion_mana') {
+        if (playerMana < playerMaxMana) {
+            // NO modificar playerMana localmente.
+            if (socket && socket.connected) socket.emit('usarPocionMana', { restauracion: 30, manaActual: playerMana });
+            pocion.cantidad--;
+            if (pocion.cantidad <= 0) pocionesEquipadas[slotIndex] = null;
+            actualizarSlotsPocionesUI();
+            guardarPartida();
+            mostrarMensaje(`💙 +30 Maná`, 'exito');
+        } else {
+            mostrarMensaje(`💙 Maná al máximo`, 'error');
+        }
+    }
+}
 function actualizarSlotsPocionesUI() { for (let i = 0; i < 2; i++) { const slot = document.getElementById('slot-pocion-' + (i + 1)); if (!slot) continue; const pocion = pocionesEquipadas[i]; if (pocion) { const img = pocion.tipo === 'mana' || pocion.tipo === 'pocion_mana' ? 'frascomp.png' : 'frascohp.png'; slot.innerHTML = `<div class="slot-icon"><img src="${img}" style="width:50px;height:50px;object-fit:contain;"></div><div class="slot-cantidad">${pocion.cantidad}</div>`; } else { slot.innerHTML = `<span style="font-size:20px;opacity:0.3;">❓</span>`; } } }
 
 // ============================================
@@ -1720,8 +1754,13 @@ function usarSkill(skillId) {
         mostrarMensaje(skillId === 'fireball' ? '🔥 Fireball! -10 mana' : '💀 Bola de sombra! -10 mana', 'exito');
         let dir = player.lastDir; let targetX = player.x; let targetY = player.y;
         switch(dir) { case 'Derecha': targetX += 200; break; case 'Izquierda': targetX -= 200; break; case 'Arriba': targetY -= 200; break; case 'Abajo': targetY += 200; break; default: targetY += 200; }
-       let offsetX = 0, offsetY = 0;
-switch(dir) { case 'Derecha': offsetX = 45; break; case 'Izquierda': offsetX = -45; break; case 'Arriba': offsetY = -45; break; case 'Abajo': offsetY = 45; break; }
+      let offsetX = 0, offsetY = 0;
+switch(dir) {
+    case 'Derecha':    offsetX = 35;  offsetY = -20; break;
+    case 'Izquierda':  offsetX = -35; offsetY = -20; break;
+    case 'Arriba':     offsetX = 0;   offsetY = -45; break;
+    case 'Abajo':      offsetX = 0;   offsetY = 15;  break;
+}
 
         if (!player.attacking) {
             const bonus = (pClassName === 'MAGO') ? (playerStats.atqFuego || 0) + bonusArmaFuego : (playerStats.atqOscuridad || 0) + bonusArmaOscuridad;
