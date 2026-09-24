@@ -1720,8 +1720,8 @@ function usarSkill(skillId) {
         mostrarMensaje(skillId === 'fireball' ? '🔥 Fireball! -10 mana' : '💀 Bola de sombra! -10 mana', 'exito');
         let dir = player.lastDir; let targetX = player.x; let targetY = player.y;
         switch(dir) { case 'Derecha': targetX += 200; break; case 'Izquierda': targetX -= 200; break; case 'Arriba': targetY -= 200; break; case 'Abajo': targetY += 200; break; default: targetY += 200; }
-        let offsetX = 0, offsetY = 0;
-        switch(dir) { case 'Derecha': offsetX = 30; break; case 'Izquierda': offsetX = -30; break; case 'Arriba': offsetY = -30; break; case 'Abajo': offsetY = 30; break; }
+       let offsetX = 0, offsetY = 0;
+switch(dir) { case 'Derecha': offsetX = 45; break; case 'Izquierda': offsetX = -45; break; case 'Arriba': offsetY = -45; break; case 'Abajo': offsetY = 45; break; }
 
         if (!player.attacking) {
             const bonus = (pClassName === 'MAGO') ? (playerStats.atqFuego || 0) + bonusArmaFuego : (playerStats.atqOscuridad || 0) + bonusArmaOscuridad;
@@ -1762,7 +1762,7 @@ function usarSkill(skillId) {
         if (ahora - ultimoAtaqueDistancia < 1500) { mostrarMensaje(`⏳ Espera ${Math.ceil((1500 - (ahora - ultimoAtaqueDistancia)) / 1000)}s`, 'error'); return; }
         if (playerMana < 15) { mostrarMensaje(`❌ Mana insuficiente (15)`, 'error'); return; }
         let enemigoMasCercano = null, distanciaMinima = 400;
-        if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.active && !esq.isAlly) { const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y); if (dist < distanciaMinima) { distanciaMinima = dist; enemigoMasCercano = { id: esq.esqueletoId, x: esq.x, y: esq.y, esDemonlord: false }; } } }); }
+        if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.active && !esq.isAlly && !esq.estaMuerto) { const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y); if (dist < distanciaMinima) { distanciaMinima = dist; enemigoMasCercano = { id: esq.esqueletoId, x: esq.x, y: esq.y, esDemonlord: false }; } } }); }
         if (demonlord_sprite && demonlord_sprite.active && demonlordHP > 0) { const dist = Phaser.Math.Distance.Between(player.x, player.y, demonlord_sprite.x, demonlord_sprite.y); if (dist < distanciaMinima) { distanciaMinima = dist; enemigoMasCercano = { id: 'demonlord', x: demonlord_sprite.x, y: demonlord_sprite.y, esDemonlord: true }; } }
         if (!enemigoMasCercano) { mostrarMensaje(`❌ No hay enemigos en rango (400px)`, 'error'); return; }
         playerMana -= 15; actualizarStatsUI(); ultimoAtaqueDistancia = ahora;
