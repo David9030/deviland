@@ -115,21 +115,21 @@ canvas { height: 100vh !important; display: block !important; }
         }
         body.juego-activo #joystick-virtual { display: block; }
         body.modo-movil.juego-activo #joystick-virtual { display: block; }
-        body.modo-movil #skills-bar {
-            display: flex !important;
-            position: fixed !important;
-            top: 75px !important;
-            right: 15px !important;
-            left: auto !important;
-            bottom: auto !important;
-            transform: none !important;
-            flex-direction: column !important;
-            gap: 6px !important;
-            background: rgba(0,0,0,0.5) !important;
-            padding: 6px !important;
-            border-radius: 12px !important;
-            z-index: 99999 !important;
-        }
+body.modo-movil #skills-bar {
+    display: flex !important;
+    position: fixed !important;
+    top: auto !important;
+    bottom: 115px !important;
+    right: 25px !important;
+    left: auto !important;
+    transform: none !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    background: rgba(0,0,0,0.5) !important;
+    padding: 6px !important;
+    border-radius: 12px !important;
+    z-index: 99999 !important;
+}
         body.modo-movil .skill-slot-small {
             width: 48px !important;
             height: 48px !important;
