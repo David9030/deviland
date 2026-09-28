@@ -366,6 +366,25 @@ body.modo-movil #pociones-rapidas .slot {
                 <div style="background:#111;padding:8px;border:1px solid #333"><h3 style="color:#fff;text-align:center">SKILLS</h3><div style="display:flex;align-items:center;gap:5px;"><span onclick="navegarSkills(-1)" style="cursor:pointer;color:#fff;font-size:18px;user-select:none;">◀</span><div id="skills-grid-inline" class="skills-grid" style="max-height:180px;overflow-y:auto;flex:1;display:flex;justify-content:center;gap:5px;"></div><span onclick="navegarSkills(1)" style="cursor:pointer;color:#fff;font-size:18px;user-select:none;">▶</span></div><div style="margin-top:10px;font-size:9px;color:#666">💡 Arrastra a la barra inferior</div></div>
                 <div style="background:#111;padding:8px;border:1px solid #333;margin-top:10px"><h3 style="color:#fff;text-align:center">✨ ESPECIALIDADES</h3><div id="especialidades-grid"></div><div style="margin-top:5px;font-size:9px;color:#666">⭐ Doble click para subir (1 punto)</div></div>
                 <div style="background:#111;padding:8px;border:1px solid #333;margin-top:10px"><h3 style="color:#fff;text-align:center">📦 MATERIALES</h3><div id="materiales-grid" style="color:#ccc;font-size:10px;"></div></div>
+<div class="volumen-control" style="margin-top:15px">
+    <div class="section-title">⚙️ OPCIONES AUTOMÁTICAS</div>
+    <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:#ccc;margin:4px 0;cursor:pointer;">
+        <input type="checkbox" id="auto-recoger" onchange="toggleAuto('autoRecoger', this.checked)">
+        💰 Recoger oro/items auto
+    </label>
+    <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:#ccc;margin:4px 0;cursor:pointer;">
+        <input type="checkbox" id="auto-pociones" onchange="toggleAuto('autoPociones', this.checked)">
+        🧪 Equipar pociones auto
+    </label>
+    <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:#ccc;margin:4px 0;cursor:pointer;">
+        <input type="checkbox" id="auto-equipar" onchange="toggleAuto('autoEquipar', this.checked)">
+        ⚔️ Equipar items auto
+    </label>
+    <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:#ccc;margin:4px 0;cursor:pointer;">
+        <input type="checkbox" id="auto-curar" onchange="toggleAuto('autoCurar', this.checked)">
+        ❤️ Auto-curarse al 50% HP
+    </label>
+</div>
                                <div class="volumen-control" style="margin-top:15px"><div class="section-title">🎵 VOLUMEN</div><div class="stat-row"><span>🎼 Música:</span><input type="range" id="volumen-musica" min="0" max="100" value="30"><span id="volumen-musica-valor" style="width:35px">30%</span></div><div class="stat-row"><span>💥 Efectos:</span><input type="range" id="volumen-fx" min="0" max="100" value="60"><span id="volumen-fx-valor" style="width:35px">60%</span></div></div>
             </div>
         </div>
@@ -463,10 +482,30 @@ const JOYSTICK_MAX_DIST = 50;
 // 🎯 ESTADO DE TAP-TO-MOVE (inventario móvil)
 // ============================================
 let slotSeleccionadoMovil = null;
+let opcionesAuto = { autoRecoger: false, autoPociones: false, autoEquipar: false, autoCurar: false };
 
 // ============================================
 // 🖼️ TOAST MÓVIL
 // ============================================
+function toggleAuto(key, valor) {
+    opcionesAuto[key] = valor;
+    localStorage.setItem('opcionesAuto', JSON.stringify(opcionesAuto));
+    const nombre = key === 'autoRecoger' ? '💰 Recoger auto' : key === 'autoPociones' ? '🧪 Pociones auto' : key === 'autoEquipar' ? '⚔️ Equipar auto' : '❤️ Auto-curar';
+    mostrarMensaje(`${nombre} ${valor ? '✅ ACTIVADO' : '❌ DESACTIVADO'}`, valor ? 'exito' : 'info');
+}
+
+function cargarOpcionesAuto() {
+    const g = localStorage.getItem('opcionesAuto');
+    if (g) {
+        try {
+            opcionesAuto = JSON.parse(g);
+            document.getElementById('auto-recoger').checked = opcionesAuto.autoRecoger || false;
+            document.getElementById('auto-pociones').checked = opcionesAuto.autoPociones || false;
+            document.getElementById('auto-equipar').checked = opcionesAuto.autoEquipar || false;
+            document.getElementById('auto-curar').checked = opcionesAuto.autoCurar || false;
+        } catch(e) {}
+    }
+}
 function mostrarToastMovil(msg, duracion = 1500) {
     if (!esTactil) return;
     const t = document.getElementById('toast-movil');
@@ -895,7 +934,7 @@ function toggleInventario() {
         document.getElementById('mercado-ui').style.display = 'none';
         document.getElementById('ranking-ui').style.display = 'none';
         u.style.display = u.style.display === 'none' || u.style.display === '' ? 'block' : 'none';
-        if (u.style.display === 'block') { renderizarInventario(); renderizarEspecialidades(); actualizarMaterialesUI(); }
+        if (u.style.display === 'block') { renderizarInventario(); renderizarEspecialidades(); actualizarMaterialesUI(); cargarOpcionesAuto(); }
     }
 }
 
@@ -1008,7 +1047,7 @@ function regenerarMana() {
 }
 
 function regenerarAguante() {
-    if (!juegoIniciado || !player || !player.body) return;
+    if (!juegoIniciado || !player || !player.isAlive || !player.body) return;
     if (!player.attacking && (Math.abs(player.body.velocity.x) < 10 && Math.abs(player.body.velocity.y) < 10)) {
         let regen = 3 + Math.floor((playerStats.vitalidad || 0) / 5);
         playerAguante = Math.min(playerMaxAguante, playerAguante + regen);
@@ -1279,8 +1318,20 @@ function recogerMoneda(moneda) {
 function recogerPocionSuelo(drop) {
     if (!drop || !drop.active || drop.recogida) return;
     drop.recogida = true;
-    if (drop.tipo === 'hp') agregarItemAlInventario('pocion_1', 'pocion', 'Pocion de Vida', 'pocion_img', 1, true);
-    else agregarItemAlInventario('pocion_mana', 'pocion_mana', 'Poción de Maná', 'pocion_mana_img', 1, true);
+if (drop.tipo === 'hp') { 
+    agregarItemAlInventario('pocion_1', 'pocion', 'Pocion de Vida', 'pocion_img', 1, true); 
+    if (opcionesAuto.autoPociones) { 
+        const p = inventarioSlots.find(s => s && s.tipo === 'pocion'); 
+        if (p) equiparPocionASlot(p, 'hp'); 
+    } 
+}
+else { 
+    agregarItemAlInventario('pocion_mana', 'pocion_mana', 'Poción de Maná', 'pocion_mana_img', 1, true); 
+    if (opcionesAuto.autoPociones) { 
+        const p = inventarioSlots.find(s => s && s.tipo === 'pocion_mana'); 
+        if (p) equiparPocionASlot(p, 'mana'); 
+    } 
+}
     if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('sonidoUpbag'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('sonidoUpbag', { volume: window.volumenFX }); }
     if (drop.texto) drop.texto.destroy();
     currentScene.tweens.add({ targets: drop, scale: 0, alpha: 0, duration: 200, onComplete: () => { drop.destroy(); const index = dropsSuelo.indexOf(drop); if (index !== -1) dropsSuelo.splice(index, 1); } });
@@ -1291,8 +1342,25 @@ function recogerDrop(drop) {
     if (!drop || !drop.active || drop.recogida) return;
     drop.recogida = true;
     if (drop.luz && drop.luz.destroy) drop.luz.destroy();
-    let baseId = drop.idBase || drop.itemId;
-    agregarItemAlInventarioEquipo(baseId, drop.itemTipo, drop.itemNombre, drop.itemIcono, 1, drop.itemStats);
+let baseId = drop.idBase || drop.itemId;
+agregarItemAlInventarioEquipo(baseId, drop.itemTipo, drop.itemNombre, drop.itemIcono, 1, drop.itemStats);
+if (opcionesAuto.autoEquipar) {
+    const nuevoItem = inventarioSlots.find(s => s && s.idBase === baseId && !s._equipado);
+    if (nuevoItem) {
+        if (drop.itemTipo === 'espada' || drop.itemTipo === 'arma_magica') { 
+            const actual = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null; 
+            if (!actual || (nuevoItem.ataqueFisico || 0) > (actual.ataqueFisico || 0)) equiparItem(nuevoItem, 'arma'); 
+        }
+        else if (drop.itemTipo === 'escudo') { 
+            const actual = equipamiento.escudo ? encontrarItemPorId(equipamiento.escudo) : null; 
+            if (!actual || (nuevoItem.defensaFisica || 0) > (actual.defensaFisica || 0)) equiparItem(nuevoItem, 'escudo'); 
+        }
+        else if (drop.itemTipo === 'armadura') { 
+            const actual = equipamiento.armadura ? encontrarItemPorId(equipamiento.armadura) : null; 
+            if (!actual || (nuevoItem.defensaFisica || 0) > (actual.defensaFisica || 0)) equiparItem(nuevoItem, 'armadura'); 
+        }
+    }
+}
     mostrarMensaje(`⚔️ +${drop.itemNombre}`, 'exito');
     if (currentScene && currentScene.sound) { const sonido = currentScene.sound.get('sonidoUpbag'); if (sonido) reproducirSonido(sonido, window.volumenFX); else currentScene.sound.play('sonidoUpbag', { volume: window.volumenFX }); }
     if (drop.texto) drop.texto.destroy();
@@ -1524,14 +1592,14 @@ function actualizarStatsUI() {
     const hpTextInline = document.getElementById('hp-text-inline');
     if (hpTextInline) hpTextInline.innerText = Math.floor(playerHP);
     if (socket && socket.connected) { socket.emit('solicitarPoder'); }
+
 if (playerHP <= 0 && player && player.isAlive === true && juegoIniciado) {
     playerHP = 0;
     player.isAlive = false;
     player.setVelocity(0, 0);
     player.attacking = true;
-    if (player.body) player.body.enable = false;
+    if (player.body) { player.body.enable = false; player.body.moves = false; }
 
-    // 🛡️ FIX: asegurar que lastDir nunca sea undefined
     if (!player.lastDir) player.lastDir = 'Abajo';
     const animMuerte = pClass + '_die_' + player.lastDir;
     const animMuerteFallback = pClass + '_die_Abajo';
@@ -1539,8 +1607,6 @@ if (playerHP <= 0 && player && player.isAlive === true && juegoIniciado) {
         player.play(animMuerte, true);
     } else if (currentScene && currentScene.anims.exists(animMuerteFallback)) {
         player.play(animMuerteFallback, true);
-    } else {
-        console.warn('⚠️ No hay animación de muerte para', pClass, player.lastDir);
     }
 
     mostrarMensaje(`💀 HAS MUERTO!`, 'error');
@@ -1549,6 +1615,8 @@ if (playerHP <= 0 && player && player.isAlive === true && juegoIniciado) {
     muerteTimer = setTimeout(() => {
         revivirJugadorEnPosicion(806, 1000);
     }, 180000);
+    
+    return;  // ← ESTO ES LO NUEVO
 }
     document.getElementById('stat-defFuego').textContent = playerStats.defFuego || 0;
     document.getElementById('stat-defAgua').textContent = playerStats.defAgua || 0;
@@ -1572,6 +1640,7 @@ function revivirJugadorEnPosicion(x, y) {
         player.clearTint();
         if (player.body) {
             player.body.enable = true;
+            player.body.moves = true;
             player.body.setVelocity(0, 0);
         }
         player.setVisible(true);
@@ -1811,7 +1880,7 @@ function crearProyectil(origenX, origenY, targetX, targetY, damage, esLocal = tr
     const proyectil = currentScene.add.sprite(origenX, origenY, 'flame_sprite'); proyectil.setScale(1.5); proyectil.setRotation(angle - Math.PI / 2); proyectil.setDepth(9000);
     if (pClassName === 'NECROMANCER') proyectil.setTint(0x444444);
     else if (pClassName === 'MAGO') proyectil.setTint(0xff6600);
-    currentScene.physics.add.existing(proyectil); proyectil.body.setSize(25, 25); proyectil.body.setOffset(115, 115); proyectil.body.setVelocity(velocityX, velocityY); proyectil.body.setCollideWorldBounds(true);
+    currentScene.physics.add.existing(proyectil); proyectil.body.setSize(10, 10); proyectil.body.setOffset(122, 125); proyectil.body.setVelocity(velocityX, velocityY); proyectil.body.setCollideWorldBounds(true);
     proyectil.body.onWorldBounds = true;
     proyectil.damage = damage; proyectil.ownerId = socket ? socket.id : 'local'; proyectil.startX = origenX; proyectil.startY = origenY;
     proyectil.play('fireball_anim');
@@ -2613,7 +2682,7 @@ socket.on('cofreMalditoDesaparece', () => { if (cofreMalditoSprite) { cofreMaldi
 socket.on('cofreMalditoRecompensa', (data) => { if (data.loot && data.loot.length > 0) { data.loot.forEach(item => { const dx = player.x + (Math.random() - 0.5) * 100; const dy = player.y + (Math.random() - 0.5) * 100; if (item.tipo === 'oro') { crearMonedaSuelo(dx, dy, item.cantidad); } if (item.tipo === 'item') { socket.emit('solicitarDropItem', { id: item.id, x: dx, y: dy }); } if (item.tipo === 'pocion') { socket.emit('solicitarDropPocion', { tipo: item.clase, x: dx, y: dy, cantidad: item.cantidad }); } if (item.tipo === 'material') { materialesInventario[item.nombre] = (materialesInventario[item.nombre] || 0) + item.cantidad; actualizarMaterialesUI(); mostrarMensaje(`🪨 +${item.cantidad} ${item.nombre}`, 'exito'); } }); mostrarMensaje('🎁 ¡Recompensa del Cofre Maldito recibida!', 'exito'); } });
 socket.on('debilidadAplicada', (data) => { mostrarMensaje('🟣 ¡Estás debilitado! -35% DEF por 3s', 'error'); if (player) { player.setTint(0xaa44ff); setTimeout(() => { if (player && player.active) player.clearTint(); }, data.duracion || 3000); } });
 socket.on('esqueletoDestroy', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.destroy(); } }); } });
-const spriteVisual = getSpriteVisual(pClass); const escalaJugador = 1.5; const texturaInicial = spriteVisual + '_armed_idle_S_0'; player = this.physics.add.sprite(806, 1000, texturaInicial).setScale(escalaJugador).setCollideWorldBounds(true); player.body.setSize(18, 24); player.body.setOffset(183, 165);
+const spriteVisual = getSpriteVisual(pClass); const escalaJugador = 1.5; const texturaInicial = spriteVisual + '_armed_idle_S_0'; player = this.physics.add.sprite(806, 1000, texturaInicial).setScale(escalaJugador).setCollideWorldBounds(true); player.body.setSize(10, 10); player.body.setOffset(123, 123);
     if (window.minasGrupo) this.physics.add.collider(player, window.minasGrupo);
     const auraFrames = []; for (let i = 1; i <= 32; i++) { auraFrames.push({ key: `aura_${i}` }); }
     this.anims.create({ key: 'aura_caballero_anim', frames: auraFrames, frameRate: 15, repeat: -1 });
@@ -2684,7 +2753,7 @@ const spriteVisual = getSpriteVisual(pClass); const escalaJugador = 1.5; const t
     crearAroJugador();
     // 👹 DEMONLORD - NUEVO SPRITE CON FRAMES INDIVIDUALES
     demonlord_sprite = this.physics.add.sprite(1500, 1500, 'dl_default_idle_S_0').setScale(1.5).setDepth(1500);
-demonlord_sprite.body.setSize(60, 90); demonlord_sprite.body.setOffset(98, 83);
+demonlord_sprite.body.setSize(20, 20); demonlord_sprite.body.setOffset(120, 110);
     demonlord_sprite.cDir = 'Abajo'; demonlord_sprite.atacando = false;
     demonlord_sprite.play('dl_idle_Abajo', true);
     const guardado = window.guardadoPendiente || null;
@@ -2726,6 +2795,7 @@ demonlord_sprite.body.setSize(60, 90); demonlord_sprite.body.setOffset(98, 83);
         btnAttack.style.backgroundImage = "url('iconos/ataque_boton.png')";
     };
     window.simularAtaque = () => {
+    if (!player || !player.isAlive) return; 
         if (window.ataqueEnProceso) return;
         if (!player.attacking && player.body.enable && player.isAlive) {
             const ahora = Date.now();
@@ -2831,7 +2901,7 @@ socket.on('playerRespawn', (data) => {
         if (window.textoCuentaMuerte) { window.textoCuentaMuerte.destroy(); window.textoCuentaMuerte = null; }
         playerHP = playerMaxHP; playerMana = playerMaxMana; playerAguante = playerMaxAguante;
         player.isAlive = true; player.attacking = false; player.clearTint();
-        if (player.body) { player.body.enable = true; player.body.setVelocity(0, 0); }
+        if (player.body) { player.body.enable = true; player.body.moves = true; player.body.setVelocity(0, 0); }
         player.setVisible(true); player.setPosition(data.x, data.y);
         if (!player.lastDir) player.lastDir = 'Abajo';
         const idleKeyRespawn = pClass + '_idle_' + player.lastDir;
@@ -2842,7 +2912,7 @@ socket.on('playerRespawn', (data) => {
     otherPlayers.getChildren().forEach(other => {
         if (other.id === data.id) {
             other.setVisible(true); other.isDead = false;
-            if (other.body) other.body.enable = true;
+            if (other.body) { other.body.enable = true; other.body.moves = true; }
             if (!other.lastDir) other.lastDir = 'Abajo';
             const idleKeyOtherRespawn = other.pClass + '_idle_' + other.lastDir;
             if (currentScene && currentScene.anims.exists(idleKeyOtherRespawn)) { other.play(idleKeyOtherRespawn, true); }
@@ -2971,8 +3041,8 @@ socket.on('esqueletosIniciales', (data) => {
             img.isAlly = esqueleto.isAlly || false; 
             img.currentDir = esqueleto.dir || 'Abajo'; 
             img.setCollideWorldBounds(true); 
-            img.setSize(40, 40); 
-            img.setOffset(108, 155); 
+            img.setSize(10, 10); 
+            img.setOffset(123, 123);
             img.body.setImmovable(true); 
             img.hp = 200; 
             img.maxHp = 200; 
@@ -3065,8 +3135,8 @@ socket.on('esqueletoNew', (data) => {
     img.isAlly = false; 
     img.currentDir = 'Abajo'; 
     img.setCollideWorldBounds(true); 
-    img.setSize(40, 40); 
-    img.setOffset(108, 155); 
+    img.setSize(10, 10); 
+    img.setOffset(123, 123);
     img.body.setImmovable(true); 
     img.estaAtacando = false; 
     img.estaMuerto = false;
@@ -3080,7 +3150,7 @@ img.on('pointerdown', () => {
     window.esqueletosGrupo.add(img); 
     if (this.colisionEstatua) this.physics.add.collider(img, this.colisionEstatua); 
 });
-socket.on('esqueletoRevive', (data) => { if (!currentScene) return; const img = currentScene.physics.add.sprite(data.x, data.y, 'ns_default_idle_S_0').setScale(1); img.esqueletoId = data.id; img.isAlly = true; img.currentDir = 'Abajo'; img.setCollideWorldBounds(true); img.setSize(40, 40); img.setOffset(108, 155); img.body.setImmovable(true); img.estaAtacando = false; img.estaMuerto = false; img.play('ns_idle_S', true); img.setTint(0x88ff88); img.setInteractive(); img.on('pointerdown', () => { if (!img.estaMuerto) { mostrarMensaje(`❌ Ese esqueleto está vivo`, 'error'); return; } ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto aliado muerto seleccionado`, 'info'); }); window.esqueletosGrupo.add(img); if (this.colisionEstatua) this.physics.add.collider(img, this.colisionEstatua); mostrarMensaje(`💀 ¡Esqueleto aliado revivido!`, 'exito'); if (data.esCosechado) { img.esCosechado = true; let segundosRestantes = 60; const textoTimer = currentScene.add.text(img.x, img.y - 60, '⏱️ 60s', { fontSize: '12px', fill: '#aa88ff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(100000); img.textoTimer = textoTimer; const intervalTimer = setInterval(() => { if (!img || !img.active) { clearInterval(intervalTimer); if (textoTimer && textoTimer.active) textoTimer.destroy(); return; } segundosRestantes--; if (textoTimer && textoTimer.active) { textoTimer.setText('⏱️ ' + segundosRestantes + 's'); textoTimer.setPosition(img.x, img.y - 60); if (segundosRestantes <= 10) textoTimer.setFill('#ff4444'); else if (segundosRestantes <= 30) textoTimer.setFill('#ffaa00'); } if (segundosRestantes <= 0) { clearInterval(intervalTimer); if (textoTimer && textoTimer.active) textoTimer.destroy(); } }, 1000); img.intervalTimer = intervalTimer; } });
+socket.on('esqueletoRevive', (data) => { if (!currentScene) return; const img = currentScene.physics.add.sprite(data.x, data.y, 'ns_default_idle_S_0').setScale(1); img.esqueletoId = data.id; img.isAlly = true; img.currentDir = 'Abajo'; img.setCollideWorldBounds(true); img.setSize(10, 10); img.setOffset(123, 123); img.body.setImmovable(true); img.estaAtacando = false; img.estaMuerto = false; img.play('ns_idle_S', true); img.setTint(0x88ff88); img.setInteractive(); img.on('pointerdown', () => { if (!img.estaMuerto) { mostrarMensaje(`❌ Ese esqueleto está vivo`, 'error'); return; } ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto aliado muerto seleccionado`, 'info'); }); window.esqueletosGrupo.add(img); if (this.colisionEstatua) this.physics.add.collider(img, this.colisionEstatua); mostrarMensaje(`💀 ¡Esqueleto aliado revivido!`, 'exito'); if (data.esCosechado) { img.esCosechado = true; let segundosRestantes = 60; const textoTimer = currentScene.add.text(img.x, img.y - 60, '⏱️ 60s', { fontSize: '12px', fill: '#aa88ff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(100000); img.textoTimer = textoTimer; const intervalTimer = setInterval(() => { if (!img || !img.active) { clearInterval(intervalTimer); if (textoTimer && textoTimer.active) textoTimer.destroy(); return; } segundosRestantes--; if (textoTimer && textoTimer.active) { textoTimer.setText('⏱️ ' + segundosRestantes + 's'); textoTimer.setPosition(img.x, img.y - 60); if (segundosRestantes <= 10) textoTimer.setFill('#ff4444'); else if (segundosRestantes <= 30) textoTimer.setFill('#ffaa00'); } if (segundosRestantes <= 0) { clearInterval(intervalTimer); if (textoTimer && textoTimer.active) textoTimer.destroy(); } }, 1000); img.intervalTimer = intervalTimer; } });
     socket.on('furiaNecroticaEffect', (data) => { if (data.playerId === socket.id) { mostrarMensaje(`🔥 ¡Furia Necrotica! +${Math.floor(data.bonusPorcentaje * 100)}% danio`, 'exito'); if (window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (data.esqueletosIds.includes(esq.esqueletoId)) esq.setTint(0xff3333); }); setTimeout(() => { if (window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (data.esqueletosIds.includes(esq.esqueletoId)) { esq.clearTint(); if (esq.isAlly) esq.setTint(0x88ff88); } }); }, 10000); } });
     socket.on('furiaNecroticaEnd', (data) => { if (data.playerId === socket.id && window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.isAlly) esq.setTint(0x88ff88); }); });
     socket.on('proyectilCreado', (data) => { crearProyectil(data.origenX, data.origenY, data.targetX, data.targetY, data.damage, false); });
@@ -3125,7 +3195,7 @@ socket.on('esqueletoRevive', (data) => { if (!currentScene) return; const img = 
         }
     }, 500);
 }
-function addOtherPlayer(self, info) { if (!info.class) return; const spriteVisual = getSpriteVisual(info.class); const escala = 1.5; const texturaInicial = spriteVisual + '_armed_idle_S_0'; const o = self.physics.add.sprite(info.x, info.y, texturaInicial).setScale(escala); o.id = info.id; o.pClass = info.class; o.pName = info.name; o.targetX = info.x; o.targetY = info.y; o.setDepth(100000); o.setSize(18, 24); o.setOffset(183, 165); o.body.setImmovable(true); o.setInteractive(); o.input.enabled = true; o.auraSprite = null; otherPlayers.add(o); }
+function addOtherPlayer(self, info) { if (!info.class) return; const spriteVisual = getSpriteVisual(info.class); const escala = 1.5; const texturaInicial = spriteVisual + '_armed_idle_S_0'; const o = self.physics.add.sprite(info.x, info.y, texturaInicial).setScale(escala); o.id = info.id; o.pClass = info.class; o.pName = info.name; o.targetX = info.x; o.targetY = info.y; o.setDepth(100000); o.setSize(10, 10); o.setOffset(123, 123); o.body.setImmovable(true); o.setInteractive(); o.input.enabled = true; o.auraSprite = null; otherPlayers.add(o); }
 function update() {
     if (!player || !player.isAlive) return;
     crearAroJugador();
@@ -3164,6 +3234,15 @@ function update() {
     if (!window.regeneracionTimer) window.regeneracionTimer = 0;
     window.regeneracionTimer++;
     if (window.regeneracionTimer % 120 === 0) { if (pClassName !== 'MAGO' && pClassName !== 'NECROMANCER') { const regenHP = 2 + (playerStats.regeneracion || 0) * 1.0; if (playerHP < playerMaxHP) { playerHP = Math.min(playerMaxHP, playerHP + regenHP); actualizarStatsUI(); } } }
+if (opcionesAuto.autoCurar && player.isAlive && playerHP < playerMaxHP * 0.5) {
+    if (!window.ultimaCuracionAuto || Date.now() - window.ultimaCuracionAuto > 2000) {
+        const slotPocionHP = pocionesEquipadas.findIndex(p => p && (p.tipo === 'hp' || p.tipo === 'pocion'));
+        if (slotPocionHP !== -1) {
+            window.ultimaCuracionAuto = Date.now();
+            usarPocionSlot(slotPocionHP);
+        }
+    }
+}
     const playerY = player.y;
 if (aroSacrificio && aroSacrificio.visible && window.esqueletosGrupo && socket && socket.connected) {
     const ahoraAura = Date.now();
@@ -3186,7 +3265,25 @@ if (aroSacrificio && aroSacrificio.visible && window.esqueletosGrupo && socket &
     if (playerY < 400) { if (this.ground) this.ground.setTint(0xddddff); } else { if (this.ground) this.ground.clearTint(); }
     actualizarBarrasEnemigos();
     if (enMapaNevado && nieveParticulas && nieveParticulas.active) { nieveParticulas.setPosition(player.x, player.y - 400); }
-    if (player && player.isAlive) { for (let i = monedasSuelo.length - 1; i >= 0; i--) { const m = monedasSuelo[i]; if (m && m.active && !m.recogida) { const dist = Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y); if (dist < 60) { recogerMoneda(m); } } } }
+    if (player && player.isAlive) { 
+    for (let i = monedasSuelo.length - 1; i >= 0; i--) { 
+        const m = monedasSuelo[i]; 
+        if (m && m.active && !m.recogida) { 
+            const dist = Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y); 
+            const rango = opcionesAuto.autoRecoger ? 200 : 60;
+            if (dist < rango) { recogerMoneda(m); } 
+        } 
+    } 
+    if (opcionesAuto.autoRecoger) {
+        for (let i = dropsSuelo.length - 1; i >= 0; i--) {
+            const d = dropsSuelo[i];
+            if (d && d.active && !d.recogida) {
+                const dist = Phaser.Math.Distance.Between(player.x, player.y, d.x, d.y);
+                if (dist < 200) { recogerDrop(d); }
+              }
+          }
+       }
+   }
 }
 document.addEventListener('DOMContentLoaded', () => { document.getElementById('menu-ui').style.display = 'flex'; document.getElementById('class-ui').style.display = 'none'; document.getElementById('loading-ui').style.display = 'none'; });
 function dirALetra(dir) {
