@@ -402,6 +402,7 @@ const esTactil = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) ||
 // VARIABLES GLOBALES
 // ============================================
 let socket, player, demonlord_sprite, otherPlayers, keys, pName, pClass, pClassName;
+let estaMuriendo = false;
 let aroJugador = null;
 let aroSacrificio = null;
 let currentScene = null;
@@ -448,7 +449,8 @@ let playerStats = {
     defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0,
     atqFuego: 0, atqAgua: 0, atqViento: 0, atqTierra: 0, atqLuz: 0, atqOscuridad: 0,
     corte: 0, regeneracion: 0, destreza: 0, virtuoso: 0, brutalidad: 0,
-    actoFugaz: 0, bendito: 0, sacrificio: 0, furia: 0, critico: 0
+    actoFugaz: 0, bendito: 0, sacrificio: 0, furia: 0, critico: 0,
+    legion: 0
 };
 let previewTimeout = null;
 let ultimoAtaqueNormal = 0;
@@ -821,22 +823,22 @@ const SKILLS_DATA = {
 // ESPECIALIDADES POR CLASE
 // ============================================
 const ESPECIALIDADES_DATA = {
-    MAGO: [
-        { id: 'atqFuego', nombre: 'Fuego', desc: '+1 daño fuego', icono: 'skills/especialidades/FUEGO.png', stat: 'atqFuego' },
-        { id: 'atqAgua', nombre: 'Agua', desc: '+1 daño agua', icono: 'skills/especialidades/AGUA.png', stat: 'atqAgua' },
-        { id: 'atqViento', nombre: 'Viento', desc: '+1 daño viento', icono: 'skills/especialidades/VIENTO.png', stat: 'atqViento' },
-        { id: 'atqTierra', nombre: 'Tierra', desc: '+1 daño tierra', icono: 'skills/especialidades/TIERRA.png', stat: 'atqTierra' },
-        { id: 'atqLuz', nombre: 'Luz', desc: '+1 daño luz', icono: 'skills/especialidades/LUZ.png', stat: 'atqLuz' },
-        { id: 'atqOscuridad', nombre: 'Oscuridad', desc: '+1 daño oscuridad', icono: 'skills/especialidades/OSCURIDAD.png', stat: 'atqOscuridad' }
-    ],
-    NECROMANCER: [
-        { id: 'atqFuego', nombre: 'Fuego', desc: '+1 daño fuego', icono: 'skills/especialidades/FUEGO.png', stat: 'atqFuego' },
-        { id: 'atqAgua', nombre: 'Agua', desc: '+1 daño agua', icono: 'skills/especialidades/AGUA.png', stat: 'atqAgua' },
-        { id: 'atqViento', nombre: 'Viento', desc: '+1 daño viento', icono: 'skills/especialidades/VIENTO.png', stat: 'atqViento' },
-        { id: 'atqTierra', nombre: 'Tierra', desc: '+1 daño tierra', icono: 'skills/especialidades/TIERRA.png', stat: 'atqTierra' },
-        { id: 'atqLuz', nombre: 'Luz', desc: '+1 daño luz', icono: 'skills/especialidades/LUZ.png', stat: 'atqLuz' },
-        { id: 'atqOscuridad', nombre: 'Oscuridad', desc: '+1 daño oscuridad', icono: 'skills/especialidades/OSCURIDAD.png', stat: 'atqOscuridad' }
-    ],
+MAGO: [
+    { id: 'atqFuego', nombre: 'Fuego', desc: '+1 daño fuego', icono: 'skills/especialidades/FUEGO.png', stat: 'atqFuego' },
+    { id: 'atqAgua', nombre: 'Agua', desc: '+1 daño agua', icono: 'skills/especialidades/AGUA.png', stat: 'atqAgua' },
+    { id: 'atqViento', nombre: 'Viento', desc: '+1 daño viento', icono: 'skills/especialidades/VIENTO.png', stat: 'atqViento' },
+    { id: 'atqTierra', nombre: 'Tierra', desc: '+1 daño tierra', icono: 'skills/especialidades/TIERRA.png', stat: 'atqTierra' },
+    { id: 'atqLuz', nombre: 'Luz', desc: '+1 daño luz', icono: 'skills/especialidades/LUZ.png', stat: 'atqLuz' },
+    { id: 'atqOscuridad', nombre: 'Oscuridad', desc: '+1 daño oscuridad', icono: 'skills/especialidades/OSCURIDAD.png', stat: 'atqOscuridad' }
+],
+NECROMANCER: [
+    { id: 'atqFuego', nombre: 'Fuego', desc: '+1 daño fuego', icono: 'skills/especialidades/FUEGO.png', stat: 'atqFuego' },
+    { id: 'atqAgua', nombre: 'Agua', desc: '+1 daño agua', icono: 'skills/especialidades/AGUA.png', stat: 'atqAgua' },
+    { id: 'legion', nombre: 'Legión', desc: '+1% probabilidad de levantar cadáveres', icono: 'skills/especialidades/LEGION.png', stat: 'legion' },
+    { id: 'atqTierra', nombre: 'Tierra', desc: '+1 daño tierra', icono: 'skills/especialidades/TIERRA.png', stat: 'atqTierra' },
+    { id: 'atqLuz', nombre: 'Luz', desc: '+1 daño luz', icono: 'skills/especialidades/LUZ.png', stat: 'atqLuz' },
+    { id: 'atqOscuridad', nombre: 'Oscuridad', desc: '+1 daño oscuridad', icono: 'skills/especialidades/OSCURIDAD.png', stat: 'atqOscuridad' }
+],
     WARRIOR: [
         { id: 'corte', nombre: 'Corte', desc: '+1% daño corte', icono: 'skills/especialidades/CORTE.png', stat: 'corte' },
         { id: 'regeneracion', nombre: 'Regeneración', desc: '+0.1% regen', icono: 'skills/especialidades/REGENERACIÓN.png', stat: 'regeneracion' },
@@ -929,6 +931,7 @@ function toggleFullscreen() {
 function toggleChat() { document.getElementById('chat-container').classList.toggle('chat-minimizado'); }
 
 function toggleInventario() {
+    if (player && !player.isAlive) return;   // ← AGREGAR
     const u = document.getElementById('inventario-ui');
     if (u) {
         document.getElementById('mercado-ui').style.display = 'none';
@@ -1109,7 +1112,7 @@ window.nuevoJuego = function() {
     }
     borrarPartida();
     equipamiento = { arma: null, escudo: null, armadura: null };
-    playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0, defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0 }; playerAguante = 100; playerMaxAguante = 100;
+playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0, defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0, legion: 0 }; playerAguante = 100; playerMaxAguante = 100;
     skillsEquipadas = [];
     inventarioSlots = [];
     for (let i = 0; i < 36; i++) inventarioSlots.push(null);
@@ -1124,7 +1127,7 @@ window.continuarPartida = function() {
     if (!g) { alert("No hay partida guardada."); return; }
     pName = g.nombre; pClass = g.clase; pClassName = g.className || g.clase;
     equipamiento = g.equipamiento || { arma: null, escudo: null, armadura: null };
-    playerStats = Object.assign({ level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0, defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0, puntosEspecialidad: 0, corte: 0, regeneracion: 0, destreza: 0, virtuoso: 0, brutalidad: 0, actoFugaz: 0, bendito: 0, sacrificio: 0, furia: 0, critico: 0, atqFuego: 0, atqAgua: 0, atqViento: 0, atqTierra: 0, atqLuz: 0, atqOscuridad: 0 }, g.playerStats || {});
+playerStats = Object.assign({ level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0, defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0, puntosEspecialidad: 0, corte: 0, regeneracion: 0, destreza: 0, virtuoso: 0, brutalidad: 0, actoFugaz: 0, bendito: 0, sacrificio: 0, furia: 0, critico: 0, atqFuego: 0, atqAgua: 0, atqViento: 0, atqTierra: 0, atqLuz: 0, atqOscuridad: 0, legion: 0 }, g.playerStats || {});
     playerHP = g.playerHP || (classStats[pClassName]?.hp || 500);
     playerMana = g.playerMana || (classStats[pClassName]?.mana || 100);
     playerAguante = g.playerAguante || (classStats[pClassName]?.aguante || 100); playerMaxAguante = classStats[pClassName]?.aguante || 100;
@@ -1598,7 +1601,7 @@ if (playerHP <= 0 && player && player.isAlive === true && juegoIniciado) {
     player.isAlive = false;
     player.setVelocity(0, 0);
     player.attacking = true;
-    if (player.body) { player.body.enable = false; player.body.moves = false; }
+    if (player.body) player.body.enable = false;
 
     if (!player.lastDir) player.lastDir = 'Abajo';
     const animMuerte = pClass + '_die_' + player.lastDir;
@@ -1615,8 +1618,6 @@ if (playerHP <= 0 && player && player.isAlive === true && juegoIniciado) {
     muerteTimer = setTimeout(() => {
         revivirJugadorEnPosicion(806, 1000);
     }, 180000);
-    
-    return;  // ← ESTO ES LO NUEVO
 }
     document.getElementById('stat-defFuego').textContent = playerStats.defFuego || 0;
     document.getElementById('stat-defAgua').textContent = playerStats.defAgua || 0;
@@ -1630,7 +1631,6 @@ function revivirJugadorEnPosicion(x, y) {
     if (muerteTimer) { clearTimeout(muerteTimer); muerteTimer = null; }
     if (window.textoCuentaMuerte) { window.textoCuentaMuerte.destroy(); window.textoCuentaMuerte = null; }
 
-
     if (player && !player.isAlive) {
         playerHP = playerMaxHP;
         playerMana = playerMaxMana;
@@ -1640,19 +1640,18 @@ function revivirJugadorEnPosicion(x, y) {
         player.clearTint();
         if (player.body) {
             player.body.enable = true;
-            player.body.moves = true;
             player.body.setVelocity(0, 0);
         }
         player.setVisible(true);
         player.setPosition(x, y);
         if (!player.lastDir) player.lastDir = 'Abajo';
-const idleKeyRevivir = pClass + '_idle_' + player.lastDir;
-if (currentScene && currentScene.anims.exists(idleKeyRevivir)) {
-    player.play(idleKeyRevivir, true);
-}
+        const idleKeyRevivir = pClass + '_idle_' + player.lastDir;
+        if (currentScene && currentScene.anims.exists(idleKeyRevivir)) {
+            player.play(idleKeyRevivir, true);
+        }
         actualizarStatsUI();
         guardarPartida();
-        mostrarMensaje(`✨ HAS REVIVIDO!`, 'exito');
+        mostrarMensaje(`✨ HAS REVIDO!`, 'exito');
         if (socket && socket.connected) socket.emit('playerRespawn', { id: socket.id });
     }
 }
@@ -1687,6 +1686,21 @@ function mostrarPreviewStats(item, tipo) {
     if (item.dañoFuego) mensaje += `\n🔥 Daño Fuego: +${item.dañoFuego}`;
     if (item.dañoLuz) mensaje += `\n⚡ Daño Luz: +${item.dañoLuz}`;
     if (item.manaBonus) mensaje += `\n💙 Maná: +${item.manaBonus}`;
+    if (item.idBase && item.idBase.includes('bastondehueso')) {
+    // Buscar en ITEMS_DATA sería ideal, pero el cliente no tiene esa data
+    // Solución simple: hardcodear el bonus según el idBase
+    const bonusMap = {
+        'bastondehueso': 1,
+        'bastondehueso_1': 2,
+        'bastondehueso_2': 3,
+        'bastondehueso_3': 4,
+        'bastondehuesoleg': 5
+    };
+    const bonusAliados = bonusMap[item.idBase];
+    if (bonusAliados) {
+        mensaje += `\n💀 Aliados máximos: +${bonusAliados}`;
+    }
+}
     const preview = document.getElementById('stat-preview'); preview.textContent = mensaje;
     if (diffAtq > 0 || diffDef > 0 || diffVel > 0 || item.dañoFuego || item.dañoLuz) preview.style.color = '#88ff88'; 
     else if (diffAtq < 0 || diffDef < 0 || diffVel < 0) preview.style.color = '#ff8888'; 
@@ -1986,9 +2000,17 @@ function actualizarBarrasEnemigos() {
 // ============================================
 // USAR SKILL
 // ============================================
-function calcularCosechaOsea() { const nivelOsc = playerStats.atqOscuridad || 0; if (nivelOsc < 10) return { nivelRequerido: 10, esqueletos: 0, costoVida: 0, valido: false }; const esqueletos = Math.min(3 + Math.floor((nivelOsc - 10) / 2), 8); const costoVida = 100 + (esqueletos * 40); return { nivelRequerido: 10, esqueletos: esqueletos, costoVida: costoVida, valido: true }; }
+function calcularCosechaOsea() {
+    const nivelOsc = playerStats.atqOscuridad || 0;
+    if (nivelOsc < 10) return { nivelRequerido: 10, esqueletos: 0, costoVida: 0, valido: false };
+    const esqueletos = Math.min(3 + Math.floor((nivelOsc - 10) / 2), 8);
+    const costoVida = 100 + (esqueletos * 40);
+    return { nivelRequerido: 10, esqueletos: esqueletos, costoVida: costoVida, valido: true };
+}
+
 function usarSkill(skillId) {
     if (!player || !player.isAlive) return;
+    if (playerHP <= 0) return;
 
     if (skillId === 'levantar_muerto') {
         if (ultimoEsqueletoClickeado) levantarEsqueleto(ultimoEsqueletoClickeado);
@@ -2003,47 +2025,48 @@ function usarSkill(skillId) {
         if (playerMana < 10) { mostrarMensaje(`❌ Mana insuficiente (10)`, 'error'); return; }
         playerMana -= 10; actualizarStatsUI(); ultimoAtaqueDistancia = ahora;
         mostrarMensaje(skillId === 'fireball' ? '🔥 Fireball! -10 mana' : '💀 Bola de sombra! -10 mana', 'exito');
-        let dir = player.lastDir; let targetX = player.x; let targetY = player.y;
-        switch(dir) { case 'Derecha': targetX += 200; break; case 'Izquierda': targetX -= 200; break; case 'Arriba': targetY -= 200; break; case 'Abajo': targetY += 200; break; default: targetY += 200; }
-      let offsetX = 0, offsetY = 0;
-switch(dir) {
-    case 'Derecha':    offsetX = 35;  offsetY = -20; break;
-    case 'Izquierda':  offsetX = -35; offsetY = -20; break;
-    case 'Arriba':     offsetX = 0;   offsetY = -45; break;
-    case 'Abajo':      offsetX = 0;   offsetY = 15;  break;
-}
-
+        let dir = player.lastDir;
+        let targetX = player.x, targetY = player.y;
+        switch (dir) {
+            case 'Derecha': targetX += 200; break;
+            case 'Izquierda': targetX -= 200; break;
+            case 'Arriba': targetY -= 200; break;
+            case 'Abajo': targetY += 200; break;
+            default: targetY += 200;
+        }
+        let offsetX = 0, offsetY = 0;
+        switch (dir) {
+            case 'Derecha':    offsetX = 35;  offsetY = -20; break;
+            case 'Izquierda':  offsetX = -35; offsetY = -20; break;
+            case 'Arriba':     offsetX = 0;   offsetY = -45; break;
+            case 'Abajo':      offsetX = 0;   offsetY = 15;  break;
+        }
         if (!player.attacking) {
             const bonus = (pClassName === 'MAGO') ? (playerStats.atqFuego || 0) + bonusArmaFuego : (playerStats.atqOscuridad || 0) + bonusArmaOscuridad;
             let ataqueMagico = (classStats[pClassName].ataqueMagico || 0) + Math.floor((playerStats.inteligencia) * 1.5);
-            player.attacking = true; player.setVelocity(0, 0);
-
+            player.attacking = true;
+            player.setVelocity(0, 0);
             const selectKey = pClass + '_select_' + dir;
             const atkKey = pClass + '_atk_' + dir;
             const atkFallback = pClass + '_atk_Abajo';
             const idleKey = pClass + '_idle_' + dir;
-
             player.removeAllListeners('animationcomplete');
-
-            const reproducirAtaque = () => {
+            const reproducirAtaqueFireball = () => {
                 if (!player || !player.active) return;
                 player.removeAllListeners('animationcomplete');
                 const atkAnim = currentScene.anims.exists(atkKey) ? atkKey : atkFallback;
                 player.play(atkAnim, true);
-                currentScene.time.delayedCall(150, () => {
-                    if (player && player.active) crearProyectil(player.x + offsetX, player.y + offsetY, targetX, targetY, ataqueMagico + bonus);
-                });
+                crearProyectil(player.x + offsetX, player.y + offsetY, targetX, targetY, ataqueMagico + bonus);
                 player.once('animationcomplete', () => {
                     player.attacking = false;
                     if (player && player.active && currentScene.anims.exists(idleKey)) player.play(idleKey, true);
                 });
             };
-
-            if (pClassName === 'MAGO' && currentScene.anims.exists(selectKey)) {
+            if (currentScene.anims.exists(selectKey)) {
                 player.play(selectKey, true);
-                player.once('animationcomplete', reproducirAtaque);
+                player.once('animationcomplete', reproducirAtaqueFireball);
             } else {
-                reproducirAtaque();
+                reproducirAtaqueFireball();
             }
         }
     }
@@ -2058,7 +2081,6 @@ switch(dir) {
         if (!enemigoMasCercano) { mostrarMensaje(`❌ No hay enemigos en rango (400px)`, 'error'); return; }
         playerMana -= 15; actualizarStatsUI(); ultimoAtaqueDistancia = ahora;
         mostrarMensaje(`⚡ ¡Trueno! -15 mana`, 'exito');
-
         if (!player.attacking) {
             player.attacking = true; player.setVelocity(0, 0);
             const dir = player.lastDir;
@@ -2066,16 +2088,12 @@ switch(dir) {
             const atkKey = pClass + '_atk_' + dir;
             const atkFallback = pClass + '_atk_Abajo';
             const idleKey = pClass + '_idle_' + dir;
-
             player.removeAllListeners('animationcomplete');
-
             const reproducirAtaqueTrueno = () => {
                 if (!player || !player.active) return;
                 player.removeAllListeners('animationcomplete');
                 const atkAnim = currentScene.anims.exists(atkKey) ? atkKey : atkFallback;
                 player.play(atkAnim, true);
-
-// ⚡ EFECTO DEL TRUENO (solo una vez, al iniciar el atk)
                 const ex = enemigoMasCercano.x, ey = enemigoMasCercano.y;
                 let ataqueMagicoTotal = (classStats['MAGO'].ataqueMagico || 0) + Math.floor((playerStats.inteligencia) * 1.5);
                 const danioTotal = Math.floor(ataqueMagicoTotal) + (playerStats.atqLuz || 0) + bonusArmaLuz;
@@ -2094,13 +2112,11 @@ switch(dir) {
                 truenoSprite.once('animationcomplete', () => { if (truenoSprite && truenoSprite.active) truenoSprite.destroy(); });
                 currentScene.time.delayedCall(1500, () => { if (truenoSprite && truenoSprite.active) truenoSprite.destroy(); });
                 if (socket && socket.connected) { socket.emit('truenoRemoto', { origenX: player.x, origenY: player.y, targetX: enemigoMasCercano.x, targetY: enemigoMasCercano.y }); }
-
                 player.once('animationcomplete', () => {
                     player.attacking = false;
                     if (player && player.active && currentScene.anims.exists(idleKey)) player.play(idleKey, true);
                 });
             };
-
             if (pClassName === 'MAGO' && currentScene.anims.exists(selectKey)) {
                 player.play(selectKey, true);
                 player.once('animationcomplete', reproducirAtaqueTrueno);
@@ -2314,6 +2330,7 @@ function preload() {
     this.load.image('particula_nieve', 'particula_nieve.png');
     this.load.spritesheet('mago_sprite', 'mago.png', { frameWidth: 255, frameHeight: 255 });
     this.load.spritesheet('necromancer_sprite', 'necromancer.png', { frameWidth: 255, frameHeight: 255 });
+    this.load.spritesheet('cast_anim', 'cast.png', { frameWidth: 256, frameHeight: 256 });
     // ═══════════════════════════════════════════
     // 🎭 CARGAR FRAMES DE PERSONAJES (ALTA CALIDAD 256x256)
     // ═══════════════════════════════════════════
@@ -2912,15 +2929,25 @@ socket.on('playerDeath', (data) => {
 socket.on('playerRespawn', (data) => {
     if (data.id === socket.id && player && player.isAlive) return;
     if (data.id === socket.id && player && !player.isAlive) {
+        // 🛡️ Si el cliente todavía está en tiempo de muerte, ignorar respawn del server
+        if (estaMuriendo && muerteTimer) {
+            return;
+        }
         if (muerteTimer) { clearTimeout(muerteTimer); muerteTimer = null; }
         if (window.textoCuentaMuerte) { window.textoCuentaMuerte.destroy(); window.textoCuentaMuerte = null; }
-        playerHP = playerMaxHP; playerMana = playerMaxMana; playerAguante = playerMaxAguante;
-        player.isAlive = true; player.attacking = false; player.clearTint();
+        estaMuriendo = false;
+        playerHP = playerMaxHP;
+        playerMana = playerMaxMana;
+        playerAguante = playerMaxAguante;
+        player.isAlive = true;
+        player.attacking = false;
+        player.clearTint();
         if (player.body) { player.body.enable = true; player.body.moves = true; player.body.setVelocity(0, 0); }
         player.setVisible(true); player.setPosition(data.x, data.y);
         if (!player.lastDir) player.lastDir = 'Abajo';
         const idleKeyRespawn = pClass + '_idle_' + player.lastDir;
         if (currentScene && currentScene.anims.exists(idleKeyRespawn)) { player.play(idleKeyRespawn, true); }
+        if (player.anims) player.anims.resume();
         actualizarStatsUI(); guardarPartida(); socket.emit('solicitarEsqueletos');
         mostrarMensaje('✨ Has revivido!', 'exito');
     }
@@ -3027,7 +3054,7 @@ socket.on('demonlordDeath', (data) => {
     socket.on('rankingTop10', (data) => { const lista = document.getElementById('ranking-lista'); if (!lista) return; let html = ''; data.ranking.forEach((j, index) => { const medalla = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : '  ')); const colorClase = j.clase === 'BARBARO' ? '#ff6666' : (j.clase === 'MAGO' ? '#6666ff' : (j.clase === 'NECROMANCER' ? '#9966ff' : (j.clase === 'CABALLERO' ? '#ffaa66' : '#88ff88'))); html += `<div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid #333; ${j.id === socket.id ? 'background:#222;' : ''}"><span>${medalla} #${index + 1}</span><span style="color:${colorClase}">${j.nombre}</span><span>Lv.${j.nivel}</span><span>⚡${j.poder}</span></div>`; }); if (data.ranking.length === 0) html = '<div style="text-align:center; color:#666;">No hay jugadores</div>'; lista.innerHTML = html; });
     socket.on('poderJugador', (data) => { poderActual = data.poder; const poderElem = document.getElementById('stat-poder'); if (poderElem) poderElem.textContent = poderActual; });
     socket.on('estadoTerminado', (data) => { if (data.tipo === 'aturdimiento') { if (data.id === 'demonlord') { mostrarMensaje(`⚡ El Demonlord se ha liberado del aturdimiento`, 'info'); } else { mostrarMensaje(`⚡ El esqueleto se ha liberado del aturdimiento`, 'info'); } } });
-    socket.on('infoTeamRecibida', (data) => { window.teamInfo = data; const info = document.getElementById('team-info'); const btnSalir = document.getElementById('btn-salir-team'); const tabTeam = document.getElementById('tab-team'); if (data.enTeam) { tabTeam.style.display = 'block'; let html = `<div style="color:#ffaa00; font-size:13px; margin-bottom:5px;">LIDER: ${data.lider}</div>`; html += `<div style="margin-top:8px; text-align:left;">`; data.miembros.forEach(m => { const esLider = m === data.lider; html += `<div style="padding:3px 5px; ${esLider ? 'color:#ffaa00;' : 'color:#fff;'}">${esLider ? '* ' : '- '}${m}</div>`; }); html += `</div>`; info.innerHTML = html; btnSalir.style.display = 'block'; document.getElementById('team-invitar-section').style.display = 'none'; } else { tabTeam.style.display = 'none'; info.innerHTML = '<div style="color:#666;">No estas en un equipo</div>'; btnSalir.style.display = 'none'; document.getElementById('team-invitar-section').style.display = 'block'; } const teamIcon = document.getElementById('team-icon'); if (teamIcon) { if (data.enTeam) { teamIcon.style.display = 'flex'; teamIcon.title = data.miembros.join(', '); } else { teamIcon.style.display = 'none'; } } });
+socket.on('infoTeamRecibida', (data) => { window.teamInfo = data; const info = document.getElementById('team-info'); const btnSalir = document.getElementById('btn-salir-team'); const tabTeam = document.getElementById('tab-team'); if (data.enTeam) { tabTeam.style.display = 'block'; let html = `<div style="color:#ffaa00; font-size:13px; margin-bottom:5px;">LIDER: ${data.lider}</div>`; html += `<div style="margin-top:8px; text-align:left;">`; data.miembros.forEach(m => { const esLider = m === data.lider; html += `<div style="padding:3px 5px; ${esLider ? 'color:#ffaa00;' : 'color:#fff;'}">${esLider ? '* ' : '- '}${m}</div>`; }); html += `</div>`; info.innerHTML = html; btnSalir.style.display = 'block'; document.getElementById('team-invitar-section').style.display = 'block'; } else { tabTeam.style.display = 'none'; info.innerHTML = '<div style="color:#666;">No estas en un equipo</div>'; btnSalir.style.display = 'none'; document.getElementById('team-invitar-section').style.display = 'block'; } const teamIcon = document.getElementById('team-icon'); if (teamIcon) { if (data.enTeam) { teamIcon.style.display = 'flex'; teamIcon.title = data.miembros.join(', '); } else { teamIcon.style.display = 'none'; } } });
     socket.on('esqueletosIniciales', (data) => { 
     if (!window.esqueletosGrupo) window.esqueletosGrupo = this.add.group(); 
     window.esqueletosGrupo.clear(true, true); 
@@ -3202,12 +3229,13 @@ function update() {
     let velocidadActual = getVelocidadActual();
     let spd = this.input.keyboard.checkDown(Phaser.Input.Keyboard.KeyCodes.SHIFT) ? velocidadActual * 1.8 : velocidadActual;
     let vx = 0, vy = 0; let moviendo = false;
-    const chatFocused = document.getElementById('chat-input') === document.activeElement; const teamFocused = document.getElementById('team-invitar-input') === document.activeElement;
+    const chatFocused = document.getElementById('chat-input') === document.activeElement;
+    const teamFocused = document.getElementById('team-invitar-input') === document.activeElement;
     if (!chatFocused && !teamFocused) {
         if (this.teclaA.isDown) { vx = -spd; player.lastDir = 'Izquierda'; } else if (this.teclaD.isDown) { vx = spd; player.lastDir = 'Derecha'; }
         if (this.teclaW.isDown) { vy = -spd; player.lastDir = 'Arriba'; } else if (this.teclaS.isDown) { vy = spd; player.lastDir = 'Abajo'; }
     }
-    // 📱 Joystick virtual
+// 📱 Joystick virtual
     if (esTactil && joystickActivo && (Math.abs(joystickVector.x) > 0.15 || Math.abs(joystickVector.y) > 0.15)) {
         vx = joystickVector.x * spd;
         vy = joystickVector.y * spd;
@@ -3218,73 +3246,132 @@ function update() {
         }
     }
     moviendo = (Math.abs(vx) > 5 || Math.abs(vy) > 5);
-    if (!player.attacking) { if (playerAguante <= 0) { player.setVelocity(vx * 0.2, vy * 0.2); } else { player.setVelocity(vx, vy); } player.play(pClass + (moviendo ? '_walk_' : '_idle_') + player.lastDir, true); }
-    else { player.setVelocity(0, 0); }
+    if (!player.attacking) {
+        if (playerAguante <= 0) { player.setVelocity(vx * 0.2, vy * 0.2); }
+        else { player.setVelocity(vx, vy); }
+        player.play(pClass + (moviendo ? '_walk_' : '_idle_') + player.lastDir, true);
+    } else {
+        player.setVelocity(0, 0);
+    }
     if (window.pisoMercader && player.y > 768 && player.y < 812 && player.x > 182 && player.x < 310) {
-    player.setDepth(1);
-    window.pisoMercader.setDepth(99999);
-} else {
-    player.setDepth(player.y);
-    if (window.pisoMercader) window.pisoMercader.setDepth(1);
-}
+        player.setDepth(1);
+        window.pisoMercader.setDepth(99999);
+    } else {
+        player.setDepth(player.y);
+        if (window.pisoMercader) window.pisoMercader.setDepth(1);
+    }
     const ahora = Date.now();
-    if (ahora - ultimoEnvioMovimiento > INTERVALO_ENVIO && socket && socket.connected) { ultimoEnvioMovimiento = ahora; const auraVisible = (aroSacrificio && aroSacrificio.visible) || false; socket.emit('playerMovement', { x: player.x, y: player.y, dir: player.lastDir, isMoving: moviendo, timestamp: ahora, auraVisible: auraVisible }); }
-    if (moviendo && ahora - ultimoGuardadoPosicionTime > 10000) { ultimoGuardadoPosicionTime = ahora; guardarPartida(); }
+    if (ahora - ultimoEnvioMovimiento > INTERVALO_ENVIO && socket && socket.connected) {
+        ultimoEnvioMovimiento = ahora;
+        const auraVisible = (aroSacrificio && aroSacrificio.visible) || false;
+        socket.emit('playerMovement', { x: player.x, y: player.y, dir: player.lastDir, isMoving: moviendo, timestamp: ahora, auraVisible: auraVisible });
+    }
+    if (moviendo && ahora - ultimoGuardadoPosicionTime > 10000) {
+        ultimoGuardadoPosicionTime = ahora;
+        guardarPartida();
+    }
     if (!window.regeneracionTimer) window.regeneracionTimer = 0;
     window.regeneracionTimer++;
-    if (window.regeneracionTimer % 120 === 0) { if (pClassName !== 'MAGO' && pClassName !== 'NECROMANCER') { const regenHP = 2 + (playerStats.regeneracion || 0) * 1.0; if (playerHP < playerMaxHP) { playerHP = Math.min(playerMaxHP, playerHP + regenHP); actualizarStatsUI(); } } }
-if (opcionesAuto.autoCurar && player.isAlive && playerHP < playerMaxHP * 0.5) {
-    if (!window.ultimaCuracionAuto || Date.now() - window.ultimaCuracionAuto > 2000) {
-        const slotPocionHP = pocionesEquipadas.findIndex(p => p && (p.tipo === 'hp' || p.tipo === 'pocion'));
-        if (slotPocionHP !== -1) {
-            window.ultimaCuracionAuto = Date.now();
-            usarPocionSlot(slotPocionHP);
-        }
-    }
-}
-    const playerY = player.y;
-if (aroSacrificio && aroSacrificio.visible && window.esqueletosGrupo && socket && socket.connected) {
-    const ahoraAura = Date.now();
-    if (!window.ultimoEnvioAura || ahoraAura - window.ultimoEnvioAura > 500) {
-        window.ultimoEnvioAura = ahoraAura;
-        const rango = 50 + ((playerStats.sacrificio || 0) * 2);
-        const ids = [];
-        window.esqueletosGrupo.getChildren().forEach(e => {
-            if (e.active && !e.isAlly && Phaser.Math.Distance.Between(player.x, player.y, e.x, e.y) < rango) {
-                ids.push(e.esqueletoId);
+    if (window.regeneracionTimer % 120 === 0) {
+        if (pClassName !== 'MAGO' && pClassName !== 'NECROMANCER') {
+            const regenHP = 2 + (playerStats.regeneracion || 0) * 1.0;
+            if (playerHP < playerMaxHP) {
+                playerHP = Math.min(playerMaxHP, playerHP + regenHP);
+                actualizarStatsUI();
             }
-        });
-        const idsStr = ids.sort().join(',');
-        if (window.ultimaListaAura !== idsStr) {
-            window.ultimaListaAura = idsStr;
-            socket.emit('esqueletosEnAura', { ids: ids });
         }
     }
-}
-    if (playerY < 400) { if (this.ground) this.ground.setTint(0xddddff); } else { if (this.ground) this.ground.clearTint(); }
+    if (opcionesAuto.autoCurar && player.isAlive && playerHP < playerMaxHP * 0.5) {
+        if (!window.ultimaCuracionAuto || Date.now() - window.ultimaCuracionAuto > 2000) {
+            const slotPocionHP = pocionesEquipadas.findIndex(p => p && (p.tipo === 'hp' || p.tipo === 'pocion'));
+            if (slotPocionHP !== -1) {
+                window.ultimaCuracionAuto = Date.now();
+                usarPocionSlot(slotPocionHP);
+            }
+        }
+    }
+    const playerY = player.y;
+    if (aroSacrificio && aroSacrificio.visible && window.esqueletosGrupo && socket && socket.connected) {
+        const ahoraAura = Date.now();
+        if (!window.ultimoEnvioAura || ahoraAura - window.ultimoEnvioAura > 500) {
+            window.ultimoEnvioAura = ahoraAura;
+            const rango = 50 + ((playerStats.sacrificio || 0) * 2);
+            const ids = [];
+            window.esqueletosGrupo.getChildren().forEach(e => {
+                if (e.active && !e.isAlly && Phaser.Math.Distance.Between(player.x, player.y, e.x, e.y) < rango) {
+                    ids.push(e.esqueletoId);
+                }
+            });
+            const idsStr = ids.sort().join(',');
+            if (window.ultimaListaAura !== idsStr) {
+                window.ultimaListaAura = idsStr;
+                socket.emit('esqueletosEnAura', { ids: ids });
+            }
+        }
+    }
+    if (playerY < 400) { if (this.ground) this.ground.setTint(0xddddff); }
+    else { if (this.ground) this.ground.clearTint(); }
     actualizarBarrasEnemigos();
     if (enMapaNevado && nieveParticulas && nieveParticulas.active) { nieveParticulas.setPosition(player.x, player.y - 400); }
-    if (player && player.isAlive) { 
-    for (let i = monedasSuelo.length - 1; i >= 0; i--) { 
-        const m = monedasSuelo[i]; 
-        if (m && m.active && !m.recogida) { 
-            const dist = Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y); 
-            const rango = opcionesAuto.autoRecoger ? 200 : 60;
-            if (dist < rango) { recogerMoneda(m); } 
-        } 
-    } 
-    if (opcionesAuto.autoRecoger) {
-        for (let i = dropsSuelo.length - 1; i >= 0; i--) {
-            const d = dropsSuelo[i];
-            if (d && d.active && !d.recogida) {
-                const dist = Phaser.Math.Distance.Between(player.x, player.y, d.x, d.y);
-                if (dist < 200) { recogerDrop(d); }
-              }
-          }
-       }
-   }
-}
-document.addEventListener('DOMContentLoaded', () => { document.getElementById('menu-ui').style.display = 'flex'; document.getElementById('class-ui').style.display = 'none'; document.getElementById('loading-ui').style.display = 'none'; });
+    if (player && player.isAlive) {
+        for (let i = monedasSuelo.length - 1; i >= 0; i--) {
+            const m = monedasSuelo[i];
+            if (m && m.active && !m.recogida) {
+                const dist = Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y);
+                const rango = opcionesAuto.autoRecoger ? 200 : 60;
+                if (dist < rango) { recogerMoneda(m); }
+            }
+        }
+        if (opcionesAuto.autoRecoger) {
+            for (let i = dropsSuelo.length - 1; i >= 0; i--) {
+                const d = dropsSuelo[i];
+                if (d && d.active && !d.recogida) {
+                    const dist = Phaser.Math.Distance.Between(player.x, player.y, d.x, d.y);
+                    if (dist < 200) { recogerDrop(d); }
+                }
+            }
+        }
+    }
+
+    // 🩸 PASIVA LEGIÓN — Solo Necromancer
+    if (pClassName === 'NECROMANCER' && player && player.isAlive) {
+        if (!window.ultimaTiradaLegion) window.ultimaTiradaLegion = 0;
+        const ahoraLegion = Date.now();
+        if (ahoraLegion - window.ultimaTiradaLegion > 3000) {
+            window.ultimaTiradaLegion = ahoraLegion;
+            const puntosLegion = playerStats.legion || 0;
+            const probabilidad = 0.15 + (puntosLegion * 0.01);
+            const radioLegion = 150;
+            if (window.esqueletosGrupo) {
+                window.esqueletosGrupo.getChildren().forEach(esq => {
+                    if (esq.active && esq.estaMuerto && !esq.yaCosechado) {
+                        const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y);
+                        if (dist < radioLegion) {
+                            if (Math.random() < probabilidad) {
+                                if (socket && socket.connected) {
+                                    const cantidadLegion = 1 + Math.floor(puntosLegion / 10);
+                                    socket.emit('levantarEsqueleto', {
+                                        id: esq.esqueletoId,
+                                        esLegion: true,
+                                        cantidad: cantidadLegion
+                                    });
+                                    mostrarMensaje(`🩸 ¡LEGIÓN! ${cantidadLegion} cadáver(es) se levantan solos`, 'exito');
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    }
+}  // ← CIERRE DE update() — SOLO UNA LLAVE
+
+document.addEventListener('DOMContentLoaded', () => { 
+    document.getElementById('menu-ui').style.display = 'flex'; 
+    document.getElementById('class-ui').style.display = 'none'; 
+    document.getElementById('loading-ui').style.display = 'none'; 
+});
+
 function dirALetra(dir) {
     return { 'Derecha': 'E', 'Arriba': 'N', 'Abajo': 'S', 'Izquierda': 'W' }[dir] || 'S';
 }
