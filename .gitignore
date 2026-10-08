@@ -31,3 +31,8 @@ nueva_funcion.txt
 # Herramientas de desarrollo
 ngrok.exe
 ngrok-v3-stable-windows-amd64.zip
+
+# Datos generados en runtime
+inventarios.json
+pilares.json
+ligas.json
