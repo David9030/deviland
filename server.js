@@ -18,7 +18,8 @@ const CONFIG = {
         caballero: { fuerza: 12, defensaFisica: 15, defensaMagica: 0, agilidad: 6, vitalidad: 14, attackSpeed: 0.9, baseDamage: 45, mana: 60, velocidad: 90 },
         warrior: { fuerza: 10, defensaFisica: 10, defensaMagica: 0, agilidad: 8, vitalidad: 10, attackSpeed: 1.0, baseDamage: 50, mana: 60, velocidad: 110 },
         mago: { fuerza: 5, defensaFisica: 0, defensaMagica: 40, agilidad: 7, vitalidad: 8, attackSpeed: 0.7, baseDamage: 35, mana: 150, velocidad: 100 },
-        necromancer: { fuerza: 5, defensaFisica: 0, defensaMagica: 40, agilidad: 7, vitalidad: 10, attackSpeed: 0.7, baseDamage: 35, mana: 150, velocidad: 100 }
+        necromancer: { fuerza: 5, defensaFisica: 0, defensaMagica: 40, agilidad: 7, vitalidad: 10, attackSpeed: 0.7, baseDamage: 35, mana: 150, velocidad: 100 },
+        clerigo: { fuerza: 8, defensaFisica: 12, defensaMagica: 30, agilidad: 6, vitalidad: 12, attackSpeed: 0.8, baseDamage: 40, mana: 120, velocidad: 95 }
     }},
     ROCAS: { CANTIDAD_INICIAL: 20, MAX_POR_JUGADOR: 50, RESPAWN_TIME: 30000 },
     MINAS: { CANTIDAD_INICIAL: 15, RESPAWN_TIME: 60000 },
@@ -425,6 +426,8 @@ pilar.dueñoLigaId = getLigaDeJugador(socketId)?.id || null;
     if (pilar.dueñoLigaId && ligas[pilar.dueñoLigaId]) {
         ligas[pilar.dueñoLigaId].puntos += CONFIG.LIGAS.PUNTOS_POR_PILAR;
     }
+    // ═══ NUEVO: MISIONES DE LIGA ═══
+    const ligaConq = getLigaDeJugador(socketId); if (ligaConq) aportarProgresoMision(ligaConq, 'conquistar_pilar', 1);
     
     // Notificar a todos
     io.emit('pilarConquistado', {
@@ -509,25 +512,30 @@ function mejorarPilar(socketId, pilarId, stat) {
         return;
     }
     const siguienteNivel = mejora.niveles[nivelActual];
-    // Verificar recursos
+    
+    // ═══ Verificar recursos en inv.materiales ═══
     const inv = inventariosJugadores[socketId];
-    if (!inv || !inv.items) {
-        io.to(socketId).emit('mensaje', '❌ No tenés inventario');
+    if (!inv || !inv.materiales) {
+        io.to(socketId).emit('mensaje', '❌ No tenés materiales');
         return;
     }
+    
+    console.log(`🔨 [mejorarPilar] ${pilarId} - ${stat} | Materiales:`, JSON.stringify(inv.materiales));
+    
     for (let recurso in siguienteNivel.costo) {
-        const itemRecurso = inv.items.find(i => i.tipo === 'material' && i.nombre === recurso);
-        const cantidad = itemRecurso ? itemRecurso.cantidad : 0;
+        const cantidad = inv.materiales[recurso] || 0;
+        console.log(`   ${recurso}: tenés ${cantidad}, necesitás ${siguienteNivel.costo[recurso]}`);
         if (cantidad < siguienteNivel.costo[recurso]) {
             io.to(socketId).emit('mensaje', `❌ Faltan ${recurso} (tenés ${cantidad}, necesitás ${siguienteNivel.costo[recurso]})`);
             return;
         }
     }
-    // Descontar recursos
+    
+    // ═══ Descontar recursos de inv.materiales ═══
     for (let recurso in siguienteNivel.costo) {
-        const itemRecurso = inv.items.find(i => i.tipo === 'material' && i.nombre === recurso);
-        if (itemRecurso) itemRecurso.cantidad -= siguienteNivel.costo[recurso];
+        inv.materiales[recurso] = (inv.materiales[recurso] || 0) - siguienteNivel.costo[recurso];
     }
+    
     // Aplicar mejora
     pilar['nivel' + stat.charAt(0).toUpperCase() + stat.slice(1)] = nivelActual + 1;
     if (stat === 'vida') {
@@ -538,25 +546,17 @@ function mejorarPilar(socketId, pilarId, stat) {
     if (!pilar.recursosInvertidos[stat]) pilar.recursosInvertidos[stat] = 0;
     pilar.recursosInvertidos[stat]++;
     
-io.to(socketId).emit('mensaje', `✅ ${mejora.nombre} mejorada a Nv${nivelActual + 1}`);
-io.emit('pilarMejorado', {
-    pilarId: pilar.id,
-    stat: stat,
-    nuevoNivel: nivelActual + 1,
-    maxHp: pilar.maxHp,
-    hp: pilar.hp
-});
-// 🧪 Reenviar inventario + materiales al cliente (para que vea los materiales gastados)
-const invActual = inventariosJugadores[socketId];
-const materialesActuales = {};
-if (invActual && invActual.items) {
-    invActual.items.forEach(it => {
-        if (it.tipo === 'material' && it.nombre) {
-            materialesActuales[it.nombre] = (materialesActuales[it.nombre] || 0) + (it.cantidad || 0);
-        }
+    io.to(socketId).emit('mensaje', `✅ ${mejora.nombre} mejorada a Nv${nivelActual + 1}`);
+    io.emit('pilarMejorado', {
+        pilarId: pilar.id,
+        stat: stat,
+        nuevoNivel: nivelActual + 1,
+        maxHp: pilar.maxHp,
+        hp: pilar.hp
     });
-}
-io.to(socketId).emit('inventarioCompleto', { ...invActual, materiales: materialesActuales });
+    
+    // ═══ Reenviar materiales actualizados al cliente ═══
+    io.to(socketId).emit('materialesActualizados', inv.materiales);
 }
 
 function regenerarPilares() {
@@ -569,15 +569,15 @@ function regenerarPilares() {
         // Verificar ventana de recuperación expirada
         if (p.ventanaRecuperacion && ahora > p.ventanaRecuperacion) {
             // El dueño original perdió el progreso
-if (p.dueñoOriginalId) {
-    const dueñoOriginal = players[p.dueñoOriginalId];
-    if (dueñoOriginal) {
-        io.to(p.dueñoOriginalId).emit('mensaje', `⏰ Perdiste el progreso de tu pilar ${p.color.toUpperCase()} (pasaron las 24h)`);
-    }
-    p.dueñoOriginalId = null;
-    p.dueñoOriginalNombre = null;   // ⬅️ NUEVO
-    p.ventanaRecuperacion = null;
-}
+            if (p.dueñoOriginalId) {
+                const dueñoOriginal = players[p.dueñoOriginalId];
+                if (dueñoOriginal) {
+                    io.to(p.dueñoOriginalId).emit('mensaje', `⏰ Perdiste el progreso de tu pilar ${p.color.toUpperCase()} (pasaron las 24h)`);
+                }
+                p.dueñoOriginalId = null;
+                p.dueñoOriginalNombre = null;
+                p.ventanaRecuperacion = null;
+            }
         }
     });
 }
@@ -714,6 +714,7 @@ ligas[ligaId] = {
     misionActual: null
 };
     chatLiga[ligaId] = [];
+    asignarMision(ligas[ligaId]);   // ⬅️ NUEVO
     io.to(socketId).emit('mensaje', `✅ Liga "${nombre}" creada!`);
     io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🏅 ${j.name} creó la liga "${nombre}"` });
     io.to(socketId).emit('ligasActualizadas', { ligas: obtenerRankingLigas() });
@@ -903,6 +904,114 @@ function obtenerRankingLigas() {
     return ranking.slice(0, 20);
 }
 
+// ═══════════════════════════════════════════════════════════════
+// ═══ NUEVO: MISIONES DE LIGA ═══
+// ═══════════════════════════════════════════════════════════════
+
+const MISIONES_DATA = [
+    // Combate
+    { tipo: 'matar_esqueletos', objetivo: 25, exp: 50, oro: 500, descripcion: 'Matar 25 esqueletos' },
+    { tipo: 'matar_esqueletos', objetivo: 75, exp: 150, oro: 1500, descripcion: 'Matar 75 esqueletos' },
+    { tipo: 'matar_esqueletos', objetivo: 150, exp: 300, oro: 3000, descripcion: 'Matar 150 esqueletos' },
+    { tipo: 'matar_invocadores', objetivo: 2, exp: 100, oro: 2000, descripcion: 'Matar 2 invocadores' },
+    { tipo: 'matar_invocadores', objetivo: 5, exp: 250, oro: 5000, descripcion: 'Matar 5 invocadores' },
+    { tipo: 'matar_demonlord', objetivo: 1, exp: 300, oro: 5000, descripcion: 'Matar al Demonlord 1 vez' },
+    { tipo: 'matar_demonlord', objetivo: 3, exp: 900, oro: 15000, descripcion: 'Matar al Demonlord 3 veces' },
+    { tipo: 'conquistar_pilar', objetivo: 1, exp: 500, oro: 10000, descripcion: 'Conquistar 1 pilar' },
+    { tipo: 'conquistar_pilar', objetivo: 3, exp: 1500, oro: 30000, descripcion: 'Conquistar 3 pilares' },
+    // Recoleccion
+    { tipo: 'recolectar_hierro', objetivo: 50, exp: 60, oro: 600, descripcion: 'Recolectar 50 de hierro' },
+    { tipo: 'recolectar_hierro', objetivo: 100, exp: 120, oro: 1200, descripcion: 'Recolectar 100 de hierro' },
+    { tipo: 'recolectar_acero', objetivo: 30, exp: 100, oro: 1000, descripcion: 'Recolectar 30 de acero' },
+    { tipo: 'recolectar_plata', objetivo: 20, exp: 80, oro: 800, descripcion: 'Recolectar 20 de plata' },
+    { tipo: 'recolectar_mithril', objetivo: 10, exp: 150, oro: 1500, descripcion: 'Recolectar 10 de mithril' },
+    // Crafteo
+    { tipo: 'fundir_items', objetivo: 5, exp: 80, oro: 800, descripcion: 'Fundir 5 items' },
+    { tipo: 'fundir_items', objetivo: 15, exp: 200, oro: 2000, descripcion: 'Fundir 15 items' },
+    { tipo: 'fundir_items', objetivo: 50, exp: 500, oro: 5000, descripcion: 'Fundir 50 items' },
+    { tipo: 'forjar_items', objetivo: 3, exp: 150, oro: 1500, descripcion: 'Forjar 3 items' },
+    { tipo: 'forjar_items', objetivo: 10, exp: 400, oro: 4000, descripcion: 'Forjar 10 items' },
+    { tipo: 'forjar_items', objetivo: 25, exp: 1000, oro: 10000, descripcion: 'Forjar 25 items' }
+];
+
+function generarMisionAleatoria() {
+    const m = MISIONES_DATA[Math.floor(Math.random() * MISIONES_DATA.length)];
+    return {
+        tipo: m.tipo,
+        objetivo: m.objetivo,
+        progreso: 0,
+        exp: m.exp,
+        oro: m.oro,
+        descripcion: m.descripcion
+    };
+}
+
+function asignarMision(liga) {
+    if (!liga) return;
+    if (liga.misionActual && liga.misionActual.progreso < liga.misionActual.objetivo) return;
+    liga.misionActual = generarMisionAleatoria();
+    liga.miembros.forEach(m => {
+        io.to(m).emit('misionAsignada', { 
+            descripcion: liga.misionActual.descripcion,
+            objetivo: liga.misionActual.objetivo,
+            progreso: liga.misionActual.progreso,
+            exp: liga.misionActual.exp,
+            oro: liga.misionActual.oro
+        });
+    });
+}
+
+function aportarProgresoMision(liga, tipo, cantidad = 1) {
+    if (!liga || !liga.misionActual) return;
+    if (liga.misionActual.tipo !== tipo) return;
+    if (liga.misionActual.progreso >= liga.misionActual.objetivo) return;
+    liga.misionActual.progreso += cantidad;
+    liga.miembros.forEach(m => {
+        io.to(m).emit('misionProgreso', { 
+            descripcion: liga.misionActual.descripcion,
+            objetivo: liga.misionActual.objetivo,
+            progreso: liga.misionActual.progreso
+        });
+    });
+    if (liga.misionActual.progreso >= liga.misionActual.objetivo) {
+        completarMision(liga);
+    }
+}
+
+function completarMision(liga) {
+    if (!liga || !liga.misionActual) return;
+    const misionCompletada = { ...liga.misionActual };
+    liga.exp = (liga.exp || 0) + misionCompletada.exp;
+    liga.oro = (liga.oro || 0) + misionCompletada.oro;
+    const nivelAntes = liga.nivel || 1;
+    const nivelNuevo = Math.min(100, Math.floor(liga.exp / 1000) + 1);
+    liga.nivel = nivelNuevo;
+    liga.miembros.forEach(m => {
+        io.to(m).emit('mensaje', `Mision completada: ${misionCompletada.descripcion}`);
+        io.to(m).emit('mensaje', `Recompensa: +${misionCompletada.exp} EXP, +${misionCompletada.oro} oro`);
+        if (nivelNuevo > nivelAntes) {
+            io.to(m).emit('mensaje', `La liga subio al nivel ${nivelNuevo}!`);
+        }
+        // ═══ NUEVO: EVENTO DEDICADO ═══
+        io.to(m).emit('misionCompletada', {
+            descripcion: misionCompletada.descripcion,
+            exp: misionCompletada.exp,
+            oro: misionCompletada.oro,
+            nivelLiga: liga.nivel
+        });
+    });
+    liga.misionActual = generarMisionAleatoria();
+    liga.miembros.forEach(m => {
+        io.to(m).emit('mensaje', `Nueva mision: ${liga.misionActual.descripcion}`);
+        io.to(m).emit('misionAsignada', { 
+            descripcion: liga.misionActual.descripcion,
+            objetivo: liga.misionActual.objetivo,
+            progreso: liga.misionActual.progreso,
+            exp: liga.misionActual.exp,
+            oro: liga.misionActual.oro
+        });
+    });
+}
 function enviarMensajeChatLiga(socketId, msg) {
     const liga = getLigaDeJugador(socketId);
     if (!liga) {
@@ -1165,7 +1274,7 @@ function desactivarFuriaInvocador(invocadorId) { const inv = invocadores.find(i 
 
 function teletransportarInvocador(invocadorId) { const inv = invocadores.find(i => i.id === invocadorId); if (!inv || !inv.isAlive) return; const atacanteCercano = players[inv.ultimoAtacanteId]; let cx = inv.x, cy = inv.y; if (atacanteCercano && atacanteCercano.isAlive) { cx = atacanteCercano.x; cy = atacanteCercano.y; } let nuevoX, nuevoY, intentos = 0, valido = false; while (!valido && intentos < 20) { intentos++; const angulo = Math.random() * Math.PI * 2; const dist = CONFIG.INVOCADOR.TELEPORT_MIN_DIST + Math.random() * (CONFIG.INVOCADOR.TELEPORT_MAX_DIST - CONFIG.INVOCADOR.TELEPORT_MIN_DIST); nuevoX = Math.min(Math.max(cx + Math.cos(angulo) * dist, 100), 2900); nuevoY = Math.min(Math.max(cy + Math.sin(angulo) * dist, 100), 2900); if (!colisionaConObjeto(nuevoX, nuevoY, 50)) valido = true; } if (!valido) { nuevoX = Math.random() * 2800 + 100; nuevoY = Math.random() * 2800 + 100; } inv.x = nuevoX; inv.y = nuevoY; inv.golpesRecibidos = []; inv.ultimoAtacante = 0; inv.ultimoAtacanteId = null; inv.estado = 'reaparecer'; io.emit('invocadorTeleportEnd', { id: inv.id, x: inv.x, y: inv.y }); }
 
-function daniarInvocador(invocadorId, danio, atacanteId) { const inv = invocadores.find(i => i.id === invocadorId); if (!inv || !inv.isAlive) return; const ahora = Date.now(); inv.golpesRecibidos.push(ahora); inv.golpesRecibidos = inv.golpesRecibidos.filter(t => ahora - t < CONFIG.INVOCADOR.HIT_WINDOW); inv.ultimoAtacante = ahora; inv.ultimoAtacanteId = atacanteId; inv.hp = Math.max(0, inv.hp - danio); io.emit('enemyDamaged', { id: inv.id, x: inv.x, y: inv.y, dmg: danio }); if (inv.hp <= 0) { inv.isAlive = false; inv.furiaActiva = false; esqueletos.filter(e => e.ownerId === inv.id).forEach(e => { e.damageBonus = 0; e.speedBonus = 0; }); const oro = CONFIG.INVOCADOR.DROP_ORO.min + Math.floor(Math.random() * (CONFIG.INVOCADOR.DROP_ORO.max - CONFIG.INVOCADOR.DROP_ORO.min + 1)); io.emit('crearMonedaServidor', { x: inv.x, y: inv.y, cantidad: aplicarOroExtra(atacanteId, oro) }); if (Math.random() < 0.5) io.emit('dropPocion', { x: inv.x + 20, y: inv.y, tipo: 'hp', cantidad: CONFIG.INVOCADOR.DROP_POCION_HP }); if (Math.random() < 0.5) io.emit('dropPocion', { x: inv.x - 20, y: inv.y, tipo: 'mana', cantidad: CONFIG.INVOCADOR.DROP_POCION_MANA }); if (Math.random() < CONFIG.INVOCADOR.DROP_ITEM_RARO) { const items = ['espada_2', 'escudo_2', 'armadura_2']; dropearItem(inv.x, inv.y + 30, items[Math.floor(Math.random() * items.length)]); } if (Math.random() < 0.0005) dropearItem(inv.x + 40, inv.y + 50, 'bastondesangreleg'); if (Math.random() < 0.25) dropearItem(inv.x - 40, inv.y + 50, 'bastondehueso'); if (Math.random() < 0.15) dropearItem(inv.x - 20, inv.y + 60, 'bastondehueso_1'); if (Math.random() < 0.08) dropearItem(inv.x, inv.y + 70, 'bastondehueso_2'); if (Math.random() < 0.04) dropearItem(inv.x + 20, inv.y + 80, 'bastondehueso_3'); if (Math.random() < 0.01) dropearItem(inv.x + 40, inv.y + 90, 'bastondehuesoleg'); darExpAJugadorYEquipo(atacanteId, CONFIG.INVOCADOR.EXP); io.emit('invocadorDeath', { id: inv.id, x: inv.x, y: inv.y }); setTimeout(() => { inv.hp = CONFIG.INVOCADOR.MAX_HP; inv.isAlive = true; inv.x = Math.random() * 2800 + 100; inv.y = Math.random() * 2800 + 100; inv.golpesRecibidos = []; inv.estado = 'idle'; inv.furiaActiva = false; inv.ultimoAtacante = 0; inv.ultimoAtacanteId = null; io.emit('invocadorNew', { id: inv.id, x: inv.x, y: inv.y }); }, CONFIG.INVOCADOR.RESPAWN_TIME); return; } if (inv.golpesRecibidos.length >= CONFIG.INVOCADOR.HIT_THRESHOLD && inv.estado !== 'huir' && inv.estado !== 'escapar' && inv.estado !== 'reaparecer') { inv.estado = 'huir'; inv.escapeInicio = ahora; inv.golpesRecibidos = []; io.emit('invocadorEscape', { id: inv.id }); } }
+function daniarInvocador(invocadorId, danio, atacanteId) { const inv = invocadores.find(i => i.id === invocadorId); if (!inv || !inv.isAlive) return; const ahora = Date.now(); inv.golpesRecibidos.push(ahora); inv.golpesRecibidos = inv.golpesRecibidos.filter(t => ahora - t < CONFIG.INVOCADOR.HIT_WINDOW); inv.ultimoAtacante = ahora; inv.ultimoAtacanteId = atacanteId; inv.hp = Math.max(0, inv.hp - danio); io.emit('enemyDamaged', { id: inv.id, x: inv.x, y: inv.y, dmg: danio }); if (inv.hp <= 0) { inv.isAlive = false; inv.furiaActiva = false; esqueletos.filter(e => e.ownerId === inv.id).forEach(e => { e.damageBonus = 0; e.speedBonus = 0; }); const oro = CONFIG.INVOCADOR.DROP_ORO.min + Math.floor(Math.random() * (CONFIG.INVOCADOR.DROP_ORO.max - CONFIG.INVOCADOR.DROP_ORO.min + 1)); io.emit('crearMonedaServidor', { x: inv.x, y: inv.y, cantidad: aplicarOroExtra(atacanteId, oro) }); if (Math.random() < 0.5) io.emit('dropPocion', { x: inv.x + 20, y: inv.y, tipo: 'hp', cantidad: CONFIG.INVOCADOR.DROP_POCION_HP }); if (Math.random() < 0.5) io.emit('dropPocion', { x: inv.x - 20, y: inv.y, tipo: 'mana', cantidad: CONFIG.INVOCADOR.DROP_POCION_MANA }); if (Math.random() < CONFIG.INVOCADOR.DROP_ITEM_RARO) { const items = ['espada_2', 'escudo_2', 'armadura_2']; dropearItem(inv.x, inv.y + 30, items[Math.floor(Math.random() * items.length)]); } if (Math.random() < 0.0005) dropearItem(inv.x + 40, inv.y + 50, 'bastondesangreleg'); if (Math.random() < 0.25) dropearItem(inv.x - 40, inv.y + 50, 'bastondehueso'); if (Math.random() < 0.15) dropearItem(inv.x - 20, inv.y + 60, 'bastondehueso_1'); if (Math.random() < 0.08) dropearItem(inv.x, inv.y + 70, 'bastondehueso_2'); if (Math.random() < 0.04) dropearItem(inv.x + 20, inv.y + 80, 'bastondehueso_3'); if (Math.random() < 0.01) dropearItem(inv.x + 40, inv.y + 90, 'bastondehuesoleg'); darExpAJugadorYEquipo(atacanteId, CONFIG.INVOCADOR.EXP); const ligaInv = getLigaDeJugador(atacanteId); if (ligaInv) aportarProgresoMision(ligaInv, 'matar_invocadores', 1); io.emit('invocadorDeath', { id: inv.id, x: inv.x, y: inv.y }); setTimeout(() => { inv.hp = CONFIG.INVOCADOR.MAX_HP; inv.isAlive = true; inv.x = Math.random() * 2800 + 100; inv.y = Math.random() * 2800 + 100; inv.golpesRecibidos = []; inv.estado = 'idle'; inv.furiaActiva = false; inv.ultimoAtacante = 0; inv.ultimoAtacanteId = null; io.emit('invocadorNew', { id: inv.id, x: inv.x, y: inv.y }); }, CONFIG.INVOCADOR.RESPAWN_TIME); return; } if (inv.golpesRecibidos.length >= CONFIG.INVOCADOR.HIT_THRESHOLD && inv.estado !== 'huir' && inv.estado !== 'escapar' && inv.estado !== 'reaparecer') { inv.estado = 'huir'; inv.escapeInicio = ahora; inv.golpesRecibidos = []; io.emit('invocadorEscape', { id: inv.id }); } }
 
 function dropearItem(x, y, itemId) { const item = ITEMS_DATA[itemId]; if (!item) return; io.emit('dropItem', { x, y, itemId, nombre: item.nombre, tipo: item.tipo, icono: item.icono, stats: item.stats, calidad: item.calidad || '', textoVerde: item.textoVerde || false, textoDorado: item.textoDorado || false, lootIndicator: item.lootIndicator || 'white' }); }
 
@@ -1182,8 +1291,8 @@ function moverEsqueletoHaciaObjetivo(e, objetivo) { const dx = objetivo.x - e.x,
 function aplicarQuemadura(objetivoId, dañoFuegoTotal, duracionSegundos = 5) { if (!estadosAlterados[objetivoId]) estadosAlterados[objetivoId] = {}; const danioPorTick = Math.floor(dañoFuegoTotal * 0.1); estadosAlterados[objetivoId].quemadura = { danio: danioPorTick, fin: Date.now() + (duracionSegundos * 1000) }; let ox = 0, oy = 0; const obj = esqueletos.find(e => e.id === objetivoId); if (obj) { ox = obj.x; oy = obj.y; } else if (objetivoId === 'demonlord') { ox = demonlord.x; oy = demonlord.y; } io.emit('enemyDamaged', { id: objetivoId, x: ox, y: oy, dmg: danioPorTick, tipo: 'quemadura' }); }
 
 function aplicarAturdimiento(objetivoId, duracionSegundos = 5) { if (!estadosAlterados[objetivoId]) estadosAlterados[objetivoId] = {}; estadosAlterados[objetivoId].aturdimiento = { fin: Date.now() + (duracionSegundos * 1000) }; const esqueleto = esqueletos.find(e => e.id === objetivoId && e.isAlive); if (esqueleto) { esqueleto.aturdido = true; io.emit('esqueletoMoved', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dir: esqueleto.dir, isMoving: false }); } if (objetivoId === 'demonlord' && demonlord.isAlive) { demonlord.aturdido = true; io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false }); } }
-
-function daniarEsqueleto(esqueleto, atacanteId, danio, elemento = null) { if (!esqueleto || !esqueleto.isAlive) return; esqueleto.ultimoAtacante = Date.now(); esqueleto.ultimoAtacanteId = atacanteId; const jugador = players[atacanteId]; if (jugador && elemento === 'fuego') { const armaId = jugador.equipamiento?.arma; if (armaId) { const inv = inventariosJugadores[atacanteId]; if (inv) { const arma = inv.items.find(i => i.id === armaId); if (arma && (arma.idBase === 'bastondefuegoleg' || arma.nombre === 'Baston de Fuego Legendario')) { if (Math.random() < 0.15) { const dañoFuegoTotal = (jugador.stats?.atqFuego || 0) + 500; aplicarQuemadura(esqueleto.id, dañoFuegoTotal, 5); io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${jugador.name} aplico QUEMADURA!` }); } } } } } if (jugador && elemento === 'luz') { const armaId = jugador.equipamiento?.arma; if (armaId) { const inv = inventariosJugadores[atacanteId]; if (inv) { const arma = inv.items.find(i => i.id === armaId); if (arma && (arma.idBase === 'bastonderayoleg' || arma.nombre === 'Baston de Rayo Legendario')) { if (Math.random() < 0.15) { aplicarAturdimiento(esqueleto.id, 5); io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${jugador.name} aplico ATURDIMIENTO!` }); } } } } } if (jugador && jugador.stats && jugador.stats.brutalidad > 0) { const knockback = 5 + (jugador.stats.brutalidad || 0) * 1.5; const angle = Math.atan2(esqueleto.y - jugador.y, esqueleto.x - jugador.x); esqueleto.x = Math.min(Math.max(esqueleto.x + Math.cos(angle) * knockback, 50), 2950); esqueleto.y = Math.min(Math.max(esqueleto.y + Math.sin(angle) * knockback, 50), 2950); io.emit('esqueletoMoved', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dir: esqueleto.dir, isMoving: true }); } if (!esqueleto.attackers) esqueleto.attackers = []; if (!esqueleto.attackers.includes(atacanteId)) esqueleto.attackers.push(atacanteId); esqueleto.hp = Math.max(0, esqueleto.hp - danio); io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: danio }); if (esqueleto.hp <= 0) { esqueleto.isAlive = false; esqueleto.yaCosechado = false; esqueletos.forEach(o => { if (o.isAlive && o.targetId === esqueleto.id) { o.targetId = null; o.targetType = null; } }); if (players[atacanteId] && players[atacanteId].className === 'BARBARO') io.emit('barbaroAsesinato', { playerId: atacanteId }); if (Math.random() < 0.1) io.emit('dropPocion', { x: esqueleto.x, y: esqueleto.y, tipo: Math.random() < 0.5 ? 'hp' : 'mana', cantidad: 1 }); const dropRand = Math.random(); let dropObtenido = false; for (const [id, data] of Object.entries(ITEMS_DATA)) { if (id !== 'hachadehierroleg' && id !== 'bastondefuegoleg' && id !== 'bastonderayoleg' && id !== 'bastondesangreleg' && dropRand < data.dropChance && !dropObtenido) { dropearItem(esqueleto.x, esqueleto.y, id); dropObtenido = true; } } if (esqueleto.attackers && esqueleto.attackers.length > 0) esqueleto.attackers.forEach(a => darExpAJugadorYEquipo(a, CONFIG.SKELETON.EXP)); else darExpAJugadorYEquipo(atacanteId, CONFIG.SKELETON.EXP); io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP, attackers: esqueleto.attackers || [], dir: esqueleto.dir || 'Abajo' }); setTimeout(() => { if (!esqueleto.isAlive && !esqueleto.isAlly) { esqueleto.isAlive = true; esqueleto.hp = CONFIG.SKELETON.MAX_HP; esqueleto.x = Math.random() * 2800 + 100; esqueleto.y = Math.random() * 2800 + 100; esqueleto.attackers = []; esqueleto.targetId = null; esqueleto.targetType = null; esqueleto.attackCooldown = 0; esqueleto.dir = 'Abajo'; esqueleto.aturdido = false; esqueleto.ultimoAtacante = 0; esqueleto.ultimoAtacanteId = null; io.emit('esqueletoNew', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y }); } }, CONFIG.SKELETON.RESPAWN_TIME); } }
+function registrarMuerteDemonlord() { const lista = (demonlord.attackers && demonlord.attackers.length > 0) ? demonlord.attackers : []; lista.forEach(a => { const liga = getLigaDeJugador(a); if (liga) aportarProgresoMision(liga, 'matar_demonlord', 1); }); }
+function daniarEsqueleto(esqueleto, atacanteId, danio, elemento = null) { if (!esqueleto || !esqueleto.isAlive) return; esqueleto.ultimoAtacante = Date.now(); esqueleto.ultimoAtacanteId = atacanteId; const jugador = players[atacanteId]; if (jugador && elemento === 'fuego') { const armaId = jugador.equipamiento?.arma; if (armaId) { const inv = inventariosJugadores[atacanteId]; if (inv) { const arma = inv.items.find(i => i.id === armaId); if (arma && (arma.idBase === 'bastondefuegoleg' || arma.nombre === 'Baston de Fuego Legendario')) { if (Math.random() < 0.15) { const dañoFuegoTotal = (jugador.stats?.atqFuego || 0) + 500; aplicarQuemadura(esqueleto.id, dañoFuegoTotal, 5); io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${jugador.name} aplico QUEMADURA!` }); } } } } } if (jugador && elemento === 'luz') { const armaId = jugador.equipamiento?.arma; if (armaId) { const inv = inventariosJugadores[atacanteId]; if (inv) { const arma = inv.items.find(i => i.id === armaId); if (arma && (arma.idBase === 'bastonderayoleg' || arma.nombre === 'Baston de Rayo Legendario')) { if (Math.random() < 0.15) { aplicarAturdimiento(esqueleto.id, 5); io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${jugador.name} aplico ATURDIMIENTO!` }); } } } } } if (jugador && jugador.stats && jugador.stats.brutalidad > 0) { const knockback = 5 + (jugador.stats.brutalidad || 0) * 1.5; const angle = Math.atan2(esqueleto.y - jugador.y, esqueleto.x - jugador.x); esqueleto.x = Math.min(Math.max(esqueleto.x + Math.cos(angle) * knockback, 50), 2950); esqueleto.y = Math.min(Math.max(esqueleto.y + Math.sin(angle) * knockback, 50), 2950); io.emit('esqueletoMoved', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dir: esqueleto.dir, isMoving: true }); } if (!esqueleto.attackers) esqueleto.attackers = []; if (!esqueleto.attackers.includes(atacanteId)) esqueleto.attackers.push(atacanteId); esqueleto.hp = Math.max(0, esqueleto.hp - danio); io.emit('enemyDamaged', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dmg: danio }); if (esqueleto.hp <= 0) { esqueleto.isAlive = false; esqueleto.yaCosechado = false; esqueletos.forEach(o => { if (o.isAlive && o.targetId === esqueleto.id) { o.targetId = null; o.targetType = null; } }); if (players[atacanteId] && players[atacanteId].className === 'BARBARO') io.emit('barbaroAsesinato', { playerId: atacanteId }); if (Math.random() < 0.1) io.emit('dropPocion', { x: esqueleto.x, y: esqueleto.y, tipo: Math.random() < 0.5 ? 'hp' : 'mana', cantidad: 1 }); const dropRand = Math.random(); let dropObtenido = false; for (const [id, data] of Object.entries(ITEMS_DATA)) { if (id !== 'hachadehierroleg' && id !== 'bastondefuegoleg' && id !== 'bastonderayoleg' && id !== 'bastondesangreleg' && dropRand < data.dropChance && !dropObtenido) { dropearItem(esqueleto.x, esqueleto.y, id); dropObtenido = true; } }         if (esqueleto.attackers && esqueleto.attackers.length > 0) esqueleto.attackers.forEach(a => darExpAJugadorYEquipo(a, CONFIG.SKELETON.EXP)); else darExpAJugadorYEquipo(atacanteId, CONFIG.SKELETON.EXP); io.emit('esqueletoDeath', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, exp: CONFIG.SKELETON.EXP, attackers: esqueleto.attackers || [], dir: esqueleto.dir || 'Abajo' }); const atacantesEsq = (esqueleto.attackers && esqueleto.attackers.length > 0) ? esqueleto.attackers : [atacanteId]; atacantesEsq.forEach(a => { const liga = getLigaDeJugador(a); if (liga) aportarProgresoMision(liga, 'matar_esqueletos', 1); }); setTimeout(() => { if (!esqueleto.isAlive && !esqueleto.isAlly) { esqueleto.isAlive = true; esqueleto.hp = CONFIG.SKELETON.MAX_HP; esqueleto.x = Math.random() * 2800 + 100; esqueleto.y = Math.random() * 2800 + 100; esqueleto.attackers = []; esqueleto.targetId = null; esqueleto.targetType = null; esqueleto.attackCooldown = 0; esqueleto.dir = 'Abajo'; esqueleto.aturdido = false; esqueleto.ultimoAtacante = 0; esqueleto.ultimoAtacanteId = null; io.emit('esqueletoNew', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y }); } }, CONFIG.SKELETON.RESPAWN_TIME); } }
 
 // ═══════════════════════════════════════════════════════════════
 // ═══ FIN PARTE 1/3 — SERVIDOR ═══
@@ -1220,18 +1329,47 @@ setInterval(() => {
                 io.emit('enemyDamaged', { id: id, x: objetivo.x, y: objetivo.y, dmg: estados.quemadura.danio, tipo: 'quemadura' });
                 if (objetivo.hp <= 0) {
                     if (esDemonlord) {
-                        demonlord.isAlive = false; demonlord.aturdido = false;
+                        demonlord.isAlive = false; demonlord.aturdido = false; registrarMuerteDemonlord();
                         io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
-                        setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME);
+                        setTimeout(() => {
+                            demonlord.hp = CONFIG.DEMONLORD.MAX_HP;
+                            demonlord.isAlive = true;
+                            demonlord.x = 1500;
+                            demonlord.y = 1500;
+                            demonlord.attackers = [];
+                            io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y });
+                        }, CONFIG.DEMONLORD.RESPAWN_TIME);
                     } else {
                         objetivo.isAlive = false; objetivo.aturdido = false;
                         io.emit('esqueletoDeath', { id: objetivo.id, x: objetivo.x, y: objetivo.y, exp: CONFIG.SKELETON.EXP, attackers: objetivo.attackers || [], dir: objetivo.dir || 'Abajo' });
-                        setTimeout(() => { if (!objetivo.isAlive && !objetivo.isAlly) { objetivo.isAlive = true; objetivo.hp = CONFIG.SKELETON.MAX_HP; objetivo.x = Math.random() * 2800 + 100; objetivo.y = Math.random() * 2800 + 100; objetivo.attackers = []; objetivo.targetId = null; objetivo.targetType = null; objetivo.attackCooldown = 0; objetivo.dir = 'Abajo'; io.emit('esqueletoNew', { id: objetivo.id, x: objetivo.x, y: objetivo.y }); } }, CONFIG.SKELETON.RESPAWN_TIME);
+                        const atacantesQuem = (objetivo.attackers && objetivo.attackers.length > 0) ? objetivo.attackers : [];
+                        atacantesQuem.forEach(a => {
+                            const liga = getLigaDeJugador(a);
+                            if (liga) aportarProgresoMision(liga, 'matar_esqueletos', 1);
+                        });
+                        setTimeout(() => {
+                            if (!objetivo.isAlive && !objetivo.isAlly) {
+                                objetivo.isAlive = true;
+                                objetivo.hp = CONFIG.SKELETON.MAX_HP;
+                                objetivo.x = Math.random() * 2800 + 100;
+                                objetivo.y = Math.random() * 2800 + 100;
+                                objetivo.attackers = [];
+                                objetivo.targetId = null;
+                                objetivo.targetType = null;
+                                objetivo.attackCooldown = 0;
+                                objetivo.dir = 'Abajo';
+                                io.emit('esqueletoNew', { id: objetivo.id, x: objetivo.x, y: objetivo.y });
+                            }
+                        }, CONFIG.SKELETON.RESPAWN_TIME);
                     }
                     delete estadosAlterados[id];
                 }
-            } else { delete estadosAlterados[id]; }
-        } else if (estados.quemadura) { delete estados.quemadura; }
+            } else {
+                delete estadosAlterados[id];
+            }
+        } else if (estados.quemadura) {
+            delete estados.quemadura;
+        }
         if (estados.aturdimiento && estados.aturdimiento.fin <= ahora) {
             const esqueleto = esqueletos.find(e => e.id === id);
             if (esqueleto) esqueleto.aturdido = false;
@@ -1239,7 +1377,9 @@ setInterval(() => {
             delete estados.aturdimiento;
             io.emit('estadoTerminado', { id: id, tipo: 'aturdimiento' });
         }
-        if (Object.keys(estados).length === 0) { delete estadosAlterados[id]; }
+        if (Object.keys(estados).length === 0) {
+            delete estadosAlterados[id];
+        }
     }
 }, 1000);
 
@@ -1298,13 +1438,7 @@ if (oroItem) {
             totalOro: oroItem ? oroItem.cantidad : oroFinal
         });
         // Reenviar inventario actualizado al cliente
-        const materialesActuales = {};
-        inv.items.forEach(it => {
-            if (it.tipo === 'material' && it.nombre) {
-                materialesActuales[it.nombre] = (materialesActuales[it.nombre] || 0) + (it.cantidad || 0);
-            }
-        });
-        io.to(p.dueñoId).emit('inventarioCompleto', { ...inv, materiales: materialesActuales });
+io.to(p.dueñoId).emit('inventarioCompleto', { ...inv, materiales: inv.materiales || {} });
     });
 }, 30000);   // cada 30 segundos
 // ═══════════════════════════════════════════════════════════════
@@ -1440,8 +1574,8 @@ setInterval(() => {
                             demonlord.hp = Math.max(0, demonlord.hp - damage);
                             io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: Math.max(0, Math.floor(damage)) });
                             io.emit('esqueletoAttackHit', { id: esqueletoRef.id, targetId: closestRef.id, damage: Math.max(0, Math.floor(damage)), espadaX: hitboxRef.x + hitboxRef.w/2, espadaY: hitboxRef.y + hitboxRef.h/2 });
-                            if (demonlord.hp <= 0) {
-                                demonlord.isAlive = false;
+                                if (demonlord.hp <= 0) {
+                                demonlord.isAlive = false; registrarMuerteDemonlord();
                                 const ownerId = esqueletoRef.ownerId;
                                 if (ownerId && players[ownerId]) { if (!demonlord.attackers) demonlord.attackers = []; if (!demonlord.attackers.includes(ownerId)) demonlord.attackers.push(ownerId); }
                                 if (Math.random() < 0.15) dropearItem(demonlord.x, demonlord.y, 'hachadehierroleg');
@@ -1708,6 +1842,7 @@ socket.on('sincronizarNivel', (data) => {
         else if (d.className === 'WARRIOR') { atq = 50; hpInicial = 500; }
         else if (d.className === 'MAGO') { atq = 15; hpInicial = 300; }
         else if (d.className === 'NECROMANCER') { atq = 15; hpInicial = 300; }
+        else if (d.className === 'CLERIGO') { atq = 40; hpInicial = 500; }
         players[socket.id] = {
             id: socket.id, x: 512, y: 470, class: d.class, name: d.name, className: d.className,
             hp: hpInicial, maxHp: hpInicial, isAlive: true, deathCount: 0, deathPosition: null,
@@ -1764,6 +1899,25 @@ setTimeout(() => {
     migrarLigasAlReconectar(socket.id);
 }, 1500);
     });   // ⬅️ AHORA SÍ, el cierre va ACÁ, después del setTimeout
+socket.on('guardarMateriales', (data) => {
+    console.log(`📦 [guardarMateriales] Recibido de ${socket.id}:`, JSON.stringify(data && data.materiales));
+    if (!data || !data.materiales) return;
+    const j = players[socket.id];
+    if (!j) {
+        console.log(`⚠️ [guardarMateriales] No existe el jugador ${socket.id}`);
+        return;
+    }
+    if (!inventariosJugadores[socket.id]) inventariosJugadores[socket.id] = { items: [], equipamiento: {}, materiales: {} };
+    const inv = inventariosJugadores[socket.id];
+    // Guardar los materiales en un campo aparte (no en items)
+    inv.materiales = {};
+    for (let mat in data.materiales) {
+        const cantidad = data.materiales[mat];
+        if (cantidad > 0) inv.materiales[mat] = cantidad;
+    }
+    console.log(`✅ [guardarMateriales] Guardado. Materiales:`, JSON.stringify(inv.materiales));
+});
+
 
     socket.on('solicitarInventarioCompleto', () => {
         if (inventariosJugadores[socket.id]) socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
@@ -1773,49 +1927,49 @@ setTimeout(() => {
         }
     });
 
-    socket.on('actualizarInventario', (data) => {
-        const j = players[socket.id];
-        if (!j) return;
-        if (data.inventarioSlots) {
-            inventariosJugadores[socket.id].items = [];
-            for (let i = 0; i < data.inventarioSlots.length; i++) {
-                if (data.inventarioSlots[i]) inventariosJugadores[socket.id].items.push({ ...data.inventarioSlots[i], slot: i });
-            }
+socket.on('actualizarInventario', (data) => {
+    const j = players[socket.id];
+    if (!j) return;
+    if (data.inventarioSlots) {
+        inventariosJugadores[socket.id].items = [];
+        for (let i = 0; i < data.inventarioSlots.length; i++) {
+            if (data.inventarioSlots[i]) inventariosJugadores[socket.id].items.push({ ...data.inventarioSlots[i], slot: i });
         }
-        if (data.equipamiento) inventariosJugadores[socket.id].equipamiento = data.equipamiento;
-        if (data.equipamiento) j.equipamiento = data.equipamiento;
-        if (data.playerStats) {
-            const stats = data.playerStats;
-            j.stats.vitalidad = Math.max(0, stats.vitalidad || 0);
-            j.stats.fuerza = Math.max(0, stats.fuerza || 0);
-            j.stats.inteligencia = Math.max(0, stats.inteligencia || 0);
-            j.stats.agilidad = Math.max(0, stats.agilidad || 0);
-            j.stats.sabiduria = Math.max(0, stats.sabiduria || 0);
-            j.stats.corte = Math.max(0, stats.corte || 0);
-            j.stats.regeneracion = Math.max(0, stats.regeneracion || 0);
-            j.stats.destreza = Math.max(0, stats.destreza || 0);
-            j.stats.virtuoso = Math.max(0, stats.virtuoso || 0);
-            j.stats.brutalidad = Math.max(0, stats.brutalidad || 0);
-            j.stats.actoFugaz = Math.max(0, stats.actoFugaz || 0);
-            j.stats.bendito = Math.max(0, stats.bendito || 0);
-            j.stats.sacrificio = Math.max(0, stats.sacrificio || 0);
-            j.stats.furia = Math.max(0, stats.furia || 0);
-            j.stats.critico = Math.max(0, stats.critico || 0);
-            j.stats.atqFuego = Math.max(0, stats.atqFuego || 0);
-            j.stats.atqAgua = Math.max(0, stats.atqAgua || 0);
-            j.stats.atqViento = Math.max(0, stats.atqViento || 0);
-            j.stats.atqTierra = Math.max(0, stats.atqTierra || 0);
-            j.stats.atqLuz = Math.max(0, stats.atqLuz || 0);
-            j.stats.atqOscuridad = Math.max(0, stats.atqOscuridad || 0);
-            const bs = CONFIG.PLAYER.BASE_STATS[j.class] || CONFIG.PLAYER.BASE_STATS.warrior;
-            j.maxHp = (j.className === 'BARBARO' ? 800 : (j.className === 'MAGO' || j.className === 'NECROMANCER' ? 300 : 500)) + ((j.stats.vitalidad || 0) * 10);
-            let manaBase = bs.mana || 100;
-            const inv = inventariosJugadores[socket.id];
-            if (inv && j.equipamiento?.arma) { const arma = inv.items.find(i => i.id === j.equipamiento.arma); if (arma && arma.manaBonus) manaBase += arma.manaBonus; }
-            j.maxMana = manaBase + ((j.stats.sabiduria || 0) * 10) + ((j.stats.inteligencia || 0) * 10);
-        }
-    });
-
+        console.log(`🔄 [actualizarInventario] Materiales conservados:`, JSON.stringify(inventariosJugadores[socket.id].materiales || {}));
+    }
+    if (data.equipamiento) inventariosJugadores[socket.id].equipamiento = data.equipamiento;
+    if (data.equipamiento) j.equipamiento = data.equipamiento;
+    if (data.playerStats) {
+        const stats = data.playerStats;
+        j.stats.vitalidad = Math.max(0, stats.vitalidad || 0);
+        j.stats.fuerza = Math.max(0, stats.fuerza || 0);
+        j.stats.inteligencia = Math.max(0, stats.inteligencia || 0);
+        j.stats.agilidad = Math.max(0, stats.agilidad || 0);
+        j.stats.sabiduria = Math.max(0, stats.sabiduria || 0);
+        j.stats.corte = Math.max(0, stats.corte || 0);
+        j.stats.regeneracion = Math.max(0, stats.regeneracion || 0);
+        j.stats.destreza = Math.max(0, stats.destreza || 0);
+        j.stats.virtuoso = Math.max(0, stats.virtuoso || 0);
+        j.stats.brutalidad = Math.max(0, stats.brutalidad || 0);
+        j.stats.actoFugaz = Math.max(0, stats.actoFugaz || 0);
+        j.stats.bendito = Math.max(0, stats.bendito || 0);
+        j.stats.sacrificio = Math.max(0, stats.sacrificio || 0);
+        j.stats.furia = Math.max(0, stats.furia || 0);
+        j.stats.critico = Math.max(0, stats.critico || 0);
+        j.stats.atqFuego = Math.max(0, stats.atqFuego || 0);
+        j.stats.atqAgua = Math.max(0, stats.atqAgua || 0);
+        j.stats.atqViento = Math.max(0, stats.atqViento || 0);
+        j.stats.atqTierra = Math.max(0, stats.atqTierra || 0);
+        j.stats.atqLuz = Math.max(0, stats.atqLuz || 0);
+        j.stats.atqOscuridad = Math.max(0, stats.atqOscuridad || 0);
+        const bs = CONFIG.PLAYER.BASE_STATS[j.class] || CONFIG.PLAYER.BASE_STATS.warrior;
+        j.maxHp = (j.className === 'BARBARO' ? 800 : (j.className === 'MAGO' || j.className === 'NECROMANCER' ? 300 : 500)) + ((j.stats.vitalidad || 0) * 10);
+        let manaBase = bs.mana || 100;
+        const inv = inventariosJugadores[socket.id];
+        if (inv && j.equipamiento?.arma) { const arma = inv.items.find(i => i.id === j.equipamiento.arma); if (arma && arma.manaBonus) manaBase += arma.manaBonus; }
+        j.maxMana = manaBase + ((j.stats.sabiduria || 0) * 10) + ((j.stats.inteligencia || 0) * 10);
+    }
+});
     socket.on('asignarPuntoStat', (data) => {
         const j = players[socket.id];
         if (!j || !j.isAlive) return;
@@ -1835,9 +1989,10 @@ setTimeout(() => {
             j.stats.puntosEspecialidad--; j.stats[stat]++;
         }
         if (stat === 'vitalidad') {
-            if (j.className === 'BARBARO') j.maxHp = 800 + (j.stats.vitalidad * 10);
-            else if (j.className === 'MAGO' || j.className === 'NECROMANCER') j.maxHp = 300 + (j.stats.vitalidad * 10);
-            else j.maxHp = 500 + (j.stats.vitalidad * 10);
+if (j.className === 'BARBARO') j.maxHp = 800 + (j.stats.vitalidad * 10);
+else if (j.className === 'MAGO' || j.className === 'NECROMANCER') j.maxHp = 300 + (j.stats.vitalidad * 10);
+else if (j.className === 'CLERIGO') j.maxHp = 500 + (j.stats.vitalidad * 10);
+else j.maxHp = 500 + (j.stats.vitalidad * 10);
             j.hp = Math.min(j.hp, j.maxHp);
         }
         if (stat === 'inteligencia') {
@@ -1949,7 +2104,7 @@ setTimeout(() => {
                 io.emit('playerAttackHit', { playerId: socket.id, targetId: 'demonlord', hitbox: hitbox, damage: dmg });
                 golpeo = true;
                 if (demonlord.hp <= 0) {
-                    demonlord.isAlive = false; demonlord.aturdido = false;
+                    demonlord.isAlive = false; demonlord.aturdido = false; registrarMuerteDemonlord();
                     if (Math.random() < 0.15) dropearItem(demonlord.x, demonlord.y, 'hachadehierroleg');
                     if (demonlord.attackers && demonlord.attackers.length > 0) demonlord.attackers.forEach(a => darExpAJugadorYEquipo(a, CONFIG.DEMONLORD.EXP));
                     else darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP);
@@ -2042,7 +2197,7 @@ setTimeout(() => {
             if (armaId) { const inv = inventariosJugadores[socket.id]; if (inv) { const arma = inv.items.find(i => i.id === armaId); if (arma && (arma.idBase === 'bastonderayoleg' || arma.nombre === 'Baston de Rayo Legendario')) { if (Math.random() < 0.15) { aplicarAturdimiento('demonlord', 5); io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${j.name} aplico ATURDIMIENTO al Demonlord!` }); } } } }
         }
         if (demonlord.hp <= 0) {
-            demonlord.isAlive = false; demonlord.aturdido = false;
+            demonlord.isAlive = false; demonlord.aturdido = false; registrarMuerteDemonlord();
             if (Math.random() < 0.15) dropearItem(demonlord.x, demonlord.y, 'hachadehierroleg');
             if (demonlord.attackers && demonlord.attackers.length > 0) demonlord.attackers.forEach(a => darExpAJugadorYEquipo(a, CONFIG.DEMONLORD.EXP));
             else darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP);
@@ -2194,6 +2349,22 @@ socket.on('donarOroLiga', (data) => {
     socket.on('disolverLiga', () => {
         const liga = getLigaDeJugador(socket.id);
         if (liga) disolverLiga(socket.id, liga.id);
+    });
+
+    // ═══ NUEVO: SOLICITAR MISIÓN DE LIGA ═══
+    socket.on('solicitarMisionLiga', () => {
+        const liga = getLigaDeJugador(socket.id);
+        if (!liga || !liga.misionActual) {
+            socket.emit('misionAsignada', { sinMision: true });
+            return;
+        }
+        socket.emit('misionAsignada', {
+            descripcion: liga.misionActual.descripcion,
+            objetivo: liga.misionActual.objetivo,
+            progreso: liga.misionActual.progreso,
+            exp: liga.misionActual.exp,
+            oro: liga.misionActual.oro
+        });
     });
 
 socket.on('solicitarInfoLiga', () => {
@@ -2565,12 +2736,29 @@ socket.on('solicitarInfoLiga', () => {
             const loot = generarLootCofre();
             io.emit('cofreAbierto', { x: cofre.x, y: cofre.y });
             io.emit('cofreLoot', { loot: loot });
+            // ═══ NUEVO: MISIONES DE LIGA (materiales del cofre) ═══
+            const ligaCofre = getLigaDeJugador(socket.id);
+            if (ligaCofre) {
+                loot.forEach(item => {
+                    if (item.tipo === 'material' && item.nombre) {
+                        aportarProgresoMision(ligaCofre, 'recolectar_' + item.nombre, item.cantidad);
+                    }
+                });
+            }
             setTimeout(() => { if (cofre.abierto) { cofre = { x: Math.random() * 2800 + 100, y: Math.random() * 2800 + 100, abierto: false }; io.emit('cofreNuevo', { x: cofre.x, y: cofre.y }); } }, 180000);
         }
     });
 
     socket.on('solicitarDropItem', (data) => { dropearItem(data.x, data.y, data.id); });
     socket.on('solicitarDropPocion', (data) => { io.emit('dropPocion', { x: data.x, y: data.y, tipo: data.tipo, cantidad: data.cantidad }); });
+    // ═══ NUEVO: MISIONES DE LIGA - Acciones del mercado (fundir/forjar) ═══
+    socket.on('accionMisionMercado', (data) => {
+        const j = players[socket.id];
+        if (!j || !j.isAlive) return;
+        const liga = getLigaDeJugador(socket.id);
+        if (!liga) return;
+        if (data && data.tipo) aportarProgresoMision(liga, data.tipo, data.cantidad || 1);
+    });
 
     socket.on('equiparHachaLegendaria', () => {
         const j = players[socket.id];
@@ -2667,6 +2855,15 @@ setInterval(() => {
         io.to(id).emit('rankingTop10', { ranking: obtenerTop10() });
     });
 }, 15000);
+// 🔄 Reasignar misión a ligas huérfanas después de cargar todo
+setTimeout(() => {
+    Object.values(ligas).forEach(liga => {
+        if (!liga.misionActual || liga.misionActual.progreso >= liga.misionActual.objetivo) {
+            asignarMision(liga);
+            console.log(`🎯 Misión reasignada a liga "${liga.nombre}"`);
+        }
+    });
+}, 1000);
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`DEVILAND - Puerto ${PORT}`));
 
