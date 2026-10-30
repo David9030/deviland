@@ -167,6 +167,19 @@ try {
     console.log('⚠️ Error al cargar ligas:', e.message);
 }
 
+// 🔥 FIX: MIGRACIÓN - asegurar que todos los pilares tengan dueñoNombre guardado
+pilares.forEach(p => {
+    if (p.dueñoId && !p.dueñoNombre) {
+        const jugadorConectado = players[p.dueñoId];
+        if (jugadorConectado) p.dueñoNombre = jugadorConectado.name;
+    }
+    if (p.dueñoOriginalId && !p.dueñoOriginalNombre) {
+        const origConectado = players[p.dueñoOriginalId];
+        if (origConectado) p.dueñoOriginalNombre = origConectado.name;
+    }
+});
+console.log(`🔍 [MIGRACIÓN] Pilares con dueñoNombre: ${pilares.filter(p => p.dueñoNombre).length}/${pilares.length}`);
+
 // Guardar automáticamente cada 30 segundos
 setInterval(() => {
     try {
@@ -364,11 +377,15 @@ function atacarPilar(socketId, pilarId, daño) {
     // Cooldown de conquista
     if (pilar.conquistadoEn && Date.now() - pilar.conquistadoEn < CONFIG.PILARES.COOLDOWN_CONQUISTA) return;
     
-    pilar.hp = Math.max(0, pilar.hp - daño);
+    // ═══ NUEVO: aplicar defensa del pilar ═══
+    const defFisica = (pilar.nivelDefFisica || 0) * 5;
+    const dañoReal = Math.max(1, Math.floor(daño - defFisica));
+    
+    pilar.hp = Math.max(0, pilar.hp - dañoReal);
     pilar.ultimoAtaque = Date.now();
     
     // Alarma al dueño y aliados
-    enviarAlertaPilar(pilar, socketId, daño);
+    enviarAlertaPilar(pilar, socketId, dañoReal);
     
     // Notificar a todos del daño
     io.emit('pilarDañado', {
@@ -376,7 +393,7 @@ function atacarPilar(socketId, pilarId, daño) {
         hp: pilar.hp,
         maxHp: pilar.maxHp,
         atacante: j.name,
-        daño: daño
+        daño: dañoReal
     });
     
     // Si el pilar llegó a 0, se conquista
@@ -384,7 +401,6 @@ function atacarPilar(socketId, pilarId, daño) {
         conquistarPilar(socketId, pilar);
     }
 }
-
 function conquistarPilar(socketId, pilar) {
     const j = players[socketId];
     if (!j) return;
@@ -1072,13 +1088,29 @@ function calcularPoderJugador(playerId) {
     poder += aplicarPoderExtra(playerId);
     return Math.max(1, poder);
 }
+// ═══ HELPER: Reemitir ranking a TODOS los clientes ═══
+function reemitirRanking() {
+    const ranking = obtenerTop10();
+    Object.keys(players).forEach(id => {
+        io.to(id).emit('rankingTop10', { ranking });
+    });
+}
+
 
 function obtenerTop10() {
     const ranking = [];
     for (let id in players) {
         const j = players[id];
-        if (j && j.isAlive !== false) {
-            ranking.push({ id: id, nombre: j.name, clase: j.className, nivel: j.level || 1, poder: calcularPoderJugador(id) });
+        // 🔥 FIX: incluir a TODOS los jugadores conectados (vivos o muertos)
+        if (j) {
+            ranking.push({ 
+                id: id, 
+                nombre: j.name, 
+                clase: j.className, 
+                nivel: j.level || 1, 
+                poder: calcularPoderJugador(id),
+                isAlive: j.isAlive !== false   // ⬅️ NUEVO: enviar estado al cliente
+            });
         }
     }
     ranking.sort((a, b) => b.poder - a.poder);
@@ -1174,6 +1206,8 @@ function darExpAJugadorYEquipo(socketId, exp) {
     if (liga) {
         liga.puntos += Math.floor(exp * CONFIG.LIGAS.PUNTOS_POR_EXP);
     }
+// 🔥 FIX: Reemitir ranking cuando alguien gana EXP (puede subir de nivel/poder)
+reemitirRanking();
 }
 
 function revivirJugador(socketId) {
@@ -1276,13 +1310,52 @@ function teletransportarInvocador(invocadorId) { const inv = invocadores.find(i 
 
 function daniarInvocador(invocadorId, danio, atacanteId) { const inv = invocadores.find(i => i.id === invocadorId); if (!inv || !inv.isAlive) return; const ahora = Date.now(); inv.golpesRecibidos.push(ahora); inv.golpesRecibidos = inv.golpesRecibidos.filter(t => ahora - t < CONFIG.INVOCADOR.HIT_WINDOW); inv.ultimoAtacante = ahora; inv.ultimoAtacanteId = atacanteId; inv.hp = Math.max(0, inv.hp - danio); io.emit('enemyDamaged', { id: inv.id, x: inv.x, y: inv.y, dmg: danio }); if (inv.hp <= 0) { inv.isAlive = false; inv.furiaActiva = false; esqueletos.filter(e => e.ownerId === inv.id).forEach(e => { e.damageBonus = 0; e.speedBonus = 0; }); const oro = CONFIG.INVOCADOR.DROP_ORO.min + Math.floor(Math.random() * (CONFIG.INVOCADOR.DROP_ORO.max - CONFIG.INVOCADOR.DROP_ORO.min + 1)); io.emit('crearMonedaServidor', { x: inv.x, y: inv.y, cantidad: aplicarOroExtra(atacanteId, oro) }); if (Math.random() < 0.5) io.emit('dropPocion', { x: inv.x + 20, y: inv.y, tipo: 'hp', cantidad: CONFIG.INVOCADOR.DROP_POCION_HP }); if (Math.random() < 0.5) io.emit('dropPocion', { x: inv.x - 20, y: inv.y, tipo: 'mana', cantidad: CONFIG.INVOCADOR.DROP_POCION_MANA }); if (Math.random() < CONFIG.INVOCADOR.DROP_ITEM_RARO) { const items = ['espada_2', 'escudo_2', 'armadura_2']; dropearItem(inv.x, inv.y + 30, items[Math.floor(Math.random() * items.length)]); } if (Math.random() < 0.0005) dropearItem(inv.x + 40, inv.y + 50, 'bastondesangreleg'); if (Math.random() < 0.25) dropearItem(inv.x - 40, inv.y + 50, 'bastondehueso'); if (Math.random() < 0.15) dropearItem(inv.x - 20, inv.y + 60, 'bastondehueso_1'); if (Math.random() < 0.08) dropearItem(inv.x, inv.y + 70, 'bastondehueso_2'); if (Math.random() < 0.04) dropearItem(inv.x + 20, inv.y + 80, 'bastondehueso_3'); if (Math.random() < 0.01) dropearItem(inv.x + 40, inv.y + 90, 'bastondehuesoleg'); darExpAJugadorYEquipo(atacanteId, CONFIG.INVOCADOR.EXP); const ligaInv = getLigaDeJugador(atacanteId); if (ligaInv) aportarProgresoMision(ligaInv, 'matar_invocadores', 1); io.emit('invocadorDeath', { id: inv.id, x: inv.x, y: inv.y }); setTimeout(() => { inv.hp = CONFIG.INVOCADOR.MAX_HP; inv.isAlive = true; inv.x = Math.random() * 2800 + 100; inv.y = Math.random() * 2800 + 100; inv.golpesRecibidos = []; inv.estado = 'idle'; inv.furiaActiva = false; inv.ultimoAtacante = 0; inv.ultimoAtacanteId = null; io.emit('invocadorNew', { id: inv.id, x: inv.x, y: inv.y }); }, CONFIG.INVOCADOR.RESPAWN_TIME); return; } if (inv.golpesRecibidos.length >= CONFIG.INVOCADOR.HIT_THRESHOLD && inv.estado !== 'huir' && inv.estado !== 'escapar' && inv.estado !== 'reaparecer') { inv.estado = 'huir'; inv.escapeInicio = ahora; inv.golpesRecibidos = []; io.emit('invocadorEscape', { id: inv.id }); } }
 
-function dropearItem(x, y, itemId) { const item = ITEMS_DATA[itemId]; if (!item) return; io.emit('dropItem', { x, y, itemId, nombre: item.nombre, tipo: item.tipo, icono: item.icono, stats: item.stats, calidad: item.calidad || '', textoVerde: item.textoVerde || false, textoDorado: item.textoDorado || false, lootIndicator: item.lootIndicator || 'white' }); }
-
+function dropearItem(x, y, itemId) { 
+    const item = ITEMS_DATA[itemId]; 
+    if (!item) return; 
+    // ═══ FIX: Si la posición está muy cerca de una mina, alejar el drop ═══
+    for (let intento = 0; intento < 5; intento++) {
+        if (!colisionaConObjeto(x, y, 25)) break;  // posición libre
+        // Alejar en dirección aleatoria
+        const ang = Math.random() * Math.PI * 2;
+        const dist = 50 + Math.random() * 50;
+        x += Math.cos(ang) * dist;
+        y += Math.sin(ang) * dist;
+    }
+    // ═══ FIX: Emitir TODOS los campos (reemplaza el "..." inválido) ═══
+    io.emit('dropItem', { 
+        x, 
+        y, 
+        itemId, 
+        nombre: item.nombre, 
+        tipo: item.tipo, 
+        icono: item.icono, 
+        stats: item.stats, 
+        calidad: item.calidad || '', 
+        textoVerde: item.textoVerde || false, 
+        textoDorado: item.textoDorado || false, 
+        lootIndicator: item.lootIndicator || 'white' 
+    }); 
+}
 function generarLootCofre() { const loot = []; if (Math.random() < 0.10) { loot.push({ tipo: 'vacio' }); return loot; } if (Math.random() < 0.50) loot.push({ tipo: 'oro', cantidad: Math.floor(Math.random() * 14990) + 10 }); if (Math.random() < 0.30) { const items = ['armadura_1', 'espada_1', 'escudo_1', 'hachadehierro_1', 'escudo_espejo_1', 'anillo_cura_1']; loot.push({ tipo: 'item', id: items[Math.floor(Math.random() * items.length)] }); } if (Math.random() < 0.15) { const items = ['armadura_2', 'espada_2', 'escudo_2', 'hachadehierro_2', 'escudo_espejo_2', 'anillo_cura_2']; loot.push({ tipo: 'item', id: items[Math.floor(Math.random() * items.length)] }); } if (Math.random() < 0.05) { const items = ['armadura_3', 'espada_3', 'escudo_3', 'hachadehierro_3', 'escudo_espejo_3', 'anillo_cura_3']; loot.push({ tipo: 'item', id: items[Math.floor(Math.random() * items.length)] }); } if (Math.random() < 0.40) loot.push({ tipo: 'pocion', clase: 'hp', cantidad: Math.floor(Math.random() * 15) + 1 }); if (Math.random() < 0.40) loot.push({ tipo: 'pocion', clase: 'mana', cantidad: Math.floor(Math.random() * 15) + 1 }); if (Math.random() < 0.30) loot.push({ tipo: 'material', nombre: 'hierro', cantidad: Math.floor(Math.random() * 16) + 5 }); if (Math.random() < 0.20) loot.push({ tipo: 'material', nombre: 'acero', cantidad: Math.floor(Math.random() * 13) + 3 }); if (Math.random() < 0.35) loot.push({ tipo: 'material', nombre: 'cobre', cantidad: Math.floor(Math.random() * 21) + 5 }); if (Math.random() < 0.25) loot.push({ tipo: 'material', nombre: 'plata', cantidad: Math.floor(Math.random() * 13) + 3 }); if (Math.random() < 0.10) loot.push({ tipo: 'material', nombre: 'mithril', cantidad: Math.floor(Math.random() * 10) + 1 }); if (Math.random() < 0.05) loot.push({ tipo: 'material', nombre: 'titanio', cantidad: Math.floor(Math.random() * 5) + 1 }); if (Math.random() < 0.02) loot.push({ tipo: 'material', nombre: 'adamantium', cantidad: Math.floor(Math.random() * 3) + 1 }); return loot; }
 
 function tieneHachaLegendaria(jugador) { if (!jugador) return false; const armaId = jugador.equipamiento?.arma; if (armaId && armaId.includes('hachadehierroleg')) return true; const inventario = inventariosJugadores[jugador.id]; if (inventario && inventario.items) { const itemArma = inventario.items.find(i => i.id === armaId); if (itemArma && (itemArma.idBase === 'hachadehierroleg' || (itemArma.id && itemArma.id.includes('hachadehierroleg')) || itemArma.nombre === 'Hacha Legendaria')) return true; } return false; }
 
-function colisionaConObjeto(x, y, radio) { for (let mina of minas) { if (mina.activo && getDistance(x, y, mina.x, mina.y) < radio + 35) return true; } return false; }
+function colisionaConObjeto(x, y, radio) { 
+    // ═══ FIX: Solo bloquear si te movés HACIA la mina, no si ya estás cerca ═══
+    // (evita que el server te devuelva a la posición vieja cuando estás al lado de una mina)
+    for (let mina of minas) { 
+        if (!mina.activo) continue;
+        const dist = getDistance(x, y, mina.x, mina.y);
+        // Si el punto nuevo está DENTRO del radio de la mina, bloquear
+        if (dist < radio + 35) {
+            // Pero si el jugador ya estaba cerca y solo se mueve tangencialmente, permitir
+            // (esto lo maneja el que llama, acá solo bloqueamos)
+            return true;
+        }
+    } 
+    return false; 
+}
 
 function getVelocidadEsqueleto(e) { for (let id in esqueletosEnAuraSacrificio) { if (esqueletosEnAuraSacrificio[id] && esqueletosEnAuraSacrificio[id].includes(e.id)) { return CONFIG.SKELETON.SPEED * 0.85; } } return CONFIG.SKELETON.SPEED; }
 
@@ -1429,7 +1502,7 @@ if (oroItem) {
         inv.items.push({ id: 'oro', tipo: 'moneda', nombre: 'Oro', icono: '💰', cantidad: oroFinal, slot: slotLibre });
     }
 }
-        // Notificar al dueño
+        // Notificar al dueño (SOLO con oroPilarGenerado, el cliente suma el oro localmente)
         io.to(p.dueñoId).emit('oroPilarGenerado', {
             pilarId: p.id,
             cantidad: oroFinal,
@@ -1437,8 +1510,6 @@ if (oroItem) {
             bonusLiga: p.dueñoLigaId ? 10 : 0,
             totalOro: oroItem ? oroItem.cantidad : oroFinal
         });
-        // Reenviar inventario actualizado al cliente
-io.to(p.dueñoId).emit('inventarioCompleto', { ...inv, materiales: inv.materiales || {} });
     });
 }, 30000);   // cada 30 segundos
 // ═══════════════════════════════════════════════════════════════
@@ -1778,8 +1849,8 @@ setInterval(() => {
             if (!j || !j.isAlive) continue;
             if (esAliadoDelDueño(p, socketId)) continue;
             const dist = getDistance(j.x, j.y, p.x, p.y);
-            if (dist < CONFIG.PILARES.RADIO_ALARMA) {
-                // Hay un enemigo cerca: mandar alarma (con throttle)
+            if (dist < CONFIG.PILARES.RADIO_ALARMA && (ahora - (p.ultimoAtaque || 0) < 10000)) {
+                // Hay un enemigo cerca Y el pilar fue atacado hace poco: mandar alarma
                 enviarAlertaPilar(p, socketId, 0);
                 break;
             }
@@ -1809,9 +1880,7 @@ socket.on('sincronizarNivel', (data) => {
         j.exp = parseInt(data.exp) || 0;
     }
     // Forzar refresh del ranking para todos
-    Object.keys(players).forEach(id => {
-        io.to(id).emit('rankingTop10', { ranking: obtenerTop10() });
-    });
+reemitirRanking();
 });
 
     // ═══ EMISIONES INICIALES ═══
@@ -1823,7 +1892,61 @@ socket.on('sincronizarNivel', (data) => {
     socket.emit('demonlordState', { hp: demonlord.hp, isAlive: demonlord.isAlive, x: demonlord.x, y: demonlord.y, dir: demonlord.dir });
     socket.emit('cofreEstado', { x: cofre.x, y: cofre.y, abierto: cofre.abierto });
     socket.emit('invocadoresIniciales', invocadores);
-    // ═══ NUEVO: EMISIONES DE PILARES Y LIGAS ═══
+    // ═══ NUEVO: EMISIONES DE LIGAS ═══
+    // (los pilares se envían dentro de newPlayer, después de crear el jugador)
+    socket.emit('ligasIniciales', { ligas: obtenerRankingLigas() });
+
+socket.on('newPlayer', (d) => {
+    const bs = CONFIG.PLAYER.BASE_STATS[d.class] || CONFIG.PLAYER.BASE_STATS.warrior;
+    let atq = 15, hpInicial = 500;
+    if (d.className === 'BARBARO') { atq = 80; hpInicial = 800; }
+    else if (d.className === 'CABALLERO') { atq = 50; hpInicial = 500; }
+    else if (d.className === 'WARRIOR') { atq = 50; hpInicial = 500; }
+    else if (d.className === 'MAGO') { atq = 15; hpInicial = 300; }
+    else if (d.className === 'NECROMANCER') { atq = 15; hpInicial = 300; }
+    else if (d.className === 'CLERIGO') { atq = 40; hpInicial = 500; }
+
+    players[socket.id] = {
+        id: socket.id, x: 512, y: 470, class: (d.class || 'warrior').toLowerCase(), name: d.name, className: d.className,
+        hp: hpInicial, maxHp: hpInicial, isAlive: true, deathCount: 0, deathPosition: null,
+        team: 'Sin Team', level: 1, exp: 0, dir: 'Abajo', mapa: 'principal',
+        stats: {
+            fuerza: bs.fuerza, defensaFisica: bs.defensaFisica, defensaMagica: bs.defensaMagica,
+            agilidad: bs.agilidad, vitalidad: bs.vitalidad, puntosDisponibles: 5, puntosEspecialidad: 0,
+            defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0,
+            corte: 0, regeneracion: 0, destreza: 0, virtuoso: 0, brutalidad: 0, actoFugaz: 0,
+            bendito: 0, sacrificio: 0, furia: 0, critico: 0,
+            atqFuego: 0, atqAgua: 0, atqViento: 0, atqTierra: 0, atqLuz: 0, atqOscuridad: 0
+        },
+        minerales: {},
+        equipamiento: { cabeza: null, pecho: null, piernas: null, pies: null, arma: null, escudo: null, ring1: null, ring2: null },
+        mana: bs.mana || 100, maxMana: bs.mana || 100,
+        esqueletosSummon: 0,
+        skillsEquipadas: d.className === 'NECROMANCER' ? ['levantar_muerto', 'furia_necrotica', 'ataque_distancia'] : (d.className === 'MAGO' ? ['fireball'] : []),
+        attackSpeedModifier: bs.attackSpeed || 1.0,
+        baseDamage: bs.baseDamage || 50,
+        ataqueFisico: atq,
+        contraGolpeContador: 0, contraGolpeDanioAcumulado: 0, contraGolpeCargado: false, contraGolpeBonus: 0
+    };
+    jugadoresEnMapa[socket.id] = 'principal';
+
+    // ═══ FIX: inicializar inventario CON materiales ═══
+    if (!inventariosJugadores[socket.id]) {
+        inventariosJugadores[socket.id] = { items: [], equipamiento: {}, materiales: {} };
+    }
+    if (!inventariosJugadores[socket.id].materiales) {
+        inventariosJugadores[socket.id].materiales = {};
+    }
+    inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Pocion de Vida', icono: 'pocion_img', cantidad: 2, slot: 0 });
+    socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
+
+    // ═══ FIX: emitir newPlayer UNA sola vez ═══
+    io.emit('newPlayer', players[socket.id]);
+
+    // 🔥 FIX: Reemitir ranking a todos cuando alguien se conecta
+    reemitirRanking();
+
+    // ═══ FIX: enviar pilares DESPUÉS de crear el jugador ═══
     socket.emit('pilaresIniciales', pilares.map(p => ({
         id: p.id, color: p.color, x: p.x, y: p.y,
         hp: p.hp, maxHp: p.maxHp,
@@ -1832,73 +1955,28 @@ socket.on('sincronizarNivel', (data) => {
         dueñoId: p.dueñoId, dueñoLigaId: p.dueñoLigaId,
         dueñoNombre: p.dueñoNombre || (p.dueñoId && players[p.dueñoId] ? players[p.dueñoId].name : null)
     })));
-    socket.emit('ligasIniciales', { ligas: obtenerRankingLigas() });
 
-    socket.on('newPlayer', (d) => {
-        const bs = CONFIG.PLAYER.BASE_STATS[d.class] || CONFIG.PLAYER.BASE_STATS.warrior;
-        let atq = 15, hpInicial = 500;
-        if (d.className === 'BARBARO') { atq = 80; hpInicial = 800; }
-        else if (d.className === 'CABALLERO') { atq = 50; hpInicial = 500; }
-        else if (d.className === 'WARRIOR') { atq = 50; hpInicial = 500; }
-        else if (d.className === 'MAGO') { atq = 15; hpInicial = 300; }
-        else if (d.className === 'NECROMANCER') { atq = 15; hpInicial = 300; }
-        else if (d.className === 'CLERIGO') { atq = 40; hpInicial = 500; }
-        players[socket.id] = {
-            id: socket.id, x: 512, y: 470, class: d.class, name: d.name, className: d.className,
-            hp: hpInicial, maxHp: hpInicial, isAlive: true, deathCount: 0, deathPosition: null,
-            team: 'Sin Team', level: 1, exp: 0, dir: 'Abajo', mapa: 'principal',
-            stats: {
-                fuerza: bs.fuerza, defensaFisica: bs.defensaFisica, defensaMagica: bs.defensaMagica,
-                agilidad: bs.agilidad, vitalidad: bs.vitalidad, puntosDisponibles: 5, puntosEspecialidad: 0,
-                defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0,
-                corte: 0, regeneracion: 0, destreza: 0, virtuoso: 0, brutalidad: 0, actoFugaz: 0,
-                bendito: 0, sacrificio: 0, furia: 0, critico: 0,
-                atqFuego: 0, atqAgua: 0, atqViento: 0, atqTierra: 0, atqLuz: 0, atqOscuridad: 0
-            },
-            minerales: {},
-            equipamiento: { cabeza: null, pecho: null, piernas: null, pies: null, arma: null, escudo: null, ring1: null, ring2: null },
-            mana: bs.mana || 100, maxMana: bs.mana || 100,
-            esqueletosSummon: 0,
-            skillsEquipadas: d.className === 'NECROMANCER' ? ['levantar_muerto', 'furia_necrotica', 'ataque_distancia'] : (d.className === 'MAGO' ? ['fireball'] : []),
-            attackSpeedModifier: bs.attackSpeed || 1.0,
-            baseDamage: bs.baseDamage || 50,
-            ataqueFisico: atq,
-            contraGolpeContador: 0, contraGolpeDanioAcumulado: 0, contraGolpeCargado: false, contraGolpeBonus: 0
-        };
-        jugadoresEnMapa[socket.id] = 'principal';
-        if (!inventariosJugadores[socket.id]) inventariosJugadores[socket.id] = { items: [], equipamiento: {} };
-        inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Pocion de Vida', icono: 'pocion_img', cantidad: 2, slot: 0 });
-        socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
-socket.broadcast.emit('newPlayer', players[socket.id]);
-// Enviar pilares actualizados al nuevo jugador
-socket.emit('pilaresIniciales', pilares.map(p => ({
-    id: p.id, color: p.color, x: p.x, y: p.y,
-    hp: p.hp, maxHp: p.maxHp,
-    nivelVida: p.nivelVida, nivelDefFisica: p.nivelDefFisica,
-    nivelDefMagica: p.nivelDefMagica, nivelBuff: p.nivelBuff,
-    dueñoId: p.dueñoId, dueñoLigaId: p.dueñoLigaId,
-    dueñoNombre: p.dueñoNombre || (p.dueñoId && players[p.dueñoId] ? players[p.dueñoId].name : null)
-})));
-        // 🔄 Migrar pilares huérfanos a este nuevo socket (delayed para que el player esté registrado)
-        setTimeout(() => {
-            const migrados = migrarPilaresAlReconectar(socket.id);
-            if (migrados > 0) {
-                // Reenviar pilares actualizados a TODOS
-                const pilaresSnapshot = pilares.map(p => ({
-                    id: p.id, color: p.color, x: p.x, y: p.y,
-                    hp: p.hp, maxHp: p.maxHp,
-                    nivelVida: p.nivelVida, nivelDefFisica: p.nivelDefFisica,
-                    nivelDefMagica: p.nivelDefMagica, nivelBuff: p.nivelBuff,
-                    dueñoId: p.dueñoId, dueñoLigaId: p.dueñoLigaId,
-                    dueñoNombre: p.dueñoNombre || (p.dueñoId && players[p.dueñoId] ? players[p.dueñoId].name : null)
-                }));
-                io.emit('pilaresIniciales', pilaresSnapshot);
-            }
-        }, 1200);
-setTimeout(() => {
-    migrarLigasAlReconectar(socket.id);
-}, 1500);
-    });   // ⬅️ AHORA SÍ, el cierre va ACÁ, después del setTimeout
+    // ═══ FIX: migrar pilares y ligas DESPUÉS de crear el jugador ═══
+    setTimeout(() => {
+        const migrados = migrarPilaresAlReconectar(socket.id);
+        if (migrados > 0) {
+            // Reenviar pilares actualizados a TODOS
+            const pilaresSnapshot = pilares.map(p => ({
+                id: p.id, color: p.color, x: p.x, y: p.y,
+                hp: p.hp, maxHp: p.maxHp,
+                nivelVida: p.nivelVida, nivelDefFisica: p.nivelDefFisica,
+                nivelDefMagica: p.nivelDefMagica, nivelBuff: p.nivelBuff,
+                dueñoId: p.dueñoId, dueñoLigaId: p.dueñoLigaId,
+                dueñoNombre: p.dueñoNombre || (p.dueñoId && players[p.dueñoId] ? players[p.dueñoId].name : null)
+            }));
+            io.emit('pilaresIniciales', pilaresSnapshot);
+        }
+    }, 1200);
+
+    setTimeout(() => {
+        migrarLigasAlReconectar(socket.id);
+    }, 1500);
+});
 socket.on('guardarMateriales', (data) => {
     console.log(`📦 [guardarMateriales] Recibido de ${socket.id}:`, JSON.stringify(data && data.materiales));
     if (!data || !data.materiales) return;
@@ -1969,6 +2047,8 @@ socket.on('actualizarInventario', (data) => {
         if (inv && j.equipamiento?.arma) { const arma = inv.items.find(i => i.id === j.equipamiento.arma); if (arma && arma.manaBonus) manaBase += arma.manaBonus; }
         j.maxMana = manaBase + ((j.stats.sabiduria || 0) * 10) + ((j.stats.inteligencia || 0) * 10);
     }
+    // 🔥 FIX: Reemitir ranking cuando cambia el equipamiento/stats (afecta poder)
+reemitirRanking();
 });
     socket.on('asignarPuntoStat', (data) => {
         const j = players[socket.id];
@@ -2037,16 +2117,40 @@ else j.maxHp = 500 + (j.stats.vitalidad * 10);
 
     socket.on('playerMovement', (data) => {
         let p = players[socket.id];
-        if (p && p.isAlive) {
-            if (!colisionaConObjeto(data.x, data.y, 20)) {
-                p.x = data.x; p.y = data.y; p.dir = data.dir; p.isMoving = data.isMoving;
-                socket.broadcast.emit('playerMoved', { id: socket.id, x: data.x, y: data.y, dir: data.dir, isMoving: data.isMoving, hp: p.hp, maxHp: p.maxHp, timestamp: data.timestamp, auraVisible: data.auraVisible || false });
-            } else {
-                socket.emit('playerMovementBlocked', { x: p.x, y: p.y });
-            }
+        if (!p || !p.isAlive) return;
+        
+        let bloqueado = false;
+        // ═══ FIX CRÍTICO: Si el jugador YA ESTÁ dentro del radio de una mina, NO bloquear el movimiento ═══
+        // (esto permite atravesar/alejarse de la zona sin trabarse)
+        const yaEstabaCerca = colisionaConObjeto(p.x, p.y, 20);       // posición actual del server
+        const nuevaPosicionChoca = colisionaConObjeto(data.x, data.y, 20);
+        
+        if (nuevaPosicionChoca && !yaEstabaCerca) {
+            // Solo bloquear si estaba AFUERA y se quiere METER
+            bloqueado = true;
+            socket.emit('playerMovementBlocked', { x: p.x, y: p.y });
+        } else {
+            // Si ya estaba cerca (dentro de la mina) → permitir movimiento libre
+            p.x = data.x; 
+            p.y = data.y; 
+            p.dir = data.dir; 
+            p.isMoving = data.isMoving;
         }
+        
+        // 🔥 FIX: SIEMPRE emitir playerMoved a TODOS (incluso si está bloqueado)
+        io.emit('playerMoved', { 
+            id: socket.id, 
+            x: p.x, 
+            y: p.y, 
+            dir: p.dir || data.dir, 
+            isMoving: bloqueado ? false : data.isMoving, 
+            hp: p.hp, 
+            maxHp: p.maxHp, 
+            timestamp: data.timestamp, 
+            auraVisible: data.auraVisible || false,
+            bloqueado: bloqueado
+        });
     });
-
     socket.on('truenoRemoto', (data) => { socket.broadcast.emit('truenoVisual', data); });
     socket.on('cambiarMapa', (data) => { if (players[socket.id] && data.mapa) { cambiarJugadorDeMapa(socket.id, data.mapa); } });
 
@@ -2564,7 +2668,17 @@ socket.on('solicitarInfoLiga', () => {
     });
 
     socket.on('crearProyectil', (data) => socket.broadcast.emit('proyectilCreado', data));
-    socket.on('solicitarEsqueletos', () => { if (players[socket.id]) socket.emit('esqueletosIniciales', esqueletos.filter(e => e.isAlive === true)); });
+socket.on('solicitarEsqueletos', () => { if (players[socket.id]) socket.emit('esqueletosIniciales', esqueletos.filter(e => e.isAlive === true)); });
+socket.on('solicitarJugadoresActuales', () => {
+    const jugadoresMismoMapa = {};
+    const miMapa = jugadoresEnMapa[socket.id] || 'principal';
+    for (let id in players) {
+        if (id !== socket.id && players[id] && (jugadoresEnMapa[id] || 'principal') === miMapa) {
+            jugadoresMismoMapa[id] = players[id];
+        }
+    }
+    socket.emit('currentPlayers', jugadoresMismoMapa);
+});
     socket.on('solicitarRanking', () => { const ranking = obtenerTop10(); socket.emit('rankingTop10', { ranking: ranking }); });
     socket.on('solicitarInfoTeam', () => {
         const tid = playerTeam[socket.id];
@@ -2638,8 +2752,31 @@ socket.on('solicitarInfoLiga', () => {
             return;
         }
         // ═══ NUEVO: COMANDOS DE LIGA Y PILARES ═══
-        if (msg === '/liga') { socket.emit('solicitarInfoLiga'); return; }
-        if (msg === '/pilares') { socket.emit('solicitarPilares'); return; }
+        if (msg === '/liga') {
+            const liga = getLigaDeJugador(socket.id);
+            if (!liga) { socket.emit('mensaje', '❌ No estás en una liga'); return; }
+            socket.emit('infoLiga', {
+                enLiga: true,
+                id: liga.id, nombre: liga.nombre, lider: liga.lider,
+                liderNombre: players[liga.lider]?.name || '???',
+                miembros: liga.miembros.map(id => ({ id: id, nombre: players[id]?.name || '???' })),
+                puntos: liga.puntos,
+                oro: liga.oro || 0,
+                pilares: pilares.filter(p => p.dueñoLigaId === liga.id).map(p => ({ id: p.id, color: p.color }))
+            });
+            return;
+        }
+        if (msg === '/pilares') {
+            socket.emit('pilaresIniciales', pilares.map(p => ({
+                id: p.id, color: p.color, x: p.x, y: p.y,
+                hp: p.hp, maxHp: p.maxHp,
+                nivelVida: p.nivelVida, nivelDefFisica: p.nivelDefFisica,
+                nivelDefMagica: p.nivelDefMagica, nivelBuff: p.nivelBuff,
+                dueñoId: p.dueñoId, dueñoLigaId: p.dueñoLigaId,
+                dueñoNombre: p.dueñoNombre || (p.dueñoId && players[p.dueñoId] ? players[p.dueñoId].name : null)
+            })));
+            return;
+        }
         if (msg === '/rankingligas') { socket.emit('rankingLigas', { ranking: obtenerRankingLigas() }); return; }
         io.emit('chatMessage', { type: 'user', name: j.name, msg: msg });
     });
@@ -2789,6 +2926,10 @@ socket.on('solicitarInfoLiga', () => {
         delete jugadoresEnMapa[socket.id];
         delete sacrificioActivoServer[socket.id];
         delete esqueletosEnAuraSacrificio[socket.id];
+        // 🔥 FIX: Reemitir ranking a todos cuando alguien se desconecta
+        Object.keys(players).forEach(id => {
+            io.to(id).emit('rankingTop10', { ranking: obtenerTop10() });
+        });
         io.emit('playerDisconnected', socket.id);
     });
 });

@@ -7,7 +7,8 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        * { user-select: none; -webkit-tap-highlight-color: transparent; }
+        * { user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; touch-action: manipulation; }
+img { -webkit-user-drag: none; -webkit-touch-callout: none; pointer-events: none; }
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; }
         .loading-overlay, .menu-overlay, .class-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; align-items: center; justify-content: center; z-index: 5000; }
         .menu-box, .class-box { background: #111; padding: 30px; border: 1px solid #fff; text-align: center; color: #fff; }
@@ -417,7 +418,7 @@ let demonlordHP = 5000;
 let demonlordMaxHP = 5000;
 let juegoIniciado = false;
 let ultimoEnvioMovimiento = 0;
-const INTERVALO_ENVIO = 50;
+const INTERVALO_ENVIO = 33;
 const SAVE_KEY = 'deviland_save';
 let attackSpeedModifier = 1;
 let summonCooldown = 0;
@@ -1421,6 +1422,7 @@ function agregarDobleTap(elemento, callback) {
 
 function crearSlotElement(slot, index, origen) {
     const d = document.createElement('div'); d.className = 'slot'; d.setAttribute('data-slot-index', index); d.setAttribute('data-origen', origen);
+    d.addEventListener('contextmenu', (e) => e.preventDefault()); // 🔥 FIX: bloquear menú contextual
     if (slot) {
         const i = document.createElement('div'); i.className = 'slot-icon';
         if (slot.id === 'oro') { const img = document.createElement('img'); img.src = 'oroinv.png'; img.style.width = '50px'; img.style.height = '50px'; img.onerror = function() { this.style.display = 'none'; this.parentElement.textContent = '💰'; }; i.appendChild(img); }
@@ -1504,33 +1506,31 @@ function actualizarStatsUI() {
     if (armaItem) { if (armaItem.ataqueFisico) ataqueFisico += armaItem.ataqueFisico; if (armaItem.ataqueMagico) ataqueMagico += armaItem.ataqueMagico; if (armaItem.velocidad) velocidad += armaItem.velocidad; if (armaItem.manaBonus) manaTotal += armaItem.manaBonus; if (armaItem.dañoFuego) bonusArmaFuego = armaItem.dañoFuego; if (armaItem.dañoLuz) bonusArmaLuz = armaItem.dañoLuz; if (armaItem.dañoOscuridad) bonusArmaOscuridad = armaItem.dañoOscuridad; }
     if (escudoItem) { if (escudoItem.defensaFisica) defensaFisica += escudoItem.defensaFisica; if (escudoItem.defensaMagica) defensaMagica += escudoItem.defensaMagica; if (escudoItem.velocidad) velocidad += escudoItem.velocidad; }
     if (armaduraItem) { if (armaduraItem.defensaFisica) defensaFisica += armaduraItem.defensaFisica; if (armaduraItem.defensaMagica) defensaMagica += armaduraItem.defensaMagica; if (armaduraItem.velocidad) velocidad += armaduraItem.velocidad; }
-    const buffVida = obtenerBuffPilarJugadorCliente('vida');
-    const buffMana = obtenerBuffPilarJugadorCliente('mana');
-    const buffDaño = obtenerBuffPilarJugadorCliente('daño');
-    const buffDefFisica = obtenerBuffPilarJugadorCliente('defFisica');
-    const buffDefMagica = obtenerBuffPilarJugadorCliente('defMagica');
-    hpTotal = Math.floor(hpTotal * (1 + buffVida));
-    manaTotal = Math.floor(manaTotal * (1 + buffMana));
-    defensaFisica = Math.floor(defensaFisica * (1 + buffDefFisica));
-    defensaMagica = Math.floor(defensaMagica * (1 + buffDefMagica));
-    const esMagico = pClassName === 'MAGO' || pClassName === 'NECROMANCER';
-    if (esMagico) ataqueMagico = Math.floor(ataqueMagico * (1 + buffDaño));
-    else ataqueFisico = Math.floor(ataqueFisico * (1 + buffDaño));
-    playerMaxHP = hpTotal; playerMaxMana = manaTotal;
-    playerMaxAguante = (classStats[pClassName]?.aguante || 100);
-    if (playerHP > playerMaxHP) playerHP = playerMaxHP;
-    if (playerMana > playerMaxMana) playerMana = playerMaxMana;
-    document.getElementById('stat-hp').textContent = `${Math.floor(playerHP)}/${Math.floor(hpTotal)}`;
-    document.getElementById('stat-mana').textContent = `${Math.floor(playerMana)}/${Math.floor(manaTotal)}`;
-    document.getElementById('stat-ataque-fisico').textContent = Math.floor(ataqueFisico);
-    document.getElementById('stat-ataque-magico').textContent = Math.floor(ataqueMagico);
-    document.getElementById('stat-defensa-fisica').textContent = Math.floor(defensaFisica);
-    document.getElementById('stat-defensa-magica').textContent = Math.floor(defensaMagica);
-    document.getElementById('stat-velocidad').textContent = Math.floor(velocidad);
-    let criticoChance = 0;
-    if (pClassName === 'BARBARO') { criticoChance = ((playerStats.critico || 0) * 0.5); }
-    else { criticoChance = Math.floor((playerStats.agilidad || 0) / 10); }
-    document.getElementById('stat-critico').textContent = criticoChance.toFixed(1) + '%';
+const buffVida = obtenerBuffPilarJugadorCliente('vida');
+const buffDaño = obtenerBuffPilarJugadorCliente('daño');
+const buffDefFisica = obtenerBuffPilarJugadorCliente('defFisica');
+const buffDefMagica = obtenerBuffPilarJugadorCliente('defMagica');
+hpTotal = Math.floor(hpTotal * (1 + buffVida));
+defensaFisica = Math.floor(defensaFisica * (1 + buffDefFisica));
+defensaMagica = Math.floor(defensaMagica * (1 + buffDefMagica));
+const esMagico = pClassName === 'MAGO' || pClassName === 'NECROMANCER';
+if (esMagico) ataqueMagico = Math.floor(ataqueMagico * (1 + buffDaño));
+else ataqueFisico = Math.floor(ataqueFisico * (1 + buffDaño));
+playerMaxHP = hpTotal; playerMaxMana = manaTotal;
+playerMaxAguante = (classStats[pClassName]?.aguante || 100);
+if (playerHP > playerMaxHP) playerHP = playerMaxHP;
+if (playerMana > playerMaxMana) playerMana = playerMaxMana;
+document.getElementById('stat-hp').textContent = `${Math.floor(playerHP)}/${Math.floor(hpTotal)}`;
+document.getElementById('stat-mana').textContent = `${Math.floor(playerMana)}/${Math.floor(manaTotal)}`;
+document.getElementById('stat-ataque-fisico').textContent = Math.floor(ataqueFisico);
+document.getElementById('stat-ataque-magico').textContent = Math.floor(ataqueMagico);
+document.getElementById('stat-defensa-fisica').textContent = Math.floor(defensaFisica);
+document.getElementById('stat-defensa-magica').textContent = Math.floor(defensaMagica);
+document.getElementById('stat-velocidad').textContent = Math.floor(velocidad);
+let criticoChance = 0;
+if (pClassName === 'BARBARO') { criticoChance = ((playerStats.critico || 0) * 0.5); }
+else { criticoChance = Math.floor((playerStats.agilidad || 0) / 10); }
+document.getElementById('stat-critico').textContent = criticoChance.toFixed(1) + '%';
     if (pClassName === 'CABALLERO') { const benditoBonus = (playerStats.bendito || 0) * 2; playerStats.defFuego = (playerStats.defFuego || 0) + benditoBonus; playerStats.defLuz = (playerStats.defLuz || 0) + benditoBonus; }
     document.getElementById('stat-level').textContent = playerStats.level;
     document.getElementById('stat-exp').textContent = playerStats.exp;
@@ -1722,14 +1722,57 @@ function renderizarBarraSkills() {
     for (let i = 0; i < MAX_SKILLS; i++) {
         const skillId = skillsEquipadas[i]; const skill = skillId ? SKILLS_DATA[skillId] : null;
         const div = document.createElement('div'); div.className = 'skill-slot-small' + (skill ? ' equipped' : ''); div.setAttribute('data-slot-index', i); div.setAttribute('data-skill-id', skillId || '');
+        // 🔥 FIX: Bloquear el menú contextual (descargar imagen) en móvil
+        div.addEventListener('contextmenu', (e) => e.preventDefault());
         if (skill) {
             const slotIcon = document.createElement('div'); slotIcon.className = 'slot-icon';
-            const img = document.createElement('img'); img.src = skill.icono; img.className = 'skill-icon-img'; img.style.width = '50px'; img.style.height = '50px'; img.onerror = function() { this.style.display = 'none'; };
+            const img = document.createElement('img'); img.src = skill.icono; img.className = 'skill-icon-img'; img.style.width = '50px'; img.style.height = '50px'; img.draggable = false; img.onerror = function() { this.style.display = 'none'; };
             slotIcon.appendChild(img); div.appendChild(slotIcon);
             let pressTimer = null;
-            div.onclick = (e) => { e.stopPropagation(); usarSkill(skillId); };
-            div.onmousedown = (e) => { e.stopPropagation(); pressTimer = setTimeout(() => { mostrarDetalleSkill(skill); pressTimer = null; }, 1000); };
-            div.onmouseup = (e) => { e.stopPropagation(); if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+            let longPressDisparado = false;
+            // Click normal (desktop y tap corto en móvil)
+            div.onclick = (e) => { 
+                e.stopPropagation(); 
+                if (longPressDisparado) { longPressDisparado = false; return; }
+                usarSkill(skillId); 
+            };
+            // Long-press en DESKTOP
+            div.onmousedown = (e) => { 
+                e.stopPropagation(); 
+                longPressDisparado = false;
+                pressTimer = setTimeout(() => { 
+                    longPressDisparado = true;
+                    mostrarDetalleSkill(skill); 
+                    pressTimer = null; 
+                }, 1000); 
+            };
+            div.onmouseup = (e) => { 
+                e.stopPropagation(); 
+                if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } 
+            };
+            div.onmouseleave = (e) => { 
+                if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } 
+            };
+            // Long-press en MÓVIL (touchstart/touchend)
+            div.addEventListener('touchstart', (e) => {
+                longPressDisparado = false;
+                if (pressTimer) clearTimeout(pressTimer);
+                pressTimer = setTimeout(() => {
+                    longPressDisparado = true;
+                    mostrarDetalleSkill(skill);
+                    pressTimer = null;
+                }, 1000);
+            }, { passive: true });
+            div.addEventListener('touchend', (e) => {
+                if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+            }, { passive: true });
+            div.addEventListener('touchmove', (e) => {
+                // Si el dedo se mueve, cancelar el long-press (era un scroll)
+                if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+            }, { passive: true });
+            div.addEventListener('touchcancel', (e) => {
+                if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+            }, { passive: true });
             div.onmouseleave = (e) => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
             const desequiparSkill = (e) => { e.stopPropagation(); if (skill && document.getElementById('inventario-ui').style.display === 'block') { skillsEquipadas[i] = null; localStorage.setItem(SAVE_KEY + '_skills', JSON.stringify(skillsEquipadas)); renderizarBarraSkills(); renderizarSkillsInline(); mostrarMensaje(`❌ ${skill.nombre} desequipado`, 'info'); } else if (skill) mostrarMensaje(`❌ Abre el inventario para desequipar skills`, 'error'); };
             if (esTactil) { agregarDobleTap(div, desequiparSkill); } else { div.ondblclick = desequiparSkill; }
@@ -1915,7 +1958,8 @@ function obtenerBuffPilarJugadorCliente(tipo) {
         else if (tipo === 'defFisica' && p.color === 'azul') total += valorBase;
         else if (tipo === 'defMagica' && p.color === 'azul') total += valorBase * 0.5;
         else if (tipo === 'vida' && p.color === 'verde') total += valorBase;
-        else if (tipo === 'mana' && p.color === 'amarillo') total += valorBase;
+        // ❌ ELIMINADO: else if (tipo === 'mana' && p.color === 'amarillo') total += valorBase;
+        // El Pilar Amarillo da ORO, no maná
     });
     return total;
 }
@@ -1944,7 +1988,8 @@ function crearPilaresEnEscena() {
         });
         const barraFondo = currentScene.add.graphics(); barraFondo.setDepth(p.y + 1);
         const barraFill = currentScene.add.graphics(); barraFill.setDepth(p.y + 2);
-        const textoNombre = currentScene.add.text(p.x, p.y - 100, p.dueñoNombre ? `🏛️ ${p.dueñoNombre}` : '🏛️ Sin dueño', { fontSize: '11px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3, align: 'center' }).setOrigin(0.5).setDepth(p.y + 3);
+const nombreMostrar = p.dueñoNombre || (p.dueñoId ? 'Jugador desconocido' : null);
+const textoNombre = currentScene.add.text(p.x, p.y - 100, nombreMostrar ? `🏛️ ${nombreMostrar}` : '🏛️ Sin dueño', { fontSize: '11px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3, align: 'center' }).setOrigin(0.5).setDepth(p.y + 3);
         const textoNivel = currentScene.add.text(p.x, p.y - 85, `Nv.${(p.nivelVida||0)+(p.nivelDefFisica||0)+(p.nivelDefMagica||0)+(p.nivelBuff||0)}`, { fontSize: '9px', fill: '#ffaa00', fontFamily: 'monospace', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5).setDepth(p.y + 3);
         pilaresSprites[p.id] = { sprite, barraFondo, barraFill, textoNombre, textoNivel, colorHex, x: p.x, y: p.y };
     });
@@ -1960,7 +2005,8 @@ function actualizarBarrasPilares() {
         const porcentaje = Math.max(0, Math.min(1, p.hp / p.maxHp));
         ps.barraFondo.clear(); ps.barraFondo.fillStyle(0x000000, 0.8); ps.barraFondo.fillRect(p.x - ancho/2, p.y + offsetY, ancho, alto);
         ps.barraFill.clear(); ps.barraFill.fillStyle(ps.colorHex, 1); ps.barraFill.fillRect(p.x - ancho/2, p.y + offsetY, ancho * porcentaje, alto);
-        if (ps.textoNombre) ps.textoNombre.setText(p.dueñoNombre ? `🏛️ ${p.dueñoNombre}` : '🏛️ Sin dueño');
+const nombreMostrarBarra = p.dueñoNombre || (p.dueñoId ? 'Jugador desconocido' : null);
+if (ps.textoNombre) ps.textoNombre.setText(nombreMostrarBarra ? `🏛️ ${nombreMostrarBarra}` : '🏛️ Sin dueño');
         if (ps.textoNivel) ps.textoNivel.setText(`Nv.${(p.nivelVida||0)+(p.nivelDefFisica||0)+(p.nivelDefMagica||0)+(p.nivelBuff||0)} | HP ${Math.floor(p.hp)}/${p.maxHp}`);
     });
 }
@@ -2015,7 +2061,9 @@ function renderizarPilaresUI() {
     if (!p) { info.innerHTML = '<div style="color:#666;">Cargando...</div>'; contenedor.innerHTML = ''; return; }
     const colorEmoji = { rojo: '🔴', azul: '🔵', verde: '🟢', amarillo: '🟡' }[p.color] || '🏛️';
     const buffDesc = { rojo: '+5% daño (físico/mágico)', azul: '+5% defensa física', verde: '+5% vida', amarillo: '+5% maná/resistencia' }[p.color] || '';
-    info.innerHTML = `<div style="font-size:14px;color:#fff;margin-bottom:5px;">${colorEmoji} PILAR ${p.color.toUpperCase()}</div><div style="color:#aaa;font-size:10px;">Dueño: <span style="color:#ffaa00;">${p.dueñoNombre || 'Sin dueño'}</span></div><div style="color:#aaa;font-size:10px;">Buff base: <span style="color:#88ff88;">${buffDesc}</span></div><div style="color:#aaa;font-size:10px;">HP: <span style="color:#ff6666;">${Math.floor(p.hp)}/${p.maxHp}</span></div><div style="color:#aaa;font-size:10px;">Niveles: ❤️${p.nivelVida||0} 🛡️${p.nivelDefFisica||0} ✨${p.nivelDefMagica||0} ⚔️${p.nivelBuff||0}</div>`;
+const nombreMostrarUI = p.dueñoNombre || (p.dueñoId ? 'Jugador desconocido' : null);
+const colorNombre = p.dueñoNombre ? '#ffaa00' : (p.dueñoId ? '#ff6666' : '#666');
+info.innerHTML = `<div style="font-size:14px;color:#fff;margin-bottom:5px;">${colorEmoji} PILAR ${p.color.toUpperCase()}</div><div style="color:#aaa;font-size:10px;">Dueño: <span style="color:${colorNombre};">${nombreMostrarUI || 'Sin dueño'}</span></div><div style="color:#aaa;font-size:10px;">Buff base: <span style="color:#88ff88;">${buffDesc}</span></div><div style="color:#aaa;font-size:10px;">HP: <span style="color:#ff6666;">${Math.floor(p.hp)}/${p.maxHp}</span></div><div style="color:#aaa;font-size:10px;">Niveles: ❤️${p.nivelVida||0} 🛡️${p.nivelDefFisica||0} ✨${p.nivelDefMagica||0} ⚔️${p.nivelBuff||0}</div>`;
     const mejoras = [
         { key: 'vida', nombre: '❤️ Vida', niveles: [{n:1,v:200,c:{hierro:50}},{n:2,v:500,c:{hierro:100,plata:20}},{n:3,v:1000,c:{hierro:200,plata:50,acero:10}},{n:4,v:2000,c:{hierro:400,plata:100,acero:30,mithril:5}},{n:5,v:4000,c:{hierro:800,plata:200,acero:60,mithril:15,titanio:5}}] },
         { key: 'defFisica', nombre: '🛡️ Def Física', niveles: [{n:1,v:5,c:{hierro:50}},{n:2,v:10,c:{hierro:100,plata:20}},{n:3,v:20,c:{hierro:200,plata:50,acero:10}},{n:4,v:35,c:{hierro:400,plata:100,acero:30,mithril:5}},{n:5,v:50,c:{hierro:800,plata:200,acero:60,mithril:15,titanio:5}}] },
@@ -2174,12 +2222,39 @@ function activarAlertaPilar(mensaje) {
 
 function registrarEventosPilaresYLigas() {
     if (!socket) return;
-    socket.on('pilaresIniciales', (data) => { pilaresCliente = data; if (currentScene) crearPilaresEnEscena(); actualizarIndicadorBuffs(); if (document.getElementById('pilares-ui').style.display === 'block') renderizarPilaresUI(); });
+socket.on('pilaresIniciales', (data) => { 
+    pilaresCliente = data; 
+    if (currentScene) crearPilaresEnEscena(); 
+    actualizarIndicadorBuffs(); 
+    if (document.getElementById('pilares-ui').style.display === 'block') renderizarPilaresUI();
+    // 🔥 FIX: Recalcular stats con los buffs de pilares recién cargados
+    actualizarStatsUI();
+});
     socket.on('pilarDañado', (data) => { const p = pilaresCliente.find(x => x.id === data.pilarId); if (p) { p.hp = data.hp; p.maxHp = data.maxHp; } actualizarBarrasPilares(); const ps = pilaresSprites[data.pilarId]; if (ps && currentScene) { crearTextoDmg(currentScene, ps.x, ps.y - 60, `-${data.daño}`, '#ff4444', '16px'); } });
-    socket.on('pilarConquistado', (data) => { const p = pilaresCliente.find(x => x.id === data.pilarId); if (p) { p.dueñoId = data.nuevoDueñoId; p.dueñoNombre = data.nuevoDueño; p.dueñoLigaId = data.ligaId; p.hp = data.hp; p.maxHp = data.maxHp; } if (currentScene) crearPilaresEnEscena(); actualizarIndicadorBuffs(); mostrarMensaje(`⚔️ ¡${data.nuevoDueño} conquistó el pilar ${data.color.toUpperCase()}!`, 'exito'); if (document.getElementById('pilares-ui').style.display === 'block') renderizarPilaresUI(); });
+socket.on('pilarConquistado', (data) => { 
+    const p = pilaresCliente.find(x => x.id === data.pilarId); 
+    if (p) { p.dueñoId = data.nuevoDueñoId; p.dueñoNombre = data.nuevoDueño; p.dueñoLigaId = data.ligaId; p.hp = data.hp; p.maxHp = data.maxHp; } 
+    if (currentScene) crearPilaresEnEscena(); 
+    actualizarIndicadorBuffs(); 
+    // 🔥 FIX: Recalcular stats (ganaste/perdiste un pilar)
+    actualizarStatsUI();
+    mostrarMensaje(`⚔️ ¡${data.nuevoDueño} conquistó el pilar ${data.color.toUpperCase()}!`, 'exito'); 
+    if (document.getElementById('pilares-ui').style.display === 'block') renderizarPilaresUI(); 
+});
     socket.on('pilarMejorado', (data) => { const p = pilaresCliente.find(x => x.id === data.pilarId); if (p) { p['nivel' + data.stat.charAt(0).toUpperCase() + data.stat.slice(1)] = data.nuevoNivel; p.maxHp = data.maxHp; p.hp = data.hp; } actualizarBarrasPilares(); if (document.getElementById('pilares-ui').style.display === 'block') renderizarPilaresUI(); });
     socket.on('pilarAtacado', (data) => { const canal = data.chatCanal || 'general'; const msg = `⚠️ ¡Tu Pilar ${data.pilarColor.toUpperCase()} está siendo atacado por ${data.atacante || '???'}! HP: ${Math.floor(data.hp)}/${data.maxHp}`; agregarMensajeChat(canal, msg, 'alarma'); activarAlertaPilar(msg); });
-    socket.on('infoPilar', (data) => { const p = pilaresCliente.find(x => x.id === data.id); if (p) { Object.assign(p, data); } if (document.getElementById('pilares-ui').style.display === 'block') renderizarPilaresUI(); });
+socket.on('infoPilar', (data) => { 
+    const p = pilaresCliente.find(x => x.id === data.id); 
+    if (p) { 
+        // 🔥 FIX: NO pisar dueñoNombre con null si ya tenemos uno guardado
+        const dueñoNombreAnterior = p.dueñoNombre;
+        Object.assign(p, data); 
+        if (!p.dueñoNombre && dueñoNombreAnterior) {
+            p.dueñoNombre = dueñoNombreAnterior;
+        }
+    } 
+    if (document.getElementById('pilares-ui').style.display === 'block') renderizarPilaresUI(); 
+});
     socket.on('ligasIniciales', (data) => { if (data && data.ligas && document.getElementById('liga-ranking-lista')) { renderizarRankingLigasUI(data.ligas); } });
     socket.on('infoLiga', (data) => { ligaActual = data.enLiga ? data : null; const info = document.getElementById('liga-info'); const crearSec = document.getElementById('liga-crear-section'); const invitarSec = document.getElementById('liga-invitar-section'); const donarSec = document.getElementById('liga-donar-section'); if (!info) return; if (data.enLiga) { let html = `<div style="color:#ffaa00;font-size:13px;margin-bottom:5px;">🏅 ${data.nombre}</div>`; html += `<div style="color:#aaa;font-size:10px;">Líder: <span style="color:#ffaa00;">${data.liderNombre}</span></div>`; html += `<div style="color:#aaa;font-size:10px;">Miembros: ${data.miembros.length}/100 | Puntos: ${data.puntos}</div>`; html += `<div style="color:#aaa;font-size:10px;">Pilares: ${data.pilares.length}</div>`; html += `<div style="color:#aaa;font-size:10px;">Oro de la liga: <span style="color:#ffaa00;">${data.oro || 0}</span></div>`; html += `<div style="margin-top:8px;max-height:150px;overflow-y:auto;">`; data.miembros.forEach(m => { const esLider = m.id === data.lider; html += `<div class="liga-miembro ${esLider ? 'lider' : ''}"><span>${esLider ? '> ' : '- '}${m.nombre}</span></div>`; }); html += `</div>`; info.innerHTML = html; crearSec.style.display = 'none'; invitarSec.style.display = 'block'; if (donarSec) donarSec.style.display = 'block'; } else { info.innerHTML = `<div style="color:#666;text-align:center;padding:20px;">No estás en una liga</div>`; crearSec.style.display = 'block'; invitarSec.style.display = 'none'; if (donarSec) donarSec.style.display = 'none'; } });
     socket.on('ligaActualizada', (data) => { if (socket && socket.connected) socket.emit('solicitarInfoLiga'); actualizarIndicadorBuffs(); });
@@ -2190,22 +2265,41 @@ function registrarEventosPilaresYLigas() {
     socket.on('chatTeamMensaje', (data) => { agregarMensajeChat('team', `[${data.nombre}] ${data.msg}`, 'info'); });
     socket.on('historialTeam', (data) => { if (data.mensajes) { data.mensajes.forEach(m => { agregarMensajeChat('team', `[${m.nombre}] ${m.msg}`, 'info'); }); } });
     // 💰 NUEVO: Producción pasiva de oro del Pilar Amarillo
-    socket.on('oroPilarGenerado', (data) => {
-        const sufijoBuff = data.nivelBuff > 0 ? ` (Nv.Buff ${data.nivelBuff})` : '';
-        const sufixoLiga = data.bonusLiga > 0 ? ` [+${data.bonusLiga}% liga]` : '';
-        mostrarMensaje(`💰 +${data.cantidad} oro del Pilar Amarillo${sufijoBuff}${sufixoLiga}`, 'exito');
-        if (currentScene && player && player.active) {
-            crearTextoDmg(currentScene, player.x, player.y - 60, `+${data.cantidad} 💰`, '#ffcc00', '16px');
+socket.on('oroPilarGenerado', (data) => {
+    const sufijoBuff = data.nivelBuff > 0 ? ` (Nv.Buff ${data.nivelBuff})` : '';
+    const sufixoLiga = data.bonusLiga > 0 ? ` [+${data.bonusLiga}% liga]` : '';
+    mostrarMensaje(`💰 +${data.cantidad} oro del Pilar Amarillo${sufijoBuff}${sufixoLiga}`, 'exito');
+    
+    // 🔥 FIX: Sumar el oro al inventario LOCAL del cliente
+    const oroSlot = inventarioSlots.find(s => s && s.id === 'oro');
+    if (oroSlot) {
+        oroSlot.cantidad += data.cantidad;
+    } else {
+        // No hay oro en el inventario local → buscar primer slot libre
+        const slotLibre = inventarioSlots.findIndex(s => s === null);
+        if (slotLibre !== -1) {
+            inventarioSlots[slotLibre] = {
+                id: 'oro', tipo: 'moneda', nombre: 'Oro', icono: '💰',
+                cantidad: data.cantidad, slotIndex: slotLibre
+            };
         }
-        const mercadoEl = document.getElementById('mercado-oro-cantidad');
-        if (mercadoEl && document.getElementById('mercado-ui').style.display === 'block') {
-            mercadoEl.textContent = data.totalOro;
-        }
-        if (currentScene && currentScene.sound) {
-            const s = currentScene.sound.get('sonidoMoneda');
-            if (s) { s.setVolume(window.volumenFX * 0.5); s.play(); }
-        }
-    });   // ⬅️ AQUÍ cierra oroPilarGenerado
+    }
+    renderizarInventario();
+    actualizarStatsUI();
+    guardarPartida();
+    
+    if (currentScene && player && player.active) {
+        crearTextoDmg(currentScene, player.x, player.y - 60, `+${data.cantidad} 💰`, '#ffcc00', '16px');
+    }
+    const mercadoEl = document.getElementById('mercado-oro-cantidad');
+    if (mercadoEl && document.getElementById('mercado-ui').style.display === 'block') {
+        mercadoEl.textContent = getOroActual();
+    }
+    if (currentScene && currentScene.sound) {
+        const s = currentScene.sound.get('sonidoMoneda');
+        if (s) { s.setVolume(window.volumenFX * 0.5); s.play(); }
+    }
+});
 
     // ═══ NUEVO: MISIONES DE LIGA ═══
     socket.on('misionAsignada', (data) => {
@@ -2853,7 +2947,9 @@ estatuaRanking.on('pointerdown', () => {
             const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null;
             if (armaItem && armaItem.ataqueFisico) ataqueFisicoTotal += armaItem.ataqueFisico;
             const corteBonus = (playerStats.corte || 0) * 0.01;
-            let damageBonus = Math.floor(ataqueFisicoTotal * (1 + corteBonus));
+            // 🔥 FIX: Aplicar buff de daño del Pilar Rojo
+            const buffDañoPilar = obtenerBuffPilarJugadorCliente('daño');
+            let damageBonus = Math.floor(ataqueFisicoTotal * (1 + corteBonus) * (1 + buffDañoPilar));
             if (pClassName === 'BARBARO') { const furiaBonus = 1 + (playerStats.furia || 0) * 0.01; damageBonus = Math.floor(damageBonus * furiaBonus); }
             const chanceCriticoNormal = Math.floor((playerStats.agilidad || 0) / 10);
             const esCriticoNormal = Math.random() * 100 < chanceCriticoNormal;
@@ -2887,14 +2983,111 @@ estatuaRanking.on('pointerdown', () => {
     else { btnAttack.addEventListener('click', () => { if (window.simularAtaque) window.simularAtaque(); }); }
     this.input.keyboard.on('keydown-SPACE', () => { if (window.simularAtaque) window.simularAtaque(); });
     this.input.keyboard.on('keydown-ESC', () => { toggleInventario(); });
-    socket.on('currentPlayers', (ps) => { Object.keys(ps).forEach(id => { if (id !== socket.id) addOtherPlayer(this, ps[id]); }); });
+    // 🆕 FIX: escuchar cuando el servidor re-envía la lista
+    socket.on('currentPlayers', (ps) => { 
+        console.log('📥 currentPlayers recibido:', Object.keys(ps).length, 'jugadores');
+        Object.keys(ps).forEach(id => { 
+            if (id !== socket.id) {
+                addOtherPlayer(this, ps[id]);
+            }
+        }); 
+    });
     let sacrificioActivoServer = {};
     socket.on('activarSacrificio', () => { sacrificioActivoServer[socket.id] = true; });
     socket.on('desactivarSacrificio', () => { sacrificioActivoServer[socket.id] = false; });
-    socket.on('newPlayer', (info) => { if (info.id !== socket.id) { addOtherPlayer(this, info); mostrarMensaje(`📡 ${info.name} (${info.className || info.class})`, 'info'); } });
-    socket.on('playerMoved', (info) => { otherPlayers.getChildren().forEach(other => { if (info.id === other.id) { other.targetX = info.x; other.targetY = info.y; other.lastDir = info.dir; if (info.auraVisible) { if (!other.auraSprite) { other.auraSprite = currentScene.add.sprite(info.x, info.y - 10, 'aura_1'); other.auraSprite.setDepth(other.y - 1); other.auraSprite.setScale(2.5); other.auraSprite.setAlpha(0.7); if (currentScene.anims.exists('aura_caballero_anim')) { other.auraSprite.play('aura_caballero_anim'); } } else { other.auraSprite.setVisible(true); other.auraSprite.setPosition(info.x, info.y - 10); other.auraSprite.setDepth(other.y - 1); } } else { if (other.auraSprite) { other.auraSprite.setVisible(false); other.auraSprite.stop(); } } if (info.isMoving) other.play(other.pClass + '_walk_' + info.dir, true); else other.play(other.pClass + '_idle_' + info.dir, true); } }); });
-    socket.on('playerDisconnected', (id) => { otherPlayers.getChildren().forEach(other => { if (id === other.id) { if (other.auraSprite) other.auraSprite.destroy(); other.destroy(); } }); });
-    socket.on('playerAttacked', (data) => { otherPlayers.getChildren().forEach(other => { if (other.id === data.id) { other.play(other.pClass + '_atk_' + data.dir, true); other.once('animationcomplete', () => { if (other.active) other.play(other.pClass + '_idle_' + data.dir, true); }); } }); });
+    socket.on('newPlayer', (info) => { if (info.id !== socket.id) { addOtherPlayer(this, info); mostrarMensaje(`📡 ${info.name} (${info.className || info.class})`, 'info'); setTimeout(() => { socket.emit('solicitarJugadoresActuales'); }, 300); } });
+// 🔥 FIX: Manejar bloqueo de movimiento (mina, obstáculo, etc.)
+socket.on('playerMovementBlocked', (data) => {
+    if (player && player.isAlive) {
+        // ═══ FIX: Solo snapear si la diferencia es GRANDE (evita rebotes chicos) ═══
+        const dist = Phaser.Math.Distance.Between(player.x, player.y, data.x, data.y);
+        if (dist > 80) {
+            // Está MUY lejos de la posición que el server considera válida → snapear
+            player.setPosition(data.x, data.y);
+        }
+        // Si la distancia es chica (<80px), NO snapear — dejar que el jugador
+        // siga intentando moverse (el server ya lo dejó pasar en el próximo frame)
+        if (!player.attacking) {
+            player.setVelocity(0, 0);
+        }
+    }
+});
+
+socket.on('playerMoved', (info) => { 
+    otherPlayers.getChildren().forEach(other => { 
+        if (info.id === other.id) { 
+            const dist = Phaser.Math.Distance.Between(other.x, other.y, info.x, info.y);
+            
+            // 🔥 FIX: Si la distancia es grande (>200px), teleportar directamente
+            if (dist > 200) {
+                other.setPosition(info.x, info.y);
+                other.targetX = info.x;
+                other.targetY = info.y;
+            } else {
+                other.targetX = info.x; 
+                other.targetY = info.y; 
+            }
+            other.lastDir = info.dir;
+            
+            // Aura
+            if (info.auraVisible) { 
+                if (!other.auraSprite) { 
+                    other.auraSprite = currentScene.add.sprite(info.x, info.y - 10, 'aura_1'); 
+                    other.auraSprite.setDepth(other.y - 1); 
+                    other.auraSprite.setScale(2.5); 
+                    other.auraSprite.setAlpha(0.7); 
+                    if (currentScene.anims.exists('aura_caballero_anim')) { 
+                        other.auraSprite.play('aura_caballero_anim'); 
+                    } 
+                } else { 
+                    other.auraSprite.setVisible(true); 
+                    other.auraSprite.setPosition(info.x, info.y - 10); 
+                    other.auraSprite.setDepth(other.y - 1); 
+                } 
+            } else { 
+                if (other.auraSprite) { 
+                    other.auraSprite.setVisible(false); 
+                    other.auraSprite.stop(); 
+                } 
+            } 
+            
+            // 🔥 FIX: NO interrumpir animación de ataque
+            if (!other.estaAtacando && other.anims) {
+                if (info.isMoving) {
+                    other.play(other.pClass + '_walk_' + info.dir, true); 
+                } else {
+                    other.play(other.pClass + '_idle_' + info.dir, true); 
+                }
+            }
+        } 
+    }); 
+});
+socket.on('playerDisconnected', (id) => { 
+    otherPlayers.getChildren().forEach(other => { 
+        if (id === other.id) { 
+            if (other.auraSprite) other.auraSprite.destroy(); 
+            other.destroy(); 
+        } 
+    }); 
+    // 🔥 FIX: Refrescar el panel de pilares si está abierto (por si el jugador era dueño de alguno)
+    if (document.getElementById('pilares-ui') && document.getElementById('pilares-ui').style.display === 'block') {
+        renderizarPilaresUI();
+    }
+});
+socket.on('playerAttacked', (data) => { 
+    otherPlayers.getChildren().forEach(other => { 
+        if (other.id === data.id) { 
+            other.estaAtacando = true;
+            other.play(other.pClass + '_atk_' + data.dir, true); 
+            other.once('animationcomplete', () => { 
+                if (other.active) {
+                    other.estaAtacando = false;
+                    other.play(other.pClass + '_idle_' + data.dir, true); 
+                }
+            }); 
+        } 
+    }); 
+});
     socket.on('playerAttackHit', (data) => {
         if (!currentScene) return;
         const hitbox = currentScene.add.rectangle(data.hitbox.x + data.hitbox.w/2, data.hitbox.y + data.hitbox.h/2, data.hitbox.w, data.hitbox.h, data.damage > 0 ? 0xff0000 : 0xffff00, 0);
@@ -3232,7 +3425,26 @@ socket.on('inventarioCompleto', (data) => {
     socket.on('rocaRespawn', (data) => { const img = this.add.image(data.x, data.y, 'roca').setScale(0.8).setDepth(data.y); img.rocaId = data.id; if (window.rocasGrupo) window.rocasGrupo.add(img); });
     setInterval(() => { if (!player || !player.isAlive) return; monedasSuelo.forEach(m => { if (m && m.texto) m.texto.setVisible(Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 100); }); dropsSuelo.forEach(d => { if (d && d.texto) d.texto.setVisible(Phaser.Math.Distance.Between(player.x, player.y, d.x, d.y) < 100); }); }, 100);
     setInterval(() => { const ahora = Date.now(); for (let i = dropsSuelo.length - 1; i >= 0; i--) { if (dropsSuelo[i] && !dropsSuelo[i].recogida && ahora - (dropsSuelo[i].timestamp || ahora) > 120000) { if (dropsSuelo[i].texto) dropsSuelo[i].texto.destroy(); dropsSuelo[i].destroy(); dropsSuelo.splice(i, 1); } } for (let i = monedasSuelo.length - 1; i >= 0; i--) { if (monedasSuelo[i] && !monedasSuelo[i].recogida && ahora - (monedasSuelo[i].timestamp || ahora) > 120000) { if (monedasSuelo[i].texto) monedasSuelo[i].texto.destroy(); if (monedasSuelo[i].animInterval) clearInterval(monedasSuelo[i].animInterval); monedasSuelo[i].destroy(); monedasSuelo.splice(i, 1); } } }, 10000);
-    this.events.on('update', () => { otherPlayers.getChildren().forEach(other => { if (other.targetX !== undefined && other.targetY !== undefined) { other.x += (other.targetX - other.x) * 0.25; other.y += (other.targetY - other.y) * 0.25; other.setDepth(other.y); } }); if (player && player.active && btnAttack) actualizarIconoAtaque(); });
+this.events.on('update', () => { 
+    otherPlayers.getChildren().forEach(other => { 
+        if (other.targetX !== undefined && other.targetY !== undefined) { 
+            const dx = other.targetX - other.x;
+            const dy = other.targetY - other.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            // 🔥 FIX: Interpolación más rápida (0.5 en vez de 0.25) + snap si está muy cerca
+            if (dist > 1) {
+                other.x += dx * 0.5;
+                other.y += dy * 0.5;
+            } else {
+                other.x = other.targetX;
+                other.y = other.targetY;
+            }
+            other.setDepth(other.y); 
+        } 
+    }); 
+    if (player && player.active && btnAttack) actualizarIconoAtaque(); 
+});
     window.addEventListener('beforeunload', () => guardarPartida());
     setInterval(() => { if (player && player.active) guardarPartida(); }, 30000);
     setInterval(() => { if (socket && socket.connected && juegoIniciado) socket.emit('solicitarEsqueletos'); }, 10000);
@@ -3262,6 +3474,17 @@ socket.on('inventarioCompleto', (data) => {
         initJoystickVirtual();
         initPinchZoom();
     }
+    // 🔥 FIX: Bloquear el menú contextual en TODOS los botones del HUD en móvil
+    const botonesHUD = ['btn-attack', 'team-icon', 'btn-inventario-movil', 'btn-fullscreen-movil', 'btn-pilares-hud', 'btn-liga-hud', 'joystick-virtual', 'joystick-base'];
+    botonesHUD.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('contextmenu', (e) => e.preventDefault());
+            el.style.webkitTouchCallout = 'none';
+            el.style.webkitUserSelect = 'none';
+        }
+    });
+
     setTimeout(function() {
         var mercado = document.getElementById('mercado-ui');
         var ranking = document.getElementById('ranking-ui');
@@ -3270,7 +3493,70 @@ socket.on('inventarioCompleto', (data) => {
     }, 500);
 }
 
-function addOtherPlayer(self, info) { if (!info.class) return; const spriteVisual = getSpriteVisual(info.class); const esClerigo = (info.class === 'clerigo'); const escala = esClerigo ? 0.8 : 1.5; const texturaInicial = esClerigo ? 'clerigo_idle_down_1' : (spriteVisual + '_armed_idle_S_0'); const o = self.physics.add.sprite(info.x, info.y, texturaInicial).setScale(escala); o.id = info.id; o.pClass = info.class; o.pName = info.name; o.targetX = info.x; o.targetY = info.y; o.setDepth(100000); if (esClerigo) { o.setSize(30, 50); o.setOffset(19, 14); } else { o.setSize(10, 10); o.setOffset(123, 123); } o.body.setImmovable(true); o.setInteractive(); o.input.enabled = true; o.auraSprite = null; if (esClerigo) { const TAMANO_VISUAL = 48 * 1.5; o.on('animationstart', (anim) => { if (anim.key.startsWith('clerigo_idle_')) o.setScale(TAMANO_VISUAL / 48); else if (anim.key.startsWith('clerigo_walk_')) o.setScale(TAMANO_VISUAL / 50); else if (anim.key.startsWith('clerigo_atk_')) o.setScale(TAMANO_VISUAL / 48); else if (anim.key.startsWith('clerigo_cast_')) o.setScale(TAMANO_VISUAL / 48); else if (anim.key.startsWith('clerigo_die_')) o.setScale(TAMANO_VISUAL / 48); }); } }
+function addOtherPlayer(self, info) { 
+    if (!info || !info.class) { 
+        console.warn('⚠️ addOtherPlayer: info sin class', info); 
+        return; 
+    } 
+    
+    // 🔥 FIX: Evitar duplicados (si ya existe, solo actualizar posición)
+    const existente = otherPlayers.getChildren().find(o => o.id === info.id);
+    if (existente) { 
+        existente.targetX = info.x; 
+        existente.targetY = info.y; 
+        existente.setPosition(info.x, info.y); 
+        return; 
+    } 
+    
+    const spriteVisual = getSpriteVisual(info.class); 
+    const esClerigo = (info.class === 'clerigo'); 
+    const escala = esClerigo ? 0.8 : 1.5; 
+    const texturaInicial = esClerigo ? 'clerigo_idle_down_1' : (spriteVisual + '_armed_idle_S_0'); 
+    const o = self.physics.add.sprite(info.x, info.y, texturaInicial).setScale(escala); 
+    o.id = info.id; 
+    o.pClass = info.class; 
+    o.pName = info.name; 
+    o.targetX = info.x; 
+    o.targetY = info.y; 
+    o.setDepth(100000); 
+    o.estaAtacando = false;
+    
+    if (esClerigo) { 
+        o.setSize(30, 50); 
+        o.setOffset(19, 14); 
+    } else { 
+        o.setSize(10, 10); 
+        o.setOffset(123, 123); 
+    } 
+    o.body.setImmovable(true); 
+    o.setInteractive(); 
+    o.input.enabled = true; 
+    o.auraSprite = null; 
+    
+    // 🔥 FIX CRÍTICO: AGREGAR AL GRUPO otherPlayers
+    otherPlayers.add(o);
+    
+    if (esClerigo) { 
+        const TAMANO_VISUAL = 48 * 1.5; 
+        o.on('animationstart', (anim) => { 
+            if (anim.key.startsWith('clerigo_idle_')) o.setScale(TAMANO_VISUAL / 48); 
+            else if (anim.key.startsWith('clerigo_walk_')) o.setScale(TAMANO_VISUAL / 50); 
+            else if (anim.key.startsWith('clerigo_atk_')) o.setScale(TAMANO_VISUAL / 48); 
+            else if (anim.key.startsWith('clerigo_cast_')) o.setScale(TAMANO_VISUAL / 48); 
+            else if (anim.key.startsWith('clerigo_die_')) o.setScale(TAMANO_VISUAL / 48); 
+        }); 
+    }
+    
+    // 🔥 FIX: Reproducir idle inicial para que no se vea en T-pose
+    if (esClerigo) {
+        if (self.anims.exists('clerigo_idle_down')) o.play('clerigo_idle_down', true);
+    } else {
+        const idleKey = info.class + '_idle_S';
+        if (self.anims.exists(idleKey)) o.play(idleKey, true);
+    }
+    
+    console.log(`✅ Otro jugador agregado: ${info.name} (${info.id})`);
+}
 function update() {
     if (!player || !player.isAlive) return;
     crearAroJugador();
@@ -3424,8 +3710,11 @@ function usarSkill(skillId) {
             case 'Abajo':      offsetX = 0;   offsetY = 15;  break;
         }
         if (!player.attacking) {
-            const bonus = (pClassName === 'MAGO') ? (playerStats.atqFuego || 0) + bonusArmaFuego : (playerStats.atqOscuridad || 0) + bonusArmaOscuridad;
-            let ataqueMagico = (classStats[pClassName].ataqueMagico || 0) + Math.floor((playerStats.inteligencia) * 1.5);
+const bonus = (pClassName === 'MAGO') ? (playerStats.atqFuego || 0) + bonusArmaFuego : (playerStats.atqOscuridad || 0) + bonusArmaOscuridad;
+let ataqueMagico = (classStats[pClassName].ataqueMagico || 0) + Math.floor((playerStats.inteligencia) * 1.5);
+// 🔥 FIX: Aplicar buff de daño del Pilar Rojo
+const buffDañoPilarMagic = obtenerBuffPilarJugadorCliente('daño');
+ataqueMagico = Math.floor(ataqueMagico * (1 + buffDañoPilarMagic));
             player.attacking = true;
             player.setVelocity(0, 0);
             const selectKey = pClass + '_select_' + dir;
@@ -3477,8 +3766,10 @@ function usarSkill(skillId) {
                 const atkAnim = currentScene.anims.exists(atkKey) ? atkKey : atkFallback;
                 player.play(atkAnim, true);
                 const ex = enemigoMasCercano.x, ey = enemigoMasCercano.y;
-                let ataqueMagicoTotal = (classStats['MAGO'].ataqueMagico || 0) + Math.floor((playerStats.inteligencia) * 1.5);
-                const danioTotal = Math.floor(ataqueMagicoTotal) + (playerStats.atqLuz || 0) + bonusArmaLuz;
+let ataqueMagicoTotal = (classStats['MAGO'].ataqueMagico || 0) + Math.floor((playerStats.inteligencia) * 1.5);
+// 🔥 FIX: Aplicar buff de daño del Pilar Rojo
+const buffDañoPilarTrueno = obtenerBuffPilarJugadorCliente('daño');
+const danioTotal = Math.floor(ataqueMagicoTotal * (1 + buffDañoPilarTrueno)) + (playerStats.atqLuz || 0) + bonusArmaLuz;
                 if (currentScene && currentScene.sound) { const sonidoTrueno = currentScene.sound.get('fireballimpact'); if (sonidoTrueno) reproducirSonido(sonidoTrueno, window.volumenFX); else currentScene.sound.play('fireballimpact', { volume: window.volumenFX }); }
                 const truenoSprite = currentScene.add.sprite(ex, ey - 20, 'trueno_sprite'); truenoSprite.setScale(1.5); truenoSprite.setDepth(10000); truenoSprite.setOrigin(0.5, 1);
                 if (window.esqueletosGrupo && currentScene) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.active && !esq.isAlly) { const dist = Phaser.Math.Distance.Between(ex, ey, esq.x, esq.y); if (dist < 60) { if (socket && socket.connected) socket.emit('esqueletoHit', { id: esq.esqueletoId, damageBonus: danioTotal, elemento: 'luz' }); } } }); }
@@ -3538,7 +3829,9 @@ function usarSkill(skillId) {
                     const dlBody = { x: demonlord_sprite.x - 25, y: demonlord_sprite.y - 40, w: 50, h: 80 };
                     if (Math.abs(filoX - (dlBody.x + dlBody.w/2)) < (15 + dlBody.w/2) && Math.abs(filoY - (dlBody.y + dlBody.h/2)) < (15 + dlBody.h/2)) {
                         demonlordGolpeado = true;
-                        if (socket && socket.connected) socket.emit('demonlordHit', { damageBonus: 50 + (playerStats.fuerza || 0), esCritico: false, elemento: 'corte' });
+const buffDañoFilo = obtenerBuffPilarJugadorCliente('daño');
+const danioFilo = Math.floor((50 + (playerStats.fuerza || 0)) * (1 + buffDañoFilo));
+if (socket && socket.connected) socket.emit('demonlordHit', { damageBonus: danioFilo, esCritico: false, elemento: 'corte' });
                     }
                 }
                 if (window.esqueletosGrupo) {
@@ -3599,7 +3892,8 @@ function usarSkill(skillId) {
                 let aft = classStats[pClassName].ataqueFisico + playerStats.fuerza;
                 const ai = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null;
                 if(ai && ai.ataqueFisico) aft += ai.ataqueFisico;
-                const db = aft * 3;
+                const buffDañoBrutal = obtenerBuffPilarJugadorCliente('daño');
+const db = Math.floor(aft * 3 * (1 + buffDañoBrutal));
                 let hitbox = { x: player.x - 35, y: player.y - 10, w: 70, h: 70 };
                 if (demonlord_sprite && demonlord_sprite.active && demonlordHP > 0) {
                     const dlBody = { x: demonlord_sprite.x - 25, y: demonlord_sprite.y - 40, w: 50, h: 80 };
