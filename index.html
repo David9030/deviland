@@ -758,16 +758,16 @@ const SKILLS_DATA = {
     golpe_brutal: { id: 'golpe_brutal', nombre: 'Golpe Brutal', descripcion: 'Salto y golpe de área con daño x3. Cooldown 15 segundos.', costo: '40 aguante', icono: 'skills/hacha_impacto.png', soloBarbaro: true, clase: 'BARBARO' },
     cosecha_osea: { id: 'cosecha_osea', nombre: 'Cosecha Ósea', descripcion: 'Cosecha cadáveres cercanos y los revive como aliados por 60 segundos. Costo escala con tu nivel de Oscuridad (mínimo 10).', costo: 'Vida variable (mín. 150 HP)', icono: 'skills/cosecha_osea.png', soloNecromancer: true, clase: 'NECROMANCER', requiereOscuridad: 10 },
 
-    // ═══ SKILLS DEL CLÉRIGO (iconos de tu carpeta skills/) ═══
-    clerigo_cura: { id: 'clerigo_cura', nombre: 'Curación', descripcion: 'Cura a un aliado (o a vos mismo) un 30% de su vida máxima + bonus por Fe. Rango 200px. Cooldown 8s.', costo: '40 mana', icono: 'skills/Cura.png', soloClerigo: true, clase: 'CLERIGO' },
-    clerigo_oracion: { id: 'clerigo_oracion', nombre: 'Oración', descripcion: 'Da +20% daño y +15% defensa a todos los aliados en 200px por 10s. Cooldown 30s.', costo: '60 mana', icono: 'skills/Oración.png', soloClerigo: true, clase: 'CLERIGO' },
-    clerigo_purificar: { id: 'clerigo_purificar', nombre: 'Purificar', descripcion: 'Limpia estados alterados (quemadura, aturdimiento) y cura 10% de HP. Rango 200px. Cooldown 15s.', costo: '30 mana', icono: 'skills/Purificar.png', soloClerigo: true, clase: 'CLERIGO' },
-    clerigo_resurreccion: { id: 'clerigo_resurreccion', nombre: 'Resurrección', descripcion: 'Revive a un aliado caído con 50% HP + bonus por Fe y 30% maná. Rango 200px. Cooldown 120s.', costo: '100 mana', icono: 'skills/Resurrección.png', soloClerigo: true, clase: 'CLERIGO' },
-    clerigo_photon: { id: 'clerigo_photon', nombre: 'Photon', descripcion: 'Dispara un rayo de luz al enemigo más cercano en 400px. Daño mágico + Luz + Juicio. Cooldown 2s.', costo: '20 mana', icono: 'skills/Photon.png', soloClerigo: true, clase: 'CLERIGO' },
-    clerigo_buff_atkfis: { id: 'clerigo_buff_atkfis', nombre: 'Bendición Física', descripcion: 'Buff +25% daño físico a un aliado por 15s. Rango 200px. Cooldown 20s.', costo: '30 mana', icono: 'skills/Buffatkfísico.png', soloClerigo: true, clase: 'CLERIGO' },
-    clerigo_buff_atkmag: { id: 'clerigo_buff_atkmag', nombre: 'Bendición Mágica', descripcion: 'Buff +25% daño mágico a un aliado por 15s. Rango 200px. Cooldown 20s.', costo: '30 mana', icono: 'skills/Buffatkmágico.png', soloClerigo: true, clase: 'CLERIGO' },
-    clerigo_buff_deffis: { id: 'clerigo_buff_deffis', nombre: 'Protección Física', descripcion: 'Buff +20% defensa física a un aliado por 15s. Rango 200px. Cooldown 20s.', costo: '30 mana', icono: 'skills/Buffdeffísica.png', soloClerigo: true, clase: 'CLERIGO' },
-    clerigo_buff_defmag: { id: 'clerigo_buff_defmag', nombre: 'Protección Mágica', descripcion: 'Buff +20% defensa mágica a un aliado por 15s. Rango 200px. Cooldown 20s.', costo: '30 mana', icono: 'skills/Buffdefmágica.png', soloClerigo: true, clase: 'CLERIGO' }
+    // ═══ SKILLS DEL CLÉRIGO (iconos renombrados sin acentos) ═══
+    clerigo_cura:         { id: 'clerigo_cura',         nombre: 'Curación',         descripcion: 'Cura a un aliado (o a vos mismo) un 30% de su vida máxima + bonus por Fe. Rango 200px. Cooldown 8s.', costo: '40 mana',   icono: 'skills/cura.png',              soloClerigo: true, clase: 'CLERIGO' },
+    clerigo_oracion:      { id: 'clerigo_oracion',      nombre: 'Oración',          descripcion: 'Da +20% daño y +15% defensa a todos los aliados en 200px por 10s. Cooldown 30s.', costo: '60 mana',   icono: 'skills/oracion.png',           soloClerigo: true, clase: 'CLERIGO' },
+    clerigo_purificar:    { id: 'clerigo_purificar',    nombre: 'Purificar',        descripcion: 'Limpia estados alterados (quemadura, aturdimiento) y cura 10% de HP. Rango 200px. Cooldown 15s.', costo: '30 mana',   icono: 'skills/purificar.png',         soloClerigo: true, clase: 'CLERIGO' },
+    clerigo_resurreccion: { id: 'clerigo_resurreccion', nombre: 'Resurrección',     descripcion: 'Revive a un aliado caído con 50% HP + bonus por Fe y 30% maná. Rango 200px. Cooldown 120s.', costo: '100 mana',  icono: 'skills/resurreccion.png',      soloClerigo: true, clase: 'CLERIGO' },
+    clerigo_photon:       { id: 'clerigo_photon',       nombre: 'Photon',           descripcion: 'Dispara un rayo de luz al enemigo más cercano en 400px. Daño mágico + Luz + Juicio. Cooldown 2s.', costo: '20 mana',   icono: 'skills/photon.png',            soloClerigo: true, clase: 'CLERIGO' },
+    clerigo_buff_atkfis:  { id: 'clerigo_buff_atkfis',  nombre: 'Bendición Física', descripcion: 'Buff +25% daño físico a un aliado por 15s. Rango 200px. Cooldown 20s.', costo: '30 mana',   icono: 'skills/buff_atk_fisico.png',   soloClerigo: true, clase: 'CLERIGO' },
+    clerigo_buff_atkmag:  { id: 'clerigo_buff_atkmag',  nombre: 'Bendición Mágica', descripcion: 'Buff +25% daño mágico a un aliado por 15s. Rango 200px. Cooldown 20s.', costo: '30 mana',   icono: 'skills/buff_atk_magico.png',   soloClerigo: true, clase: 'CLERIGO' },
+    clerigo_buff_deffis:  { id: 'clerigo_buff_deffis',  nombre: 'Protección Física',descripcion: 'Buff +20% defensa física a un aliado por 15s. Rango 200px. Cooldown 20s.', costo: '30 mana',   icono: 'skills/buff_def_fisica.png',   soloClerigo: true, clase: 'CLERIGO' },
+    clerigo_buff_defmag:  { id: 'clerigo_buff_defmag',  nombre: 'Protección Mágica',descripcion: 'Buff +20% defensa mágica a un aliado por 15s. Rango 200px. Cooldown 20s.', costo: '30 mana',   icono: 'skills/buff_def_magica.png',   soloClerigo: true, clase: 'CLERIGO' }
 };
 
 // ============================================
@@ -792,7 +792,7 @@ NECROMANCER: [
 ],
     WARRIOR: [
         { id: 'corte', nombre: 'Corte', desc: '+1% daño corte', icono: 'skills/especialidades/CORTE.png', stat: 'corte' },
-        { id: 'regeneracion', nombre: 'Regeneración', desc: '+0.1% regen', icono: 'skills/especialidades/REGENERACIÓN.png', stat: 'regeneracion' },
+        { id: 'regeneracion', nombre: 'Regeneración', desc: '+0.1% regen', icono: 'skills/especialidades/regeneracion.png', stat: 'regeneracion' },
         { id: 'destreza', nombre: 'Destreza', desc: '+1 esquiva', icono: 'skills/especialidades/DESTREZA.png', stat: 'destreza' },
         { id: 'virtuoso', nombre: 'Virtuoso', desc: '+2 defensas', icono: 'skills/especialidades/VIRTUOSO.png', stat: 'virtuoso' },
         { id: 'brutalidad', nombre: 'Brutalidad', desc: '+1% empuje', icono: 'skills/especialidades/BRUTALIDAD.png', stat: 'brutalidad' },
@@ -800,7 +800,7 @@ NECROMANCER: [
     ],
     CABALLERO: [
         { id: 'corte', nombre: 'Corte', desc: '+1% daño corte', icono: 'skills/especialidades/CORTE.png', stat: 'corte' },
-        { id: 'regeneracion', nombre: 'Regeneración', desc: '+0.1% regen', icono: 'skills/especialidades/REGENERACIÓN.png', stat: 'regeneracion' },
+        { id: 'regeneracion', nombre: 'Regeneración', desc: '+0.1% regen', icono: 'skills/especialidades/regeneracion.png', stat: 'regeneracion' },
         { id: 'bendito', nombre: 'Bendito', desc: '+2 fuego/luz +1% cura', icono: 'skills/especialidades/BENDITO.png', stat: 'bendito' },
         { id: 'atqFuego', nombre: 'Fuego', desc: '+1 daño fuego', icono: 'skills/especialidades/FUEGO.png', stat: 'atqFuego' },
         { id: 'atqLuz', nombre: 'Luz', desc: '+1 daño luz', icono: 'skills/especialidades/LUZ.png', stat: 'atqLuz' },
@@ -809,19 +809,19 @@ NECROMANCER: [
     ],
     BARBARO: [
         { id: 'corte', nombre: 'Corte', desc: '+1% daño corte', icono: 'skills/especialidades/CORTE.png', stat: 'corte' },
-        { id: 'regeneracion', nombre: 'Regeneración', desc: '+0.1% regen', icono: 'skills/especialidades/REGENERACIÓN.png', stat: 'regeneracion' },
+        { id: 'regeneracion', nombre: 'Regeneración', desc: '+0.1% regen', icono: 'skills/especialidades/regeneracion.png', stat: 'regeneracion' },
         { id: 'brutalidad', nombre: 'Brutalidad', desc: '+1% empuje', icono: 'skills/especialidades/BRUTALIDAD.png', stat: 'brutalidad' },
         { id: 'furia', nombre: 'Furia', desc: '+1% daño Furia', icono: 'skills/especialidades/FURIA.png', stat: 'furia' },
         { id: 'critico', nombre: 'Crítico', desc: '+0.05% x3 daño', icono: 'skills/especialidades/CRITICO.png', stat: 'critico' }
     ],
     CLERIGO: [
-        { id: 'juicio', nombre: 'Juicio', desc: '+0.5 daño contra no-muertos (máx +50)', icono: 'skills/especialidades/Juicio.png', stat: 'juicio' },
-        { id: 'templanza', nombre: 'Templanza', desc: '+1 def física y mágica (máx +100)', icono: 'skills/especialidades/Templanza.png', stat: 'templanza' },
-        { id: 'fe', nombre: 'Fe', desc: '+0.5% curación, +1 HP revivir (máx +50%/+100)', icono: 'skills/especialidades/Fe.png', stat: 'fe' },
-        { id: 'atqLuz', nombre: 'Luz', desc: '+1 daño luz (máx +100)', icono: 'skills/especialidades/LUZ.png', stat: 'atqLuz' },
-        { id: 'angel', nombre: 'Ángel', desc: '0.25% por nivel de ignorar daño 1s (máx 25%)', icono: 'skills/especialidades/Angel.png', stat: 'angel' },
-        { id: 'virtuoso', nombre: 'Virtuoso', desc: '+1 def física y mágica (máx +100)', icono: 'skills/especialidades/VIRTUOSO.png', stat: 'virtuoso' },
-        { id: 'bendito', nombre: 'Bendito', desc: '+1 fuego/luz (máx +100)', icono: 'skills/especialidades/BENDITO.png', stat: 'bendito' }
+        { id: 'juicio',    nombre: 'Juicio',    desc: '+0.5 daño contra no-muertos (máx +50)',           icono: 'skills/especialidades/juicio.png',    stat: 'juicio' },
+        { id: 'templanza', nombre: 'Templanza', desc: '+1 def física y mágica (máx +100)',               icono: 'skills/especialidades/templanza.png', stat: 'templanza' },
+        { id: 'fe',        nombre: 'Fe',        desc: '+0.5% curación, +1 HP revivir (máx +50%/+100)',   icono: 'skills/especialidades/fe.png',        stat: 'fe' },
+        { id: 'atqLuz',    nombre: 'Luz',       desc: '+1 daño luz (máx +100)',                          icono: 'skills/especialidades/LUZ.png',       stat: 'atqLuz' },
+        { id: 'angel',     nombre: 'Ángel',     desc: '0.25% por nivel de ignorar daño 1s (máx 25%)',    icono: 'skills/especialidades/angel.png',     stat: 'angel' },
+        { id: 'virtuoso',  nombre: 'Virtuoso',  desc: '+1 def física y mágica (máx +100)',               icono: 'skills/especialidades/VIRTUOSO.png',  stat: 'virtuoso' },
+        { id: 'bendito',   nombre: 'Bendito',   desc: '+1 fuego/luz (máx +100)',                         icono: 'skills/especialidades/BENDITO.png',   stat: 'bendito' }
     ]
 };
 
@@ -4298,6 +4298,11 @@ function update() {
 // 🎬 Reposicionar barra de casteo si está activa
 if (castBarraUI && castBarraUI.progreso !== undefined) {
     dibujarBarraCasteo(castBarraUI.progreso);
+}
+
+// 🎯 Seguir al target con la flecha ▼ del modo apuntar
+if (modoApuntarActivo) {
+    actualizarPosicionesFlechas();
 }
 
     crearAroJugador();
