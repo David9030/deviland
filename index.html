@@ -33,7 +33,7 @@ img { -webkit-user-drag: none; -webkit-touch-callout: none; pointer-events: none
         .chat-tab:hover { background: #222; }
         #stats-container, #skills-bar, #btn-attack, .floating-tabs, #demonlord-hp-bar, #demonlord-hp-text, #pociones-rapidas, #team-icon { display: none !important; } 
         body.juego-activo #stats-container { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex !important; gap: 25px; align-items: center; z-index: 10000; }
-        body.juego-activo #skills-bar { display: flex !important; position: fixed !important; bottom: 90px !important; left: 50% !important; transform: translateX(-50%) !important; gap: 10px; background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 50px; z-index: 99999 !important; }
+        body.juego-activo #skills-bar { display: flex !important; position: fixed !important; bottom: 90px !important; left: 50% !important; transform: translateX(-50%) !important; gap: 6px; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 50px; z-index: 99999 !important; }
         body.juego-activo .floating-tabs, body.juego-activo #demonlord-hp-bar, body.juego-activo #demonlord-hp-text { display: flex !important; }
         body.juego-activo .floating-tabs { display: flex !important; position: fixed; top: 10px; left: 5px; gap: 5px; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 15px; }
         .floating-tab { background: rgba(0,0,0,0.7); border: 1px solid #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; color: #fff; }
@@ -41,7 +41,60 @@ img { -webkit-user-drag: none; -webkit-touch-callout: none; pointer-events: none
         body.juego-activo #buff-pilares-indicador.visible { display: block; }
         .buff-pilar-item { display: flex; align-items: center; gap: 5px; margin: 2px 0; }
         .buff-pilar-color { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #fff; }
-        .skill-slot-small { width: 60px; height: 60px; background: url('ui/slot.png') center/cover no-repeat; border: 1px solid #444; border-radius: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+.skill-slot-small {
+    position: relative;
+    width: 30px; height: 30px;
+    background: url('ui/slot.png') center/cover no-repeat;
+    border: 1px solid #444; border-radius: 3px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+}
+.skill-cooldown-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    pointer-events: none;
+    z-index: 10;
+    text-shadow: 1px 1px 0 #000;
+}
+        .skill-icon-img { width: 25px; height: 25px; object-fit: contain; }
+        .skill-name-small { font-size: 6px; color: #fff; margin-top: 2px; text-align: center; }
+        .skill-slot { background: url('ui/slot.png') center/cover no-repeat; border: 1px solid #444; border-radius: 3px; padding: 2px; margin: 2px; display: inline-block; width: 30px; height: 30px; text-align: center; cursor: pointer; }
+/* ═══ Overlay de cooldown sobre skills ═══ */
+.skill-slot-small {
+    position: relative;
+    width: 60px; height: 60px;
+    background: url('ui/slot.png') center/cover no-repeat;
+    border: 1px solid #444; border-radius: 5px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+}
+.skill-cooldown-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 18px;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    pointer-events: none;
+    z-index: 10;
+    text-shadow: 1px 1px 0 #000;
+}
         .skill-icon-img { width: 50px; height: 50px; object-fit: contain; }
         .skill-name-small { font-size: 8px; color: #fff; margin-top: 3px; text-align: center; }
         .skill-slot { background: url('ui/slot.png') center/cover no-repeat; border: 1px solid #444; border-radius: 5px; padding: 3px; margin: 3px; display: inline-block; width: 60px; height: 60px; text-align: center; cursor: pointer; }
@@ -102,13 +155,21 @@ img { -webkit-user-drag: none; -webkit-touch-callout: none; pointer-events: none
         #joystick-virtual { display: none; position: fixed; bottom: 25px; left: 20px; width: 130px; height: 130px; border-radius: 50%; background: rgba(0,0,0,0.35); border: 2px solid rgba(255,255,255,0.4); z-index: 99998; touch-action: none; }
         #joystick-base { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 55px; height: 55px; border-radius: 50%; background: rgba(255,255,255,0.3); border: 2px solid rgba(255,255,255,0.6); pointer-events: none; }
         body.modo-movil.juego-activo #joystick-virtual { display: block; }
-        body.modo-movil #skills-bar { display: flex !important; position: fixed !important; top: auto !important; bottom: 25px !important; right: 25px !important; left: auto !important; transform: none !important; flex-direction: row !important; gap: 0 !important; background: transparent !important; padding: 0 !important; border-radius: 0 !important; z-index: 999999 !important; width: auto !important; height: auto !important; pointer-events: none !important; }
+body.modo-movil #skills-bar { display: flex !important; position: fixed !important; top: auto !important; bottom: 25px !important; right: 25px !important; left: auto !important; transform: none !important; flex-direction: row !important; gap: 0 !important; background: transparent !important; padding: 0 !important; border-radius: 0 !important; z-index: 999999 !important; width: auto !important; height: auto !important; pointer-events: none !important; }
+        body.modo-movil #skills-bar .skill-slot-small { position: fixed !important; pointer-events: auto !important; width: 32px !important; height: 32px !important; margin: 0 !important; border-radius: 50% !important; }
+        body.modo-movil .skill-slot-small .skill-icon-img { width: 26px !important; height: 26px !important; }
+        body.modo-movil #skills-bar .skill-slot-small:nth-child(1) { bottom: 22px !important; right: 85px !important; }
+        body.modo-movil #skills-bar .skill-slot-small:nth-child(2) { bottom: 62px !important; right: 85px !important; }
+        body.modo-movil #skills-bar .skill-slot-small:nth-child(3) { bottom: 72px !important; right: 30px !important; }
+        body.modo-movil #skills-bar .skill-slot-small:nth-child(n+4) { display: none !important; }
+body.modo-movil .skill-cooldown-overlay { font-size: 9px !important; }
         body.modo-movil #skills-bar .skill-slot-small { position: fixed !important; pointer-events: auto !important; width: 48px !important; height: 48px !important; margin: 0 !important; border-radius: 50% !important; }
         body.modo-movil .skill-slot-small .skill-icon-img { width: 40px !important; height: 40px !important; }
         body.modo-movil #skills-bar .skill-slot-small:nth-child(1) { bottom: 30px !important; right: 115px !important; }
         body.modo-movil #skills-bar .skill-slot-small:nth-child(2) { bottom: 100px !important; right: 115px !important; }
         body.modo-movil #skills-bar .skill-slot-small:nth-child(3) { bottom: 115px !important; right: 40px !important; }
         body.modo-movil #skills-bar .skill-slot-small:nth-child(n+4) { display: none !important; }
+body.modo-movil .skill-cooldown-overlay { font-size: 13px !important; }
         body.modo-movil.juego-activo #btn-attack { display: flex !important; }
         body.modo-movil #btn-attack { width: 75px !important; height: 75px !important; border-radius: 50% !important; bottom: 25px !important; right: 25px !important; background-size: 55% !important; }
 /* ═══ BOTONES MÓVIL - TAMAÑO REDUCIDO ═══ */
@@ -178,7 +239,7 @@ body.modo-movil #btn-fullscreen-movil { font-size: 20px !important; }
         .liga-ranking-row.top1 { color: #ffdd00; font-weight: bold; }
         .liga-ranking-row.top2 { color: #cccccc; }
         .liga-ranking-row.top3 { color: #cc8833; }
-        #alerta-pilar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 99999; border: 6px solid #ff0000; box-shadow: inset 0 0 60px rgba(255,0,0,0.5); animation: parpadeoAlerta 1s infinite; }
+#alerta-pilar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 2147483647; border: 6px solid #ff0000; box-shadow: inset 0 0 60px rgba(255,0,0,0.5); animation: parpadeoAlerta 1s infinite; }
         #alerta-pilar-overlay.visible { display: block; }
         @keyframes parpadeoAlerta { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
     </style>
@@ -270,7 +331,8 @@ body.modo-movil #btn-fullscreen-movil { font-size: 20px !important; }
 <div class="stat-row">JUICIO:<span id="stat-juicio" class="stat-value">0</span></div>
 <div class="stat-row">TEMPLANZA:<span id="stat-templanza" class="stat-value">0</span></div>
 <div class="stat-row">FE:<span id="stat-fe" class="stat-value">0</span></div>
-<div class="stat-row">ÁNGEL:<span id="stat-angel" class="stat-value">0</span></div></div>
+<div class="stat-row">ÁNGEL:<span id="stat-angel" class="stat-value">0</span></div>
+<div class="stat-row">PLEGARIAS:<span id="stat-plegarias" class="stat-value">0</span></div></div>
     <div class="stat-section"><div class="section-title">📈 ATRIBUTOS</div><div class="stat-row">FUERZA:<span id="stat-fuerza" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('fuerza')">+</button></div><div class="stat-row">INTELIGENCIA:<span id="stat-inteligencia" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('inteligencia')">+</button></div><div class="stat-row">VITALIDAD:<span id="stat-vitalidad" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('vitalidad')">+</button></div></div>
     <div class="stat-section"><div class="section-title">🛡️ DEFENSAS ELEMENTALES</div>
     <div class="stat-row">🔥 Fuego:<span id="stat-defFuego" class="stat-value">0</span><button class="stat-plus" onclick="aumentarStat('defFuego')">+</button></div>
@@ -439,6 +501,29 @@ const COOLDOWNS_CLERIGO = {
     clerigo_buff_deffis:  20000,
     clerigo_buff_defmag:  20000
 };
+// ═══ NUEVO: Cooldowns de TODAS las skills (según corresponda) ═══
+const COOLDOWNS_SKILLS = {
+    // Clérigo (ya están arriba, pero los duplicamos acá para unificar)
+    clerigo_cura:         8000,
+    clerigo_oracion:      30000,
+    clerigo_purificar:    15000,
+    clerigo_resurreccion: 120000,
+    clerigo_photon:       2000,
+    clerigo_buff_atkfis:  20000,
+    clerigo_buff_atkmag:  20000,
+    clerigo_buff_deffis:  20000,
+    clerigo_buff_defmag:  20000,
+    // Genéricas / otras clases
+    ataque_distancia:     1000,
+    fireball:             1000,
+    trueno:               1500,
+    sacrificio:           20000,
+    filo_penetrante:      8000,
+    golpe_brutal:         15000,
+    cosecha_osea:         60000,
+    furia_necrotica:      120000,
+    levantar_muerto:      1000
+};
 // ═══ NUEVO: Tiempos de casteo del Clérigo (ms) ═══
 const CAST_TIMES_CLERIGO = {
     clerigo_cura:         800,
@@ -495,7 +580,7 @@ let playerStats = {
     corte: 0, regeneracion: 0, destreza: 0, virtuoso: 0, brutalidad: 0,
     actoFugaz: 0, bendito: 0, sacrificio: 0, furia: 0, critico: 0,
     legion: 0,
-    juicio: 0, templanza: 0, fe: 0, angel: 0
+    juicio: 0, templanza: 0, fe: 0, angel: 0, plegarias: 0
 };
 let previewTimeout = null;
 let ultimoAtaqueNormal = 0;
@@ -658,90 +743,185 @@ function crearMercadoSlot(item, index, tipo) {
 
 function manejarClickMercado(item, index, tipo) {
     const info = document.getElementById('mercado-info');
+
+    // ═══════════════════════════════════════════
+    // COMPRAR / RECOMPRAR
+    // ═══════════════════════════════════════════
     if (tipo === 'comprar' || tipo === 'recomprar') {
-        if (getOroActual() < item.precio) { if (info) info.textContent = '❌ ORO INSUFICIENTE (necesitás ' + item.precio + ', tenés ' + getOroActual() + ')'; mostrarMensaje('❌ Oro insuficiente para ' + item.nombre + ' (necesitás ' + item.precio + ' oro)', 'error'); const slots = document.querySelectorAll('.mercado-slot'); if (slots[index]) { slots[index].style.borderColor = '#ff4444'; slots[index].style.boxShadow = '0 0 10px #ff4444'; setTimeout(() => { if (slots[index]) { slots[index].style.borderColor = ''; slots[index].style.boxShadow = ''; } }, 600); } return; }
-        const oro = inventarioSlots.find(s => s && s.id === 'oro'); if (oro) { oro.cantidad -= item.precio; if (oro.cantidad <= 0) { const i = inventarioSlots.findIndex(s => s && s.id === 'oro'); if (i !== -1) inventarioSlots[i] = null; } }
-        if (item.tipo === 'pocion' || item.tipo === 'pocion_mana') { agregarItemAlInventario(item.id, item.tipo, item.nombre, item.icono, item.cantidad || 1); }
-        else { agregarItemAlInventarioEquipo(item.id, item.tipo, item.nombre, item.icono, 1, item.stats || {}); }
+        if (getOroActual() < item.precio) {
+            if (info) info.textContent = '❌ ORO INSUFICIENTE (necesitás ' + item.precio + ', tenés ' + getOroActual() + ')';
+            mostrarMensaje('❌ Oro insuficiente para ' + item.nombre + ' (necesitás ' + item.precio + ' oro)', 'error');
+            const slots = document.querySelectorAll('.mercado-slot');
+            if (slots[index]) {
+                slots[index].style.borderColor = '#ff4444';
+                slots[index].style.boxShadow = '0 0 10px #ff4444';
+                setTimeout(() => {
+                    if (slots[index]) {
+                        slots[index].style.borderColor = '';
+                        slots[index].style.boxShadow = '';
+                    }
+                }, 600);
+            }
+            return;
+        }
+
+        const oro = inventarioSlots.find(s => s && s.id === 'oro');
+        if (oro) {
+            oro.cantidad -= item.precio;
+            if (oro.cantidad <= 0) {
+                const i = inventarioSlots.findIndex(s => s && s.id === 'oro');
+                if (i !== -1) inventarioSlots[i] = null;
+            }
+        }
+
+        if (item.tipo === 'pocion' || item.tipo === 'pocion_mana') {
+            agregarItemAlInventario(item.id, item.tipo, item.nombre, item.icono, item.cantidad || 1);
+        } else {
+            agregarItemAlInventarioEquipo(item.id, item.tipo, item.nombre, item.icono, 1, item.stats || {});
+        }
+
         if (tipo === 'recomprar') MERCADO_ITEMS_RECOMPRA.splice(index, 1);
+
         mostrarMensaje((tipo === 'recomprar' ? 'RECOMPRASTE ' : 'COMPRASTE ') + item.nombre, 'exito');
-        guardarPartida(); renderizarMercado();
+        guardarPartida();
+        renderizarMercado();
         if (info) info.textContent = '✅ ' + (tipo === 'recomprar' ? 'RECOMPRADO: ' : 'COMPRADO: ') + item.nombre;
     }
-else if (tipo === 'vender') {
-    if (item.id === equipamiento.arma || item.id === equipamiento.escudo || item.id === equipamiento.armadura) { if (info) info.textContent = '❌ Desequipa el item primero'; mostrarMensaje('❌ Desequipá el item primero', 'error'); return; }
-    const precio = item.precioVenta;
-    agregarItemAlInventario('oro', 'moneda', 'Oro', '💰', precio);
-    MERCADO_ITEMS_RECOMPRA.push({ id: item.idBase || item.id, tipo: item.tipo, nombre: item.nombre, icono: item.icono, precio: Math.floor(precio * 1.5), cantidad: 1, stats: { ataqueFisico: item.ataqueFisico || 0, ataqueMagico: item.ataqueMagico || 0, defensaFisica: item.defensaFisica || 0, defensaMagica: item.defensaMagica || 0, velocidad: item.velocidad || 0, calidad: item.calidad || '', dañoFuego: item.dañoFuego || 0, dañoLuz: item.dañoLuz || 0, manaBonus: item.manaBonus || 0 } });
-    if (equipamiento.arma === item.id) desequiparItem('arma');
-    if (equipamiento.escudo === item.id) desequiparItem('escudo');
-    if (equipamiento.armadura === item.id) desequiparItem('armadura');
-    inventarioSlots[item.slotIndex] = null;
-    mostrarMensaje('VENDISTE ' + item.nombre + ' POR ' + precio + ' ORO', 'exito');
-    guardarPartida(); renderizarInventario(); renderizarMercado();
-    if (info) info.textContent = '💰 VENDIDO: ' + item.nombre + ' (+' + precio + ' ORO)';
-}
-else if (tipo === 'fundir') {
-    if (item.id === equipamiento.arma || item.id === equipamiento.escudo || item.id === equipamiento.armadura) { 
-        if (info) info.textContent = '❌ Desequipa el item primero'; 
-        mostrarMensaje('❌ Desequipá el item primero', 'error'); 
-        return; 
-    }
-    
-    const mats = item.materiales; 
-    if (!mats || Object.keys(mats).length === 0) {
-        if (info) info.textContent = '❌ Este item no se puede fundir';
-        mostrarMensaje('❌ Este item no se puede fundir', 'error');
-        return;
-    }
-    
-    // ═══ Sumar materiales al inventario (UNA SOLA VEZ) ═══
-    for (let k in mats) materialesInventario[k] = (materialesInventario[k] || 0) + mats[k];
 
-    // ═══ NUEVO: Enviar materiales al servidor para que los guarde ═══
-    if (socket && socket.connected) {
-        socket.emit('guardarMateriales', { materiales: materialesInventario });
-    }
-    
-    // ═══ Avisar al servidor de los materiales recolectados al fundir (para misiones de liga) ═══
-    if (socket && socket.connected) {
-        Object.keys(mats).forEach(mat => {
-            socket.emit('accionMisionMercado', { tipo: 'recolectar_' + mat, cantidad: mats[mat] });
+    // ═══════════════════════════════════════════
+    // VENDER
+    // ═══════════════════════════════════════════
+    else if (tipo === 'vender') {
+        if (item.id === equipamiento.arma || item.id === equipamiento.escudo || item.id === equipamiento.armadura) {
+            if (info) info.textContent = '❌ Desequipa el item primero';
+            mostrarMensaje('❌ Desequipá el item primero', 'error');
+            return;
+        }
+
+        const precio = item.precioVenta;
+        agregarItemAlInventario('oro', 'moneda', 'Oro', '💰', precio);
+        MERCADO_ITEMS_RECOMPRA.push({
+            id: item.idBase || item.id,
+            tipo: item.tipo,
+            nombre: item.nombre,
+            icono: item.icono,
+            precio: Math.floor(precio * 1.5),
+            cantidad: 1,
+            stats: {
+                ataqueFisico: item.ataqueFisico || 0,
+                ataqueMagico: item.ataqueMagico || 0,
+                defensaFisica: item.defensaFisica || 0,
+                defensaMagica: item.defensaMagica || 0,
+                velocidad: item.velocidad || 0,
+                calidad: item.calidad || '',
+                dañoFuego: item.dañoFuego || 0,
+                dañoLuz: item.dañoLuz || 0,
+                manaBonus: item.manaBonus || 0
+            }
         });
+        if (equipamiento.arma === item.id) desequiparItem('arma');
+        if (equipamiento.escudo === item.id) desequiparItem('escudo');
+        if (equipamiento.armadura === item.id) desequiparItem('armadura');
+
+        inventarioSlots[item.slotIndex] = null;
+        mostrarMensaje('VENDISTE ' + item.nombre + ' POR ' + precio + ' ORO', 'exito');
+        guardarPartida();
+        renderizarInventario();
+        renderizarMercado();
+        if (info) info.textContent = '💰 VENDIDO: ' + item.nombre + ' (+' + precio + ' ORO)';
     }
-    
-    if (equipamiento.arma === item.id) desequiparItem('arma');
-    if (equipamiento.escudo === item.id) desequiparItem('escudo');
-    if (equipamiento.armadura === item.id) desequiparItem('armadura');
-    
-    if (socket && socket.connected) socket.emit('accionMisionMercado', { tipo: 'fundir_items', cantidad: 1 });
-    
-    inventarioSlots[item.slotIndex] = null;
-    mostrarMensaje('FUNDISTE ' + item.nombre, 'exito');
-    guardarPartida(); 
-    renderizarInventario(); 
-    actualizarMaterialesUI(); 
-    renderizarMercado();
-    if (info) info.textContent = '🔨 FUNDIDO: ' + item.nombre;
-}
-else if (tipo === 'forjar') {
-    for (let k in item.materiales) { if ((materialesInventario[k] || 0) < item.materiales[k]) { if (info) info.textContent = '❌ FALTAN MATERIALES'; mostrarMensaje('❌ Faltan materiales para ' + item.nombre, 'error'); return; } }
-    for (let k in item.materiales) materialesInventario[k] -= item.materiales[k];
-    
-    // ═══ NUEVO: Enviar materiales actualizados al servidor (después de gastarlos) ═══
-    if (socket && socket.connected) {
-        socket.emit('guardarMateriales', { materiales: materialesInventario });
+
+    // ═══════════════════════════════════════════
+    // FUNDIR
+    // ═══════════════════════════════════════════
+    else if (tipo === 'fundir') {
+        if (item.id === equipamiento.arma || item.id === equipamiento.escudo || item.id === equipamiento.armadura) {
+            if (info) info.textContent = '❌ Desequipa el item primero';
+            mostrarMensaje('❌ Desequipá el item primero', 'error');
+            return;
+        }
+
+        const mats = item.materiales;
+        if (!mats || Object.keys(mats).length === 0) {
+            if (info) info.textContent = '❌ Este item no se puede fundir';
+            mostrarMensaje('❌ Este item no se puede fundir', 'error');
+            return;
+        }
+
+        // ═══ Sumar materiales al inventario (UNA SOLA VEZ) ═══
+        for (let k in mats) materialesInventario[k] = (materialesInventario[k] || 0) + mats[k];
+
+        // ═══ Enviar materiales al servidor para que los guarde ═══
+        if (socket && socket.connected) {
+            socket.emit('guardarMateriales', { materiales: materialesInventario });
+        }
+
+        // ═══ Avisar al servidor de los materiales recolectados al fundir (para misiones de liga) ═══
+        if (socket && socket.connected) {
+            Object.keys(mats).forEach(mat => {
+                socket.emit('accionMisionMercado', { tipo: 'recolectar_' + mat, cantidad: mats[mat] });
+            });
+        }
+
+        if (equipamiento.arma === item.id) desequiparItem('arma');
+        if (equipamiento.escudo === item.id) desequiparItem('escudo');
+        if (equipamiento.armadura === item.id) desequiparItem('armadura');
+
+        if (socket && socket.connected) socket.emit('accionMisionMercado', { tipo: 'fundir_items', cantidad: 1 });
+
+        inventarioSlots[item.slotIndex] = null;
+        mostrarMensaje('FUNDISTE ' + item.nombre, 'exito');
+        guardarPartida();
+        renderizarInventario();
+        actualizarMaterialesUI();
+        renderizarMercado();
+        if (info) info.textContent = '🔨 FUNDIDO: ' + item.nombre;
     }
-    
-    agregarItemAlInventarioEquipo(item.id, item.tipo, item.nombre, item.icono, 1, item.stats || {});
-    if (socket && socket.connected) socket.emit('accionMisionMercado', { tipo: 'forjar_items', cantidad: 1 });
-    mostrarMensaje('FORJASTE ' + item.nombre, 'exito');
-    guardarPartida(); actualizarMaterialesUI(); renderizarMercado();
-    if (info) info.textContent = '⚒️ FORJADO: ' + item.nombre;
-    if (currentScene && currentScene.sound) { const sonidoForja = currentScene.sound.get('forja'); if (sonidoForja) { sonidoForja.setVolume(window.volumenFX); sonidoForja.play(); } else { currentScene.sound.play('forja', { volume: window.volumenFX }); } }
-    var merc = currentScene.children.list.filter(function(c) { return c.texture && c.texture.key === 'mercader'; })[0];
-    if (merc) { merc.play('mercader_forjar'); setTimeout(function() { merc.play('mercader_idle'); }, 2000); }
-}
+
+    // ═══════════════════════════════════════════
+    // FORJAR
+    // ═══════════════════════════════════════════
+    else if (tipo === 'forjar') {
+        for (let k in item.materiales) {
+            if ((materialesInventario[k] || 0) < item.materiales[k]) {
+                if (info) info.textContent = '❌ FALTAN MATERIALES';
+                mostrarMensaje('❌ Faltan materiales para ' + item.nombre, 'error');
+                return;
+            }
+        }
+        for (let k in item.materiales) materialesInventario[k] -= item.materiales[k];
+
+        // ═══ Enviar materiales actualizados al servidor (después de gastarlos) ═══
+        if (socket && socket.connected) {
+            socket.emit('guardarMateriales', { materiales: materialesInventario });
+        }
+
+        agregarItemAlInventarioEquipo(item.id, item.tipo, item.nombre, item.icono, 1, item.stats || {});
+        if (socket && socket.connected) socket.emit('accionMisionMercado', { tipo: 'forjar_items', cantidad: 1 });
+
+        mostrarMensaje('FORJASTE ' + item.nombre, 'exito');
+        guardarPartida();
+        actualizarMaterialesUI();
+        renderizarMercado();
+        if (info) info.textContent = '⚒️ FORJADO: ' + item.nombre;
+
+        if (currentScene && currentScene.sound) {
+            const sonidoForja = currentScene.sound.get('forja');
+            if (sonidoForja) {
+                sonidoForja.setVolume(window.volumenFX);
+                sonidoForja.play();
+            } else {
+                currentScene.sound.play('forja', { volume: window.volumenFX });
+            }
+        }
+        var merc = currentScene.children.list.filter(function(c) {
+            return c.texture && c.texture.key === 'mercader';
+        })[0];
+        if (merc) {
+            merc.play('mercader_forjar');
+            setTimeout(function() { merc.play('mercader_idle'); }, 2000);
+        }
+    }
 }
 
 // ============================================
@@ -814,15 +994,15 @@ NECROMANCER: [
         { id: 'furia', nombre: 'Furia', desc: '+1% daño Furia', icono: 'skills/especialidades/FURIA.png', stat: 'furia' },
         { id: 'critico', nombre: 'Crítico', desc: '+0.05% x3 daño', icono: 'skills/especialidades/CRITICO.png', stat: 'critico' }
     ],
-    CLERIGO: [
-        { id: 'juicio',    nombre: 'Juicio',    desc: '+0.5 daño contra no-muertos (máx +50)',           icono: 'skills/especialidades/juicio.png',    stat: 'juicio' },
-        { id: 'templanza', nombre: 'Templanza', desc: '+1 def física y mágica (máx +100)',               icono: 'skills/especialidades/templanza.png', stat: 'templanza' },
-        { id: 'fe',        nombre: 'Fe',        desc: '+0.5% curación, +1 HP revivir (máx +50%/+100)',   icono: 'skills/especialidades/fe.png',        stat: 'fe' },
-        { id: 'atqLuz',    nombre: 'Luz',       desc: '+1 daño luz (máx +100)',                          icono: 'skills/especialidades/LUZ.png',       stat: 'atqLuz' },
-        { id: 'angel',     nombre: 'Ángel',     desc: '0.25% por nivel de ignorar daño 1s (máx 25%)',    icono: 'skills/especialidades/angel.png',     stat: 'angel' },
-        { id: 'virtuoso',  nombre: 'Virtuoso',  desc: '+1 def física y mágica (máx +100)',               icono: 'skills/especialidades/VIRTUOSO.png',  stat: 'virtuoso' },
-        { id: 'bendito',   nombre: 'Bendito',   desc: '+1 fuego/luz (máx +100)',                         icono: 'skills/especialidades/BENDITO.png',   stat: 'bendito' }
-    ]
+CLERIGO: [
+    { id: 'juicio',    nombre: 'Juicio',    desc: '+0.5 daño contra no-muertos (máx +50)',           icono: 'skills/especialidades/juicio.png',    stat: 'juicio' },
+    { id: 'templanza', nombre: 'Templanza', desc: '+1 def física y mágica (máx +100)',               icono: 'skills/especialidades/templanza.png', stat: 'templanza' },
+    { id: 'fe',        nombre: 'Fe',        desc: '+0.5% curación, +1 HP revivir (máx +50%/+100)',   icono: 'skills/especialidades/fe.png',        stat: 'fe' },
+    { id: 'atqLuz',    nombre: 'Luz',       desc: '+1 daño luz (máx +100)',                          icono: 'skills/especialidades/LUZ.png',       stat: 'atqLuz' },
+    { id: 'angel',     nombre: 'Ángel',     desc: '0.25% por nivel de ignorar daño 1s (máx 25%)',    icono: 'skills/especialidades/angel.png',     stat: 'angel' },
+    { id: 'plegarias', nombre: 'Plegarias', desc: '+2% ayuda automática a aliados en apuros (máx 100%). Requiere Fe ≥ 5 y Juicio ≥ 5.', icono: 'skills/especialidades/PLEGARIAS.png', stat: 'plegarias' },
+    { id: 'bendito',   nombre: 'Bendito',   desc: '+1 fuego/luz (máx +100)',                         icono: 'skills/especialidades/BENDITO.png',   stat: 'bendito' }
+]
 };
 
 // ============================================
@@ -837,6 +1017,51 @@ const classStats = {
     CLERIGO: { hp: 500, mana: 120, aguante: 100, ataqueFisico: 40, ataqueMagico: 40, defensaFisica: 12, defensaMagica: 30, velocidad: 95, attackSpeed: 0.8 }
 };
 
+// ═══════════════════════════════════════════════════════════════
+// 🔊 HELPER: reproducir sonido de Plegaria con throttling robusto
+// ═══════════════════════════════════════════════════════════════
+function reproducirSonidoPlegaria() {
+    if (!currentScene || !currentScene.sound) return;
+
+    const ahora = Date.now();
+
+    // Array de timestamps de sonidos activos (se limpia solo)
+    if (!Array.isArray(window._plegariasActivasTimestamps)) window._plegariasActivasTimestamps = [];
+
+    // Limpiar sonidos que ya pasaron los 3s (safety net — nunca se traba)
+    window._plegariasActivasTimestamps = window._plegariasActivasTimestamps.filter(t => ahora - t < 3000);
+
+    const MAX_SIMULTANEOS = 2;
+    const COOLDOWN = 1500;
+
+    // Cooldown
+    if (window._ultimoSonidoPlegaria && (ahora - window._ultimoSonidoPlegaria) < COOLDOWN) return;
+
+    // Límite de simultáneos
+    if (window._plegariasActivasTimestamps.length >= MAX_SIMULTANEOS) return;
+
+    // Registrar
+    window._ultimoSonidoPlegaria = ahora;
+    window._plegariasActivasTimestamps.push(ahora);
+
+    try {
+        const sonido = currentScene.sound.play('plegaria', {
+            volume: window.volumenFX * 0.9,
+            rate: 1.0
+        });
+        if (sonido) {
+            // Limpiar el timestamp cuando termine
+            sonido.once('complete', () => {
+                const idx = window._plegariasActivasTimestamps.indexOf(ahora);
+                if (idx !== -1) window._plegariasActivasTimestamps.splice(idx, 1);
+            });
+        }
+    } catch(e) {
+        // Si no cargó, igual limpiamos el timestamp (safety net)
+        const idx = window._plegariasActivasTimestamps.indexOf(ahora);
+        if (idx !== -1) window._plegariasActivasTimestamps.splice(idx, 1);
+    }
+}
 // ============================================
 // FUNCIONES DE VOLUMEN Y UI
 // ============================================
@@ -1039,6 +1264,19 @@ if (nivelesSubidos > 0) {
     if (currentScene && player && player.active) { 
         crearTextoDmg(currentScene, player.x, player.y - 50, 'LEVEL UP! x' + nivelesSubidos, '#ffff00', '22px'); 
     } 
+    // 🔊 NUEVO: sonido de level up
+    if (currentScene && currentScene.sound) {
+        const sonidoLvl = currentScene.sound.get('lvlup');
+        if (sonidoLvl) {
+            try {
+                if (sonidoLvl.isPlaying) sonidoLvl.stop();
+                sonidoLvl.setVolume(window.volumenFX);
+                sonidoLvl.play();
+            } catch(e) { console.warn('Error lvlup:', e); }
+        } else {
+            try { currentScene.sound.play('lvlup', { volume: window.volumenFX }); } catch(e) {}
+        }
+    }
 }
     actualizarStatsUI(); 
     guardarPartida(); 
@@ -1080,8 +1318,13 @@ function getVelocidadActual() {
 function regenerarMana() {
     if (!juegoIniciado) return;
     let regen = 1 + Math.floor((playerStats.sabiduria || 0) / 5);
+    const antes = playerMana;
     playerMana = Math.min(playerMaxMana, playerMana + regen);
-    actualizarStatsUI();
+    if (playerMana !== antes) {
+        // 🔥 FIX: sincronizar la regeneración con el server
+        if (socket && socket.connected) socket.emit('sincronizarMana', { mana: playerMana });
+        actualizarStatsUI();
+    }
 }
 
 function regenerarAguante() {
@@ -1142,7 +1385,7 @@ window.nuevoJuego = function() {
     if (guardado) { if (!confirm('¿Quieres borrar tu progreso y comenzar una nueva partida?')) return; }
     borrarPartida();
     equipamiento = { arma: null, escudo: null, armadura: null };
-    playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0, defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0, legion: 0 }; playerAguante = 100; playerMaxAguante = 100;
+    playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0, defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0, legion: 0, juicio: 0, templanza: 0, fe: 0, angel: 0, plegarias: 0 }; playerAguante = 100; playerMaxAguante = 100;
     skillsEquipadas = [];
     inventarioSlots = [];
     for (let i = 0; i < 36; i++) inventarioSlots.push(null);
@@ -1157,7 +1400,7 @@ window.continuarPartida = function() {
     if (!g) { alert("No hay partida guardada."); return; }
     pName = g.nombre; pClass = g.clase; pClassName = g.className || g.clase;
     equipamiento = g.equipamiento || { arma: null, escudo: null, armadura: null };
-    playerStats = Object.assign({ level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0, defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0, puntosEspecialidad: 0, corte: 0, regeneracion: 0, destreza: 0, virtuoso: 0, brutalidad: 0, actoFugaz: 0, bendito: 0, sacrificio: 0, furia: 0, critico: 0, atqFuego: 0, atqAgua: 0, atqViento: 0, atqTierra: 0, atqLuz: 0, atqOscuridad: 0, legion: 0, juicio: 0, templanza: 0, fe: 0, angel: 0 }, g.playerStats || {});
+    playerStats = Object.assign({ level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0, defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0, puntosEspecialidad: 0, corte: 0, regeneracion: 0, destreza: 0, virtuoso: 0, brutalidad: 0, actoFugaz: 0, bendito: 0, sacrificio: 0, furia: 0, critico: 0, atqFuego: 0, atqAgua: 0, atqViento: 0, atqTierra: 0, atqLuz: 0, atqOscuridad: 0, legion: 0, juicio: 0, templanza: 0, fe: 0, angel: 0, plegarias: 0 }, g.playerStats || {});
     playerHP = g.playerHP || (classStats[pClassName]?.hp || 500);
     playerMana = g.playerMana || (classStats[pClassName]?.mana || 100);
     playerAguante = g.playerAguante || (classStats[pClassName]?.aguante || 100); playerMaxAguante = classStats[pClassName]?.aguante || 100;
@@ -1589,8 +1832,6 @@ function actualizarStatsUI() {
         ataqueMagico += Math.min(50, (playerStats.juicio || 0) * 0.5);
         defensaFisica += Math.min(100, (playerStats.templanza || 0) * 1);
         defensaMagica += Math.min(100, (playerStats.templanza || 0) * 1);
-        defensaFisica += Math.min(100, (playerStats.virtuoso || 0) * 1);
-        defensaMagica += Math.min(100, (playerStats.virtuoso || 0) * 1);
     }
     const buffVida = obtenerBuffPilarJugadorCliente('vida');
     const buffDaño = obtenerBuffPilarJugadorCliente('daño');
@@ -1653,6 +1894,8 @@ function actualizarStatsUI() {
         window.ataqueEnProceso = false;   // ⬅️ limpiar el flag global al morir
         if (player.body) player.body.enable = false;
         if (!player.lastDir) player.lastDir = 'Abajo';
+        // 🔥 FIX: limpiar listeners viejos antes de animar muerte
+        player.removeAllListeners('animationcomplete');
         const animMuerte = pClass + '_die_' + player.lastDir;
         const animMuerteFallback = pClass + '_die_Abajo';
         if (currentScene && currentScene.anims.exists(animMuerte)) { player.play(animMuerte, true); }
@@ -1672,10 +1915,12 @@ function actualizarStatsUI() {
     const sT = document.getElementById('stat-templanza');
     const sF = document.getElementById('stat-fe');
     const sA = document.getElementById('stat-angel');
+    const sP = document.getElementById('stat-plegarias');
     if (sJ) sJ.textContent = playerStats.juicio || 0;
     if (sT) sT.textContent = playerStats.templanza || 0;
     if (sF) sF.textContent = playerStats.fe || 0;
     if (sA) sA.textContent = playerStats.angel || 0;
+    if (sP) sP.textContent = playerStats.plegarias || 0;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1738,6 +1983,83 @@ function revivirJugadorEnPosicion(x, y) {
         mostrarMensaje(`✨ HAS REVIDO!`, 'exito');
         if (socket && socket.connected) socket.emit('playerRespawn', { id: socket.id });
     }
+}
+// ═══════════════════════════════════════════════════════════════
+// ═══ NUEVO: RELOJ DE COOLDOWN SOBRE SKILLS ═══
+// ═══════════════════════════════════════════════════════════════
+// Mapa de cooldowns activos: { skillId: { fin: timestamp, total: ms } }
+window.cooldownsActivosSkills = window.cooldownsActivosSkills || {};
+
+function iniciarCooldownSkill(skillId, duracionMs) {
+    if (!duracionMs || duracionMs <= 0) return;
+    window.cooldownsActivosSkills[skillId] = {
+        fin: Date.now() + duracionMs,
+        total: duracionMs,
+        inicio: Date.now()
+    };
+}
+
+function estaSkillEnCooldown(skillId) {
+    const cd = window.cooldownsActivosSkills[skillId];
+    if (!cd) return false;
+    if (Date.now() >= cd.fin) {
+        delete window.cooldownsActivosSkills[skillId];
+        return false;
+    }
+    return true;
+}
+
+function segundosRestantesCooldown(skillId) {
+    const cd = window.cooldownsActivosSkills[skillId];
+    if (!cd) return 0;
+    const restante = cd.fin - Date.now();
+    if (restante <= 0) { delete window.cooldownsActivosSkills[skillId]; return 0; }
+    return Math.ceil(restante / 1000);
+}
+
+// Actualiza el overlay de cada skill en la barra
+function actualizarCooldownsUI() {
+    const bar = document.getElementById('skills-bar');
+    if (!bar) return;
+    const ahora = Date.now();
+
+    for (let i = 0; i < MAX_SKILLS; i++) {
+        const skillId = skillsEquipadas[i];
+        const slotDiv = bar.children[i];
+        if (!slotDiv) continue;
+
+        // Si no hay skill equipada, no mostrar overlay
+        if (!skillId) continue;
+
+        // Verificar cooldown activo
+        const cd = window.cooldownsActivosSkills[skillId];
+        const enCooldown = cd && ahora < cd.fin;
+
+        // Buscar overlay existente
+        let overlay = slotDiv.querySelector('.skill-cooldown-overlay');
+
+        if (enCooldown) {
+            const segundos = Math.ceil((cd.fin - ahora) / 1000);
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'skill-cooldown-overlay';
+                slotDiv.appendChild(overlay);
+            }
+            overlay.textContent = segundos;
+            // Cambiar color cuando faltan pocos segundos
+            if (segundos <= 2) overlay.style.color = '#88ff88';
+            else overlay.style.color = '#fff';
+        } else {
+            // Quitar overlay si terminó
+            if (overlay) overlay.remove();
+            if (cd) delete window.cooldownsActivosSkills[skillId];
+        }
+    }
+}
+
+// Intervalo global para actualizar los cooldowns
+if (!window._cooldownInterval) {
+    window._cooldownInterval = setInterval(actualizarCooldownsUI, 250);
 }
 // ═══ NUEVO: Verificar si el Clérigo puede usar una skill ═══
 function puedeUsarSkillClerigo(skillId) {
@@ -1824,10 +2146,8 @@ function iniciarCasteoClClerigo(skillId, targetId, callbackOnComplete) {
             }
         }
 
-        // ⏳ Marcar cooldown local
-        marcarCooldownSkillClerigo(skillId);
-
         // 🚀 Ejecutar la skill (envía al server)
+        // ⚠️ El cooldown NO se marca acá: se marca cuando el server confirma éxito
         if (typeof callbackOnComplete === 'function') {
             callbackOnComplete();
         }
@@ -1929,44 +2249,141 @@ function destruirBarraCasteoUI() {
 }
 
 function mostrarPreviewStats(item, tipo) {
-    const statsOriginales = { ataqueFisico: parseInt(document.getElementById('stat-ataque-fisico').textContent), defensaFisica: parseInt(document.getElementById('stat-defensa-fisica').textContent), velocidad: parseInt(document.getElementById('stat-velocidad').textContent), hp: document.getElementById('stat-hp').textContent };
-    let statsBase = classStats[pClassName] || classStats['WARRIOR'];
-    let ataqueFisicoBase = statsBase.ataqueFisico + playerStats.fuerza;
-    let defensaFisicaBase = statsBase.defensaFisica + (playerStats.virtuoso || 0) * 2;
-    let velocidadBase = statsBase.velocidad + (playerStats.agilidad * 1.5);
-    let hpBase = statsBase.hp + (playerStats.vitalidad * 10);
-    let armaActual = null, escudoActual = null, armaduraActual = null;
-    if (tipo === 'arma') { armaActual = item; escudoActual = equipamiento.escudo ? encontrarItemPorId(equipamiento.escudo) : null; armaduraActual = equipamiento.armadura ? encontrarItemPorId(equipamiento.armadura) : null; }
-    else if (tipo === 'escudo') { armaActual = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null; escudoActual = item; armaduraActual = equipamiento.armadura ? encontrarItemPorId(equipamiento.armadura) : null; }
-    else { armaActual = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null; escudoActual = equipamiento.escudo ? encontrarItemPorId(equipamiento.escudo) : null; armaduraActual = item; }
-    if (armaActual) { if (armaActual.ataqueFisico) ataqueFisicoBase += armaActual.ataqueFisico; if (armaActual.velocidad) velocidadBase += armaActual.velocidad; }
-    if (escudoActual) { if (escudoActual.defensaFisica) defensaFisicaBase += escudoActual.defensaFisica; if (escudoActual.velocidad) velocidadBase += escudoActual.velocidad; }
-    if (armaduraActual) { if (armaduraActual.defensaFisica) defensaFisicaBase += armaduraActual.defensaFisica; if (armaduraActual.velocidad) velocidadBase += armaduraActual.velocidad; }
-    const atqElem = document.getElementById('stat-ataque-fisico'); const defElem = document.getElementById('stat-defensa-fisica'); const velElem = document.getElementById('stat-velocidad'); const hpElem = document.getElementById('stat-hp');
-    const atqActualNum = statsOriginales.ataqueFisico; const atqNuevoNum = Math.floor(ataqueFisicoBase);
-    const defActualNum = statsOriginales.defensaFisica; const defNuevoNum = Math.floor(defensaFisicaBase);
-    const velActualNum = statsOriginales.velocidad; const velNuevoNum = Math.floor(velocidadBase);
-    atqElem.textContent = atqNuevoNum; defElem.textContent = defNuevoNum; velElem.textContent = velNuevoNum;
-    hpElem.textContent = `${Math.floor(Math.min(hpBase, playerHP))}/${Math.floor(hpBase)}`;
-    if (atqNuevoNum > atqActualNum) atqElem.classList.add('stat-up'); else if (atqNuevoNum < atqActualNum) atqElem.classList.add('stat-down');
-    if (defNuevoNum > defActualNum) defElem.classList.add('stat-up'); else if (defNuevoNum < defActualNum) defElem.classList.add('stat-down');
-    if (velNuevoNum > velActualNum) velElem.classList.add('stat-up'); else if (velNuevoNum < velActualNum) velElem.classList.add('stat-down');
-    let mensaje = `${item.nombre}`;
-    const diffAtq = atqNuevoNum - atqActualNum; const diffDef = defNuevoNum - defActualNum; const diffVel = velNuevoNum - velActualNum;
-    if (diffAtq !== 0) mensaje += `\n⚔️ ATQ: ${diffAtq > 0 ? '+' : ''}${diffAtq}`;
-    if (diffDef !== 0) mensaje += `\n🛡️ DEF: ${diffDef > 0 ? '+' : ''}${diffDef}`;
-    if (diffVel !== 0) mensaje += `\n🏃 VEL: ${diffVel > 0 ? '+' : ''}${diffVel}`;
-    if (item.dañoFuego) mensaje += `\n🔥 Daño Fuego: +${item.dañoFuego}`;
-    if (item.dañoLuz) mensaje += `\n⚡ Daño Luz: +${item.dañoLuz}`;
-    if (item.manaBonus) mensaje += `\n💙 Maná: +${item.manaBonus}`;
-    if (item.idBase && item.idBase.includes('bastondehueso')) { const bonusMap = { 'bastondehueso': 1, 'bastondehueso_1': 2, 'bastondehueso_2': 3, 'bastondehueso_3': 4, 'bastondehuesoleg': 5 }; const bonusAliados = bonusMap[item.idBase]; if (bonusAliados) { mensaje += `\n💀 Aliados máximos: +${bonusAliados}`; } }
-    const preview = document.getElementById('stat-preview'); preview.textContent = mensaje;
-    if (diffAtq > 0 || diffDef > 0 || diffVel > 0 || item.dañoFuego || item.dañoLuz) preview.style.color = '#88ff88';
-    else if (diffAtq < 0 || diffDef < 0 || diffVel < 0) preview.style.color = '#ff8888';
-    else preview.style.color = '#fff';
-    preview.style.display = 'block';
-    if (previewTimeout) clearTimeout(previewTimeout);
-    previewTimeout = setTimeout(() => { atqElem.textContent = statsOriginales.ataqueFisico; defElem.textContent = statsOriginales.defensaFisica; velElem.textContent = statsOriginales.velocidad; hpElem.textContent = statsOriginales.hp; atqElem.classList.remove('stat-up', 'stat-down'); defElem.classList.remove('stat-up', 'stat-down'); velElem.classList.remove('stat-up', 'stat-down'); preview.style.display = 'none'; }, 2500);
+    try {
+        // ═══ Guard: si no hay item, salir ═══
+        if (!item) return;
+
+        const preview = document.getElementById('stat-preview');
+        if (!preview) return;
+
+        // ═══ Helpers null-safe ═══
+        const getText = (id) => {
+            const el = document.getElementById(id);
+            return el ? el.textContent : '';
+        };
+        const setText = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        };
+        const toggleClass = (id, cls, on) => {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle(cls, on);
+        };
+
+        // ═══ Capturar stats originales ═══
+        const statsOriginales = {
+            ataqueFisico: parseInt(getText('stat-ataque-fisico')) || 0,
+            defensaFisica: parseInt(getText('stat-defensa-fisica')) || 0,
+            velocidad: parseInt(getText('stat-velocidad')) || 0,
+            hp: getText('stat-hp')
+        };
+
+        // ═══ Recalcular con el item nuevo ═══
+        let statsBase = classStats[pClassName] || classStats['WARRIOR'];
+        let ataqueFisicoBase = statsBase.ataqueFisico + playerStats.fuerza;
+        let defensaFisicaBase = statsBase.defensaFisica + (playerStats.virtuoso || 0) * 2;
+        let velocidadBase = statsBase.velocidad + (playerStats.agilidad * 1.5);
+        let hpBase = statsBase.hp + (playerStats.vitalidad * 10);
+
+        let armaActual = null, escudoActual = null, armaduraActual = null;
+        if (tipo === 'arma') {
+            armaActual = item;
+            escudoActual = equipamiento.escudo ? encontrarItemPorId(equipamiento.escudo) : null;
+            armaduraActual = equipamiento.armadura ? encontrarItemPorId(equipamiento.armadura) : null;
+        } else if (tipo === 'escudo') {
+            armaActual = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null;
+            escudoActual = item;
+            armaduraActual = equipamiento.armadura ? encontrarItemPorId(equipamiento.armadura) : null;
+        } else {
+            armaActual = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null;
+            escudoActual = equipamiento.escudo ? encontrarItemPorId(equipamiento.escudo) : null;
+            armaduraActual = item;
+        }
+
+        if (armaActual) {
+            if (armaActual.ataqueFisico) ataqueFisicoBase += armaActual.ataqueFisico;
+            if (armaActual.velocidad) velocidadBase += armaActual.velocidad;
+        }
+        if (escudoActual) {
+            if (escudoActual.defensaFisica) defensaFisicaBase += escudoActual.defensaFisica;
+            if (escudoActual.velocidad) velocidadBase += escudoActual.velocidad;
+        }
+        if (armaduraActual) {
+            if (armaduraActual.defensaFisica) defensaFisicaBase += armaduraActual.defensaFisica;
+            if (armaduraActual.velocidad) velocidadBase += armaduraActual.velocidad;
+        }
+
+        const atqActualNum = statsOriginales.ataqueFisico;
+        const atqNuevoNum = Math.floor(ataqueFisicoBase);
+        const defActualNum = statsOriginales.defensaFisica;
+        const defNuevoNum = Math.floor(defensaFisicaBase);
+        const velActualNum = statsOriginales.velocidad;
+        const velNuevoNum = Math.floor(velocidadBase);
+
+        // ═══ Aplicar al DOM (todo null-safe) ═══
+        setText('stat-ataque-fisico', atqNuevoNum);
+        toggleClass('stat-ataque-fisico', 'stat-up', atqNuevoNum > atqActualNum);
+        toggleClass('stat-ataque-fisico', 'stat-down', atqNuevoNum < atqActualNum);
+
+        setText('stat-defensa-fisica', defNuevoNum);
+        toggleClass('stat-defensa-fisica', 'stat-up', defNuevoNum > defActualNum);
+        toggleClass('stat-defensa-fisica', 'stat-down', defNuevoNum < defActualNum);
+
+        setText('stat-velocidad', velNuevoNum);
+        toggleClass('stat-velocidad', 'stat-up', velNuevoNum > velActualNum);
+        toggleClass('stat-velocidad', 'stat-down', velNuevoNum < velActualNum);
+
+        setText('stat-hp', `${Math.floor(Math.min(hpBase, playerHP))}/${Math.floor(hpBase)}`);
+
+        // ═══ Tooltip ═══
+        let mensaje = `${item.nombre}`;
+        const diffAtq = atqNuevoNum - atqActualNum;
+        const diffDef = defNuevoNum - defActualNum;
+        const diffVel = velNuevoNum - velActualNum;
+        if (diffAtq !== 0) mensaje += `\n⚔️ ATQ: ${diffAtq > 0 ? '+' : ''}${diffAtq}`;
+        if (diffDef !== 0) mensaje += `\n🛡️ DEF: ${diffDef > 0 ? '+' : ''}${diffDef}`;
+        if (diffVel !== 0) mensaje += `\n🏃 VEL: ${diffVel > 0 ? '+' : ''}${diffVel}`;
+        if (item.dañoFuego) mensaje += `\n🔥 Daño Fuego: +${item.dañoFuego}`;
+        if (item.dañoLuz) mensaje += `\n⚡ Daño Luz: +${item.dañoLuz}`;
+        if (item.manaBonus) mensaje += `\n💙 Maná: +${item.manaBonus}`;
+        if (item.idBase && item.idBase.includes('bastondehueso')) {
+            const bonusMap = { 'bastondehueso': 1, 'bastondehueso_1': 2, 'bastondehueso_2': 3, 'bastondehueso_3': 4, 'bastondehuesoleg': 5 };
+            const bonusAliados = bonusMap[item.idBase];
+            if (bonusAliados) mensaje += `\n💀 Aliados máximos: +${bonusAliados}`;
+        }
+
+        preview.textContent = mensaje;
+        if (diffAtq > 0 || diffDef > 0 || diffVel > 0 || item.dañoFuego || item.dañoLuz) preview.style.color = '#88ff88';
+        else if (diffAtq < 0 || diffDef < 0 || diffVel < 0) preview.style.color = '#ff8888';
+        else preview.style.color = '#fff';
+        preview.style.display = 'block';
+
+        // ═══ Restaurar después de 2.5s (null-safe) ═══
+        if (window.previewTimeout) clearTimeout(window.previewTimeout);
+        window.previewTimeout = setTimeout(() => {
+            try {
+                setText('stat-ataque-fisico', statsOriginales.ataqueFisico);
+                toggleClass('stat-ataque-fisico', 'stat-up', false);
+                toggleClass('stat-ataque-fisico', 'stat-down', false);
+
+                setText('stat-defensa-fisica', statsOriginales.defensaFisica);
+                toggleClass('stat-defensa-fisica', 'stat-up', false);
+                toggleClass('stat-defensa-fisica', 'stat-down', false);
+
+                setText('stat-velocidad', statsOriginales.velocidad);
+                toggleClass('stat-velocidad', 'stat-up', false);
+                toggleClass('stat-velocidad', 'stat-down', false);
+
+                setText('stat-hp', statsOriginales.hp);
+
+                const pv = document.getElementById('stat-preview');
+                if (pv) pv.style.display = 'none';
+            } catch(e) { /* silencioso */ }
+        }, 2500);
+
+    } catch(e) {
+        console.warn('mostrarPreviewStats error (ignorado):', e.message);
+    }
 }
 
 // ============================================
@@ -2331,10 +2748,28 @@ function obtenerBuffPilarJugadorCliente(tipo) {
         else if (tipo === 'defFisica' && p.color === 'azul') total += valorBase;
         else if (tipo === 'defMagica' && p.color === 'azul') total += valorBase * 0.5;
         else if (tipo === 'vida' && p.color === 'verde') total += valorBase;
-        // ❌ ELIMINADO: else if (tipo === 'mana' && p.color === 'amarillo') total += valorBase;
-        // El Pilar Amarillo da ORO, no maná
     });
     return total;
+}
+
+// ═══ NUEVO: Buffs del Clérigo (buffsActivosCliente) ═══
+// Devuelve el valor del buff activo (0 si no está o expiró)
+// tipo: 'atkFisico' | 'atkMagico' | 'defFisica' | 'defMagica' | 'oracion'
+function obtenerBuffClerigoCliente(tipo) {
+    if (!buffsActivosCliente) return 0;
+    const ahora = Date.now();
+
+    // ─── Buff de Oración (tiene danoBonus y defBonus juntos) ───
+    if (tipo === 'oracion') {
+        const b = buffsActivosCliente.oracion;
+        if (!b || !b.fin || ahora >= b.fin) return 0;
+        return b.danoBonus || 0.20;
+    }
+
+    // ─── Buffs individuales de ataque/defensa ───
+    const b = buffsActivosCliente[tipo];
+    if (!b || !b.fin || ahora >= b.fin) return 0;
+    return b.valor || 0;
 }
 
 function crearPilaresEnEscena() {
@@ -2796,6 +3231,7 @@ function preload() {
     this.load.image('hachadehierroleg', 'hachadehierroleg.png');
     this.load.image('hachadehierrolegdrop', 'hachadehierroleg.png');
     this.load.image('loot_indicator_yellow', 'loot_indicator_yellow.png');
+    this.load.image('pluma_resurrec_png', 'pluma_resurrec.png');
     this.load.image('espadadrop', 'espadadrop.png');
     this.load.image('escudodrop', 'escudodrop.png');
     this.load.image('armaduradrop', 'armaduradrop.png');
@@ -2917,6 +3353,9 @@ for (let i = 1; i <= 11; i++) {
     this.load.audio('sonido_cura', 'cura.mp3');
     this.load.audio('musicaFondo', 'musica1.mp3');
     this.load.audio('cofresound', 'cofresound.mp3');
+    this.load.audio('lvlup', 'lvlup.mp3');
+    this.load.audio('skeletonAttack', 'skeletonattack.mp3');
+    this.load.audio('plegaria', 'plegaria.mp3');
     this.load.image('armadura_pesada', 'armadura_pesada.png');
     this.load.image('casco_de_hierro', 'casco_de_hierro.png');
     this.load.audio('esqueletoMuere', 'esqueletomuerte.mp3');
@@ -3439,6 +3878,23 @@ socket.on('playerMovementBlocked', (data) => {
 socket.on('playerMoved', (info) => { 
     otherPlayers.getChildren().forEach(other => { 
         if (info.id === other.id) { 
+            // 🆕 Guardar hp/maxHp frescos que llegan por playerMoved
+            if (typeof info.hp === 'number') other.hp = info.hp;
+            if (typeof info.maxHp === 'number') other.maxHp = info.maxHp;
+            // 🔥 FIX: si es cadáver, solo actualizar posición (NO animación)
+            if (other.isDead) {
+                other.setPosition(info.x, info.y);
+                other.targetX = info.x;
+                other.targetY = info.y;
+                if (other.textoCadáver && other.textoCadáver.active) {
+                    other.textoCadáver.setPosition(info.x, info.y - 60);
+                }
+                if (other.auraCadáver && other.auraCadáver.active) {
+                    other.auraCadáver.setPosition(info.x, info.y);
+                }
+                return;
+            }
+            
             const dist = Phaser.Math.Distance.Between(other.x, other.y, info.x, info.y);
             
             // 🔥 FIX: Si la distancia es grande (>200px), teleportar directamente
@@ -3512,6 +3968,11 @@ socket.on('playerAttacked', (data) => {
     }); 
 });
     socket.on('playerAttackHit', (data) => {
+        // ═══ NUEVO: Registrar PvP — si alguien me ataca, lo marco como enemigo reciente ═══
+        if (data.playerId && data.targetId === socket.id) {
+            pvpAtacantesRecientes[data.playerId] = Date.now();
+        }
+
         if (!currentScene) return;
         const hitbox = currentScene.add.rectangle(data.hitbox.x + data.hitbox.w/2, data.hitbox.y + data.hitbox.h/2, data.hitbox.w, data.hitbox.h, data.damage > 0 ? 0xff0000 : 0xffff00, 0);
         hitbox.setDepth(10001);
@@ -3523,7 +3984,30 @@ socket.on('playerAttacked', (data) => {
     socket.on('dropItem', (data) => { const statsConTextoVerde = { ...data.stats, calidad: data.calidad, textoVerde: data.textoVerde || false, textoDorado: data.textoDorado || false }; if (data.itemId === 'hachadehierroleg') crearDropHachaDeHierro(data.x, data.y, data.itemId, data.nombre, data.tipo, data.icono, statsConTextoVerde); else if (data.tipo === 'espada') crearDropEspada(data.x, data.y, data.itemId, data.nombre, data.tipo, data.icono, statsConTextoVerde); else if (data.tipo === 'escudo') crearDropEscudo(data.x, data.y, data.itemId, data.nombre, data.tipo, data.icono, statsConTextoVerde); else if (data.tipo === 'armadura') crearDropArmadura(data.x, data.y, data.itemId, data.nombre, data.tipo, data.icono, statsConTextoVerde); else if (data.tipo === 'anillo') { const drop = currentScene.add.image(data.x, data.y, 'anillo_drop'); drop.setScale(0.8); drop.setDepth(data.y); drop.itemId = data.itemId; drop.idBase = data.itemId; drop.itemNombre = data.nombre; drop.itemTipo = data.tipo; drop.itemIcono = data.icono; drop.itemStats = data.stats; drop.recogida = false; drop.id = 'drop_' + Date.now() + '_' + Math.random(); drop.timestamp = Date.now(); const texto = currentScene.add.text(data.x, data.y - 22, drop.itemNombre, { fontSize: '9px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5).setDepth(data.y + 5); texto.setVisible(false); drop.texto = texto; drop.setInteractive({ useHandCursor: true }); drop.on('pointerdown', () => { if (!player?.isAlive || drop.recogida) return; Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y) < 60 ? recogerDrop(drop) : mostrarMensaje(`❌ Debes acercarte más para recoger ${drop.itemNombre}`, 'error'); }); dropsSuelo.push(drop); } else if (data.tipo === 'arma_magica' || (data.itemId && (data.itemId.includes('bastondefuego') || data.itemId.includes('bastonderayo')))) crearDropBaston(data.x, data.y, data.itemId, data.nombre, data.tipo, data.icono, statsConTextoVerde); else crearDropHachaDeHierro(data.x, data.y, data.itemId, data.nombre, data.tipo, data.icono, statsConTextoVerde); if (data.calidad === 'LEGENDARIA' || data.textoDorado) { if (currentScene && currentScene.sound) { const sonidoLeg = currentScene.sound.get('sonidoLegendario'); if (sonidoLeg) { reproducirSonido(sonidoLeg, Math.min(1.0, window.volumenFX * 4)); } else { currentScene.sound.play('sonidoLegendario', { volume: Math.min(1.0, window.volumenFX * 4) }); } } } });
     socket.on('dropPocion', (data) => { if (!currentScene) return; if (data.tipo === 'hp') { const drop = currentScene.add.image(data.x, data.y, 'frascohpdrop'); drop.setScale(0.8); drop.setDepth(data.y); drop.tipo = 'hp'; drop.cantidad = data.cantidad || 1; drop.recogida = false; drop.itemNombre = 'Pocion de Vida'; drop.timestamp = Date.now(); const texto = currentScene.add.text(data.x, data.y - 22, drop.itemNombre, { fontSize: '9px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5).setDepth(data.y + 5); texto.setVisible(false); drop.texto = texto; drop.setInteractive({ useHandCursor: true }); drop.on('pointerdown', () => { if (!player?.isAlive || drop.recogida) return; Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y) < 60 ? recogerPocionSuelo(drop) : mostrarMensaje(`❌ Muy lejos`, 'error'); }); dropsSuelo.push(drop); } else { const drop = currentScene.add.image(data.x, data.y, 'frascompdrop'); drop.setScale(0.8); drop.setDepth(data.y); drop.tipo = 'mana'; drop.cantidad = data.cantidad || 1; drop.recogida = false; drop.itemNombre = 'Pocion de Mana'; drop.timestamp = Date.now(); const texto = currentScene.add.text(data.x, data.y - 22, drop.itemNombre, { fontSize: '9px', fill: '#ffffff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5).setDepth(data.y + 5); texto.setVisible(false); drop.texto = texto; drop.setInteractive({ useHandCursor: true }); drop.on('pointerdown', () => { if (!player?.isAlive || drop.recogida) return; Phaser.Math.Distance.Between(player.x, player.y, drop.x, drop.y) < 60 ? recogerPocionSuelo(drop) : mostrarMensaje(`❌ Muy lejos`, 'error'); }); dropsSuelo.push(drop); } });
     socket.on('barbaroAsesinato', (data) => { if (data.playerId === socket.id && barbaroTieneHacha && pClassName === 'BARBARO') { if (barbaroContadorAsesinatos < 10) barbaroContadorAsesinatos++; if (barbaroContadorAsesinatos >= 10) { mostrarMensaje(`🔥 ¡HABILIDAD ESPECIAL DISPONIBLE! 🔥`, 'exito'); if (player) player.setTint(0xff6600); } } });
-    socket.on('playerStatsUpdate', (data) => { if (data.id === socket.id) { if (data.hp !== undefined) playerHP = data.hp; if (data.mana !== undefined) playerMana = data.mana; actualizarStatsUI(); } });
+socket.on('playerStatsUpdate', (data) => {
+    // 🧍 Mi propio jugador
+    if (data.id === socket.id) {
+        if (data.hp !== undefined) playerHP = data.hp;
+        if (data.maxHp !== undefined) playerMaxHP = data.maxHp;
+        // 🔥 FIX: no pisar maná si acabamos de recibir una Plegaria de maná
+        const ahora = Date.now();
+        const enGraciaMana = window._ultimaPlegariaMana && (ahora - window._ultimaPlegariaMana < 1000);
+        if (data.mana !== undefined && !enGraciaMana) playerMana = data.mana;
+        if (data.maxMana !== undefined) playerMaxMana = data.maxMana;
+        actualizarStatsUI();
+        return;
+    }
+    // 👥 Otros jugadores: guardar sus stats en el sprite para Plegarias y UI
+    if (otherPlayers) {
+        const otro = otherPlayers.getChildren().find(o => o.id === data.id);
+        if (otro) {
+            if (data.hp !== undefined) otro.hp = data.hp;
+            if (data.maxHp !== undefined) otro.maxHp = data.maxHp;
+            if (data.mana !== undefined) otro.mana = data.mana;
+            if (data.maxMana !== undefined) otro.maxMana = data.maxMana;
+        }
+    }
+});
     socket.on('playerExpGain', (data) => { if (data.id === socket.id) ganarExp(data.exp); });
 
     socket.on('angelActivado', (data) => {
@@ -3549,67 +4033,440 @@ socket.on('playerAttacked', (data) => {
         }
     });
 
-// ═══ EFECTOS DE SKILLS DEL CLÉRIGO ═══
-    socket.on('clerigoCuraEffect', (data) => {
-        reproducirSonidoSkillClerigo('clerigo_cura', true);
-        if (currentScene) {
-            crearTextoDmg(currentScene, data.x, data.y - 50, `+${data.curacion} ❤️`, '#88ff88', '20px');
-            const aura = currentScene.add.circle(data.x, data.y, 40, 0x00ff00, 0.3);
-            aura.setDepth(data.y - 1);
-            currentScene.tweens.add({ targets: aura, alpha: 0, scale: 1.5, duration: 800, onComplete: () => aura.destroy() });
-        }
+// ═══ Efecto visual de Plegaria para TODOS ═══
+socket.on('plegariaEfecto', (data) => {
+    console.log('🎯 [CLIENTE] plegariaEfecto RECIBIDO:', data);
+    if (!currentScene) return;
+    const iconos = {
+        vida: '❤️', mana: '💙', aguante: '💚',
+        buff_atk: '⚔️', buff_def: '🛡️', purificar: '🕊️'
+    };
+    const aura = currentScene.add.circle(data.x, data.y, 15, 0xffdd88, 0.4);
+    aura.setDepth(data.y - 1);
+    currentScene.tweens.add({
+        targets: aura,
+        radius: 40,
+        alpha: 0,
+        duration: 800,
+        ease: 'Cubic.easeOut',
+        onComplete: () => { if (aura && aura.active) aura.destroy(); }
+    });
+    crearTextoDmg(
+        currentScene,
+        data.x,
+        data.y - 40,
+        `🙏 PLEGARIA ${iconos[data.tipoAyuda] || ''}`,
+        '#ffdd88',
+        '14px'
+    );
+    reproducirSonidoPlegaria();
+});
+
+// ─── Curación: verde suave, aura + cruces ───
+socket.on('clerigoCuraEffect', (data) => {
+    reproducirSonidoSkillClerigo('clerigo_cura', true);
+    if (currentScene) {
+        crearEfectoCura(data.x, data.y, data.curacion);
+        crearTextoDmg(currentScene, data.x, data.y - 50, `+${data.curacion} ❤️`, '#88ff88', '20px');
+    }
+});
+
+function crearEfectoCura(x, y, curacion) {
+    if (!currentScene) return;
+    const COLOR = 0x88ff88;
+
+    // Aura base suave (crece y se desvanece)
+    const aura = currentScene.add.circle(x, y, 15, COLOR, 0.25);
+    aura.setDepth(y - 1);
+    currentScene.tweens.add({
+        targets: aura,
+        radius: 45,
+        alpha: 0,
+        duration: 700,
+        ease: 'Cubic.easeOut',
+        onComplete: () => { if (aura && aura.active) aura.destroy(); }
     });
 
-    socket.on('clerigoOracionEffect', (data) => {
-        reproducirSonidoSkillClerigo('clerigo_oracion', true);
-        if (currentScene) {
-            const radio = currentScene.add.circle(data.x, data.y, 200, 0xffdd00, 0.2);
-            radio.setDepth(data.y - 1);
-            currentScene.tweens.add({ targets: radio, alpha: 0, scale: 1.2, duration: 1500, onComplete: () => radio.destroy() });
-            crearTextoDmg(currentScene, data.x, data.y - 60, '🙏 ORACIÓN', '#ffdd00', '18px');
-        }
-        if (data.afectados && data.afectados.includes(socket.id)) {
-            mostrarMensaje('🙏 ¡Recibiste Oración! +20% daño, +15% def por 10s', 'exito');
-        }
+    // Un solo anillo delgado
+    const anillo = currentScene.add.circle(x, y, 8, COLOR, 0);
+    anillo.setStrokeStyle(2, COLOR, 0.7);
+    anillo.setDepth(y + 200);
+    currentScene.tweens.add({
+        targets: anillo,
+        radius: 40,
+        alpha: 0,
+        duration: 700,
+        ease: 'Quad.easeOut',
+        onComplete: () => { if (anillo && anillo.active) anillo.destroy(); }
     });
 
-    socket.on('clerigoPurificarEffect', (data) => {
-        reproducirSonidoSkillClerigo('clerigo_purificar', true);
-        if (currentScene) {
-            crearTextoDmg(currentScene, data.x, data.y - 50, '🕊️ PURIFICADO', '#ffffff', '18px');
-            const aura = currentScene.add.circle(data.x, data.y, 50, 0xffffff, 0.4);
-            aura.setDepth(data.y - 1);
-            currentScene.tweens.add({ targets: aura, alpha: 0, scale: 1.8, duration: 800, onComplete: () => aura.destroy() });
-        }
+    // 4 cruces pequeñas flotando (no 6, no 10)
+    if (!currentScene.textures.exists('cruz_cura')) {
+        const g = currentScene.add.graphics();
+        g.fillStyle(0xffffff, 1);
+        g.fillRect(2, 0, 2, 6);
+        g.fillRect(0, 2, 6, 2);
+        g.generateTexture('cruz_cura', 6, 6);
+        g.destroy();
+    }
+    for (let i = 0; i < 4; i++) {
+        const ang = (i / 4) * Math.PI * 2 + Math.random() * 0.5;
+        const dist = 15 + Math.random() * 20;
+        const cx = x + Math.cos(ang) * dist;
+        const cy = y + Math.sin(ang) * dist;
+        const cruz = currentScene.add.image(cx, cy, 'cruz_cura');
+        cruz.setTint(COLOR);
+        cruz.setScale(1.2);
+        cruz.setAlpha(0.9);
+        cruz.setDepth(y + 250);
+        currentScene.tweens.add({
+            targets: cruz,
+            y: cy - 30,
+            alpha: 0,
+            scale: 0.3,
+            duration: 700 + Math.random() * 200,
+            delay: Math.random() * 150,
+            ease: 'Sine.easeOut',
+            onComplete: () => { if (cruz && cruz.active) cruz.destroy(); }
+        });
+    }
+}
+
+// ─── Oración: dorado, anillos suaves + auras sobre aliados ───
+socket.on('clerigoOracionEffect', (data) => {
+    reproducirSonidoSkillClerigo('clerigo_oracion', true);
+    if (currentScene) {
+        crearEfectoOracion(data.x, data.y, data.afectados || []);
+        crearTextoDmg(currentScene, data.x, data.y - 60, '🙏 ORACIÓN', '#ffdd00', '18px');
+    }
+    if (data.afectados && data.afectados.includes(socket.id)) {
+        mostrarMensaje('🙏 ¡Recibiste Oración! +20% daño, +15% def por 10s', 'exito');
+    }
+});
+
+function crearEfectoOracion(x, y, afectados) {
+    if (!currentScene) return;
+    const RADIO = 180;
+    const COLOR = 0xffdd00;
+    const afectadosList = afectados || [];
+
+    // 2 anillos concéntricos (no 3)
+    for (let i = 0; i < 2; i++) {
+        const anillo = currentScene.add.circle(x, y, 15, COLOR, 0);
+        anillo.setStrokeStyle(2, COLOR, 0.7);
+        anillo.setDepth(y + 200 + i);
+        currentScene.tweens.add({
+            targets: anillo,
+            radius: RADIO,
+            alpha: 0,
+            duration: 1100 + (i * 200),
+            delay: i * 200,
+            ease: 'Cubic.easeOut',
+            onComplete: () => { if (anillo && anillo.active) anillo.destroy(); }
+        });
+    }
+
+    // Glow base suave
+    const glow = currentScene.add.circle(x, y, 20, COLOR, 0.2);
+    glow.setDepth(y - 1);
+    currentScene.tweens.add({
+        targets: glow,
+        radius: RADIO * 0.9,
+        alpha: 0,
+        duration: 1200,
+        ease: 'Quad.easeOut',
+        onComplete: () => { if (glow && glow.active) glow.destroy(); }
     });
 
-    socket.on('clerigoResurreccionEffect', (data) => {
-        reproducirSonidoSkillClerigo('clerigo_resurreccion', true);
-        if (currentScene) {
-            crearTextoDmg(currentScene, data.x, data.y - 60, '✨ REVIVIDO', '#ffff88', '22px');
-            const aura = currentScene.add.circle(data.x, data.y, 60, 0xffff00, 0.5);
-            aura.setDepth(data.y - 1);
-            currentScene.tweens.add({ targets: aura, alpha: 0, scale: 2, duration: 1200, onComplete: () => aura.destroy() });
+    // Aura dorada sobre cada aliado afectado (cascada suave)
+    afectadosList.forEach((idAliado, idx) => {
+        let ax = null, ay = null;
+        if (idAliado === socket.id) {
+            ax = player.x;
+            ay = player.y;
+        } else if (otherPlayers) {
+            const otro = otherPlayers.getChildren().find(o => o.id === idAliado);
+            if (otro) { ax = otro.x; ay = otro.y; }
         }
-        if (data.targetId === socket.id) {
-            mostrarMensaje(`✨ ${data.curadorNombre} te revivió!`, 'exito');
-        }
+        if (ax === null || ay === null) return;
+
+        currentScene.time.delayedCall(idx * 100, () => {
+            if (!currentScene) return;
+            const aura = currentScene.add.circle(ax, ay, 20, COLOR, 0.25);
+            aura.setDepth(ay - 1);
+            currentScene.tweens.add({
+                targets: aura,
+                radius: 45,
+                alpha: 0,
+                duration: 800,
+                ease: 'Cubic.easeOut',
+                onComplete: () => { if (aura && aura.active) aura.destroy(); }
+            });
+            // Un solo texto, sin anillo
+            crearTextoDmg(currentScene, ax, ay - 50, '✨ +20% DMG', '#ffdd00', '11px');
+        });
     });
 
-// ═══ Photon: animación + explosión de luz con knockback (estilo Tales of Symphonia) ═══
+    // Camera flash muy sutil
+    currentScene.cameras.main.flash(100, 255, 255, 200, false);
+}
+
+// ─── Purificar: blanco limpio, aspas cortas ───
+socket.on('clerigoPurificarEffect', (data) => {
+    reproducirSonidoSkillClerigo('clerigo_purificar', true);
+    if (currentScene) {
+        crearEfectoPurificar(data.x, data.y);
+        crearTextoDmg(currentScene, data.x, data.y - 50, '🕊️ PURIFICADO', '#ffffff', '18px');
+    }
+});
+
+// ─── Resurrección: pluma dorada + sonido ───
+socket.on('clerigoResurreccionEffect', (data) => {
+    reproducirSonidoSkillClerigo('clerigo_resurreccion', true);
+    if (currentScene) {
+        crearEfectoResurreccion(data.x, data.y);
+    }
+    if (data.targetId === socket.id) {
+        mostrarMensaje('✨ ¡Has sido resucitado por ' + (data.curadorNombre || 'el Clérigo') + '!', 'exito');
+    }
+
+    // ═══ NUEVO: Levantar al jugador LOCALMENTE cuando la pluma toca el suelo ═══
+    if (data.targetId === socket.id && player && !player.isAlive) {
+        setTimeout(() => {
+            if (!player || player.isAlive) return;   // ya revivió por otra vía
+            player.setPosition(data.x, data.y);      // ⬅️ posición exacta del cadáver
+            revivirJugadorEnPosicion(data.x, data.y);
+        }, 2500);   // ⬅️ mismo timing que el server
+    }
+
+    // ═══ NUEVO: Limpiar cadáver visual de OTROS jugadores ═══
+    if (data.targetId !== socket.id && otherPlayers) {
+        setTimeout(() => {
+            otherPlayers.getChildren().forEach(other => {
+                if (other.id === data.targetId && other.active) {
+                    other._respawnLlegado = true;
+                    other.isDead = false;
+                    other.setVisible(true);
+                    other.clearTint();
+                    other.setAlpha(1);
+                    other.setDepth(other.y);
+                    if (other.textoCadáver && other.textoCadáver.active) {
+                        other.textoCadáver.destroy();
+                        other.textoCadáver = null;
+                    }
+                    if (other.auraCadáver && other.auraCadáver.active) {
+                        currentScene.tweens.killTweensOf(other.auraCadáver);
+                        other.auraCadáver.destroy();
+                        other.auraCadáver = null;
+                    }
+                    other.removeAllListeners('pointerdown');
+                    other.removeAllListeners('pointerover');
+                    other.removeAllListeners('pointerout');
+                    other.on('pointerover', () => { if (other.active) other.setAlpha(1); });
+                    other.on('pointerout', () => { if (other.active) other.setAlpha(1); });
+                    if (other.body) { other.body.enable = true; other.body.moves = true; }
+                    if (!other.lastDir) other.lastDir = 'Abajo';
+                    const idleKey = other.pClass + '_idle_' + other.lastDir;
+                    if (currentScene && currentScene.anims.exists(idleKey)) {
+                        other.play(idleKey, true);
+                    }
+                }
+            });
+        }, 2500);
+    }
+});
+function crearEfectoPurificar(x, y) {
+    if (!currentScene) return;
+    const COLOR = 0xffffff;
+
+    // Flash central sutil
+    const flash = currentScene.add.circle(x, y, 10, COLOR, 0.8);
+    flash.setDepth(y + 200);
+    currentScene.tweens.add({
+        targets: flash,
+        radius: 45,
+        alpha: 0,
+        duration: 500,
+        ease: 'Cubic.easeOut',
+        onComplete: () => { if (flash && flash.active) flash.destroy(); }
+    });
+
+    // Un anillo blanco
+    const anillo = currentScene.add.circle(x, y, 10, COLOR, 0);
+    anillo.setStrokeStyle(2, COLOR, 0.8);
+    anillo.setDepth(y + 201);
+    currentScene.tweens.add({
+        targets: anillo,
+        radius: 45,
+        alpha: 0,
+        duration: 600,
+        ease: 'Quad.easeOut',
+        onComplete: () => { if (anillo && anillo.active) anillo.destroy(); }
+    });
+
+    // 4 destellos tipo "✦" (no 10)
+    for (let i = 0; i < 4; i++) {
+        const ang = (i / 4) * Math.PI * 2 + Math.random() * 0.3;
+        const dist = 20 + Math.random() * 30;
+        const sx = x + Math.cos(ang) * dist;
+        const sy = y + Math.sin(ang) * dist;
+        const destello = currentScene.add.text(sx, sy, '✦', {
+            fontSize: '10px',
+            fill: '#ffffff',
+            stroke: '#000',
+            strokeThickness: 1
+        }).setOrigin(0.5).setDepth(y + 300);
+        currentScene.tweens.add({
+            targets: destello,
+            alpha: 0,
+            scale: 0.3,
+            duration: 500 + Math.random() * 300,
+            delay: Math.random() * 150,
+            onComplete: () => { if (destello && destello.active) destello.destroy(); }
+        });
+    }
+}
+
+function crearEfectoResurreccion(x, y) {
+    if (!currentScene) return;
+    const COLOR_PLUMA = 0xfff5e6;
+    const COLOR_DORADO = 0xffff88;
+
+    // ─── 2. Aura dorada tenue en el suelo (se expande mientras cae la pluma) ───
+    const auraSuelo = currentScene.add.circle(x, y, 10, COLOR_DORADO, 0.15);
+    auraSuelo.setDepth(y - 1);
+    currentScene.tweens.add({
+        targets: auraSuelo,
+        radius: 50,
+        alpha: 0.25,
+        duration: 2000,
+        ease: 'Sine.easeIn',
+        yoyo: false
+    });
+
+    // ─── 3. La pluma única (usa tu PNG horizontal 191x91) ───
+    const PLUMA_START_Y = y - 220;
+    const pluma = currentScene.add.image(x, PLUMA_START_Y, 'pluma_resurrec_png');
+    pluma.setScale(0.18);
+    pluma.setAlpha(0.95);
+    pluma.setDepth(y + 500);
+    pluma.setAngle(0);   // ⬅️ se mantiene acostada (horizontal), solo se mece
+
+    // ─── 4. Caída acunada (sway suave, SIN rotación) ───
+    const duracionTotal = 2500;
+
+    // Tween 1: baja hasta el suelo
+    currentScene.tweens.add({
+        targets: pluma,
+        y: y - 20,
+        duration: duracionTotal,
+        ease: 'Sine.easeIn',
+    });
+
+    // Tween 2: se mece de lado a lado mientras cae
+    currentScene.tweens.add({
+        targets: pluma,
+        x: { from: x - 30, to: x + 30 },
+        duration: 800,
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: Math.floor(duracionTotal / 1600) + 1,
+    });
+
+    // ❌ Sin tween de rotación: la pluma se mantiene en su ángulo inicial (-20°)
+
+    // ─── 5. Al tocar el suelo: RESURRECCIÓN ───
+    currentScene.time.delayedCall(duracionTotal, () => {
+        if (!currentScene) return;
+
+        if (pluma && pluma.active) {
+            currentScene.tweens.add({
+                targets: pluma,
+                alpha: 0,
+                scale: 0.2,
+                duration: 150,
+                onComplete: () => { if (pluma && pluma.active) pluma.destroy(); }
+            });
+        }
+
+        const flash = currentScene.add.circle(x, y, 15, 0xffffff, 0.95);
+        flash.setDepth(y + 600);
+        currentScene.tweens.add({
+            targets: flash,
+            radius: 80,
+            alpha: 0,
+            duration: 700,
+            ease: 'Cubic.easeOut',
+            onComplete: () => { if (flash && flash.active) flash.destroy(); }
+        });
+
+        for (let i = 0; i < 2; i++) {
+            const anillo = currentScene.add.circle(x, y, 15, COLOR_DORADO, 0);
+            anillo.setStrokeStyle(3, COLOR_DORADO, 0.8);
+            anillo.setDepth(y + 601 + i);
+            currentScene.tweens.add({
+                targets: anillo,
+                radius: 80,
+                alpha: 0,
+                duration: 900 + (i * 200),
+                delay: i * 100,
+                ease: 'Quad.easeOut',
+                onComplete: () => { if (anillo && anillo.active) anillo.destroy(); }
+            });
+        }
+
+        if (!currentScene.textures.exists('particula_resurrec_v4')) {
+            const g = currentScene.add.graphics();
+            g.fillStyle(0xffffff, 1);
+            g.fillCircle(3, 3, 3);
+            g.generateTexture('particula_resurrec_v4', 6, 6);
+            g.destroy();
+        }
+        for (let i = 0; i < 8; i++) {
+            const ang = Math.random() * Math.PI * 2;
+            const dist = Math.random() * 50;
+            const px = x + Math.cos(ang) * dist;
+            const py = y + Math.sin(ang) * dist;
+            const p = currentScene.add.image(px, py, 'particula_resurrec_v4');
+            p.setTint(COLOR_DORADO);
+            p.setScale(0.8 + Math.random() * 0.5);
+            p.setDepth(y + 603);
+            currentScene.tweens.add({
+                targets: p,
+                y: py - 80,
+                alpha: 0,
+                scale: 0.2,
+                duration: 900 + Math.random() * 400,
+                delay: Math.random() * 300,
+                ease: 'Sine.easeOut',
+                onComplete: () => { if (p && p.active) p.destroy(); }
+            });
+        }
+
+        if (auraSuelo && auraSuelo.active) {
+            currentScene.tweens.add({
+                targets: auraSuelo,
+                alpha: 0,
+                duration: 600,
+                onComplete: () => { if (auraSuelo && auraSuelo.active) auraSuelo.destroy(); }
+            });
+        }
+
+        currentScene.cameras.main.flash(200, 255, 255, 200, false);
+        currentScene.cameras.main.shake(120, 0.003);
+    });
+}
+
+// ─── Photon: explosión + knockback (ya existente, sin cambios) ───
 socket.on('clerigoPhotonEffect', (data) => {
     if (!currentScene) return;
-
-    // 📍 Punto fijo de origen (donde está el enemigo al momento del impacto)
     const origenX = data.targetX;
     const origenY = data.targetY - 20;
 
-    // ─── Sprite animado principal ───
-const photon = currentScene.add.sprite(origenX, origenY, 'photon_frame_1');
-photon.setScale(0.85);
+    const photon = currentScene.add.sprite(origenX, origenY, 'photon_frame_1');
+    photon.setScale(0.85);
     photon.setDepth(data.targetY + 100);
     photon.setOrigin(0.5, 0.5);
-    // Quitar física
     if (photon.body) {
         photon.body.enable = false;
         photon.body.setVelocity(0, 0);
@@ -3618,13 +4475,11 @@ photon.setScale(0.85);
     }
     photon.play('photon_explosion');
 
-    // ─── Al terminar la animación: explosión de luz + knockback ───
     photon.once('animationcomplete', () => {
         if (photon && photon.active) photon.destroy();
         crearExplosionPhoton(origenX, origenY);
     });
 
-    // Seguridad: si algo falla, disparar la explosión igual
     currentScene.time.delayedCall(700, () => {
         if (photon && photon.active) {
             photon.destroy();
@@ -3632,9 +4487,10 @@ photon.setScale(0.85);
         }
     });
 
-    // Texto de daño
     crearTextoDmg(currentScene, origenX, origenY - 30, `✨ ${data.dano}`, '#ffdd00', '26px');
 });
+
+// ─── Buffs del Clérigo ───
 socket.on('buffsActivos', (data) => {
     buffsActivosCliente = {};
     const ahora = Date.now();
@@ -3645,12 +4501,10 @@ socket.on('buffsActivos', (data) => {
             fin: ahora + (data[nombre].restante || 0)
         };
     }
-    console.log('🔍 Buffs activos recibidos:', buffsActivosCliente);
     if (typeof actualizarStatsUI === 'function') actualizarStatsUI();
 });
 
 socket.on('clerigoBuffEffect', (data) => {
-    // 🎵 Reproducir sonido del buff según el tipo
     const mapaBuffSkill = {
         atkFisico: 'clerigo_buff_atkfis',
         atkMagico: 'clerigo_buff_atkmag',
@@ -3659,7 +4513,28 @@ socket.on('clerigoBuffEffect', (data) => {
     };
     const skillIdSonido = mapaBuffSkill[data.tipoBuff];
     if (skillIdSonido) reproducirSonidoSkillClerigo(skillIdSonido, true);
-    console.log('🔍 Buff recibido:', data);
+
+    // Efecto sutil sobre el target
+    if (currentScene && data.targetId && data.x !== undefined) {
+        const coloresBuff = {
+            atkFisico: 0xff6666,
+            atkMagico: 0x9966ff,
+            defFisica: 0x66aaff,
+            defMagica: 0x66ffcc
+        };
+        const COLOR = coloresBuff[data.tipoBuff] || 0xffffff;
+        const aura = currentScene.add.circle(data.x, data.y, 20, COLOR, 0.25);
+        aura.setDepth(data.y - 1);
+        currentScene.tweens.add({
+            targets: aura,
+            radius: 45,
+            alpha: 0,
+            duration: 800,
+            ease: 'Cubic.easeOut',
+            onComplete: () => { if (aura && aura.active) aura.destroy(); }
+        });
+    }
+
     if (data.targetId === socket.id) {
         buffsActivosCliente[data.tipoBuff] = {
             valor: data.valor || 0,
@@ -3680,14 +4555,12 @@ setInterval(() => {
     }
 }, 1000);
 
-// ═══ Explosión de luz + knockback radial (estilo Tales of Symphonia) ═══
+// ─── Explosión Photon (igual que antes, sin cambios) ───
 function crearExplosionPhoton(x, y) {
     if (!currentScene) return;
+    const RADIO_EXPLOSION = 45;
+    const FUERZA_KNOCKBACK = 28;
 
-const RADIO_EXPLOSION = 45;
-const FUERZA_KNOCKBACK = 28;
-
-    // ─── Flash central: círculo blanco que se expande y desvanece ───
     const flash = currentScene.add.circle(x, y, 8, 0xffffff, 0.95);
     flash.setDepth(y + 200);
     currentScene.tweens.add({
@@ -3699,7 +4572,6 @@ const FUERZA_KNOCKBACK = 28;
         onComplete: () => { if (flash && flash.active) flash.destroy(); }
     });
 
-    // ─── Anillo de luz (stroke) que también se expande ───
     const anillo = currentScene.add.circle(x, y, 6, 0xffffff, 0);
     anillo.setStrokeStyle(4, 0xffffee, 0.9);
     anillo.setDepth(y + 201);
@@ -3712,16 +4584,9 @@ const FUERZA_KNOCKBACK = 28;
         onComplete: () => { if (anillo && anillo.active) anillo.destroy(); }
     });
 
-    // ─── Rayos de luz (8 líneas saliendo del centro) ───
     for (let i = 0; i < 8; i++) {
         const angulo = (i / 8) * Math.PI * 2;
-        const rayo = currentScene.add.line(
-            0, 0,
-            x, y,
-            x + Math.cos(angulo) * 10,
-            y + Math.sin(angulo) * 10,
-            0xffffcc, 0.9
-        );
+        const rayo = currentScene.add.line(0, 0, x, y, x + Math.cos(angulo) * 10, y + Math.sin(angulo) * 10, 0xffffcc, 0.9);
         rayo.setLineWidth(2, 2);
         rayo.setDepth(y + 202);
         rayo.setOrigin(0, 0);
@@ -3736,47 +4601,35 @@ const FUERZA_KNOCKBACK = 28;
         });
     }
 
-    // ─── Knockback radial a esqueletos enemigos ───
     if (window.esqueletosGrupo) {
         window.esqueletosGrupo.getChildren().forEach(esq => {
             if (!esq.active || esq.isAlly || esq.estaMuerto) return;
             const dist = Phaser.Math.Distance.Between(x, y, esq.x, esq.y);
             if (dist > RADIO_EXPLOSION) return;
-
-            // Factor de empuje: más cerca del centro → más fuerte
             const factor = 1 - (dist / RADIO_EXPLOSION);
             const fuerza = FUERZA_KNOCKBACK * factor;
-
             const angulo = Math.atan2(esq.y - y, esq.x - x);
-            const destX = esq.x + Math.cos(angulo) * fuerza;
-            const destY = esq.y + Math.sin(angulo) * fuerza;
-
-            // Tween corto de knockback + flash blanco
             esq.setTint(0xffffaa);
             currentScene.tweens.add({
                 targets: esq,
-                x: destX,
-                y: destY,
+                x: esq.x + Math.cos(angulo) * fuerza,
+                y: esq.y + Math.sin(angulo) * fuerza,
                 duration: 180,
                 ease: 'Cubic.easeOut',
                 onComplete: () => {
-                    if (esq && esq.active) {
-                        esq.clearTint();
-                        esq.setDepth(esq.y);
-                    }
+                    if (esq && esq.active) { esq.clearTint(); esq.setDepth(esq.y); }
                 }
             });
         });
     }
 
-    // ─── Knockback también a invocadores cercanos ───
     if (window.invocadoresGrupo) {
         window.invocadoresGrupo.getChildren().forEach(inv => {
             if (!inv.active || inv.estaMuerto) return;
             const dist = Phaser.Math.Distance.Between(x, y, inv.x, inv.y);
             if (dist > RADIO_EXPLOSION) return;
             const factor = 1 - (dist / RADIO_EXPLOSION);
-            const fuerza = FUERZA_KNOCKBACK * factor * 0.7; // invocadores pesan más
+            const fuerza = FUERZA_KNOCKBACK * factor * 0.7;
             const angulo = Math.atan2(inv.y - y, inv.x - x);
             inv.setTint(0xffffaa);
             currentScene.tweens.add({
@@ -3786,35 +4639,159 @@ const FUERZA_KNOCKBACK = 28;
                 duration: 200,
                 ease: 'Cubic.easeOut',
                 onComplete: () => {
-                    if (inv && inv.active) {
-                        inv.clearTint();
-                        inv.setDepth(inv.y);
-                    }
+                    if (inv && inv.active) { inv.clearTint(); inv.setDepth(inv.y); }
                 }
             });
         });
     }
 }
 
-    socket.on('buffExpirado', (data) => {
-        if (data.buff === 'oracion') {
-            mostrarMensaje('⏰ Oración expiró', 'info');
+// ═══ NUEVO: Plegarias — restauración de aguante ═══
+socket.on('plegariasAguante', (data) => {
+    if (player && player.isAlive && data && data.cantidad) {
+        playerAguante = Math.min(playerMaxAguante, playerAguante + Math.floor(playerMaxAguante * data.cantidad));
+        actualizarStatsUI();
+        // 🔊 Sonido de Plegaria (para el receptor)
+        reproducirSonidoPlegaria();
+        mostrarMensaje('🙏 Plegaria restauró tu aguante', 'exito');
+    }
+});
+
+socket.on('plegariasMana', (data) => {
+    console.log('💙 [CLIENTE] plegariasMana RECIBIDO:', data, '| playerMana antes:', playerMana);
+    if (!player || !player.isAlive || !data) return;
+    const restaurado = Math.max(0, Math.floor(data.restaurado || 0));
+    const maxManaRef = data.maxMana || playerMaxMana;
+    if (data.maxMana) playerMaxMana = data.maxMana;
+    playerMana = Math.min(maxManaRef, playerMana + restaurado);
+    window._ultimaPlegariaMana = Date.now();
+    actualizarStatsUI();
+    if (socket && socket.connected) socket.emit('sincronizarMana', { mana: playerMana });
+    reproducirSonidoPlegaria();
+    if (restaurado > 0) {
+        mostrarMensaje(`🙏 Plegaria restauró ${restaurado} maná`, 'exito');
+    }
+});
+socket.on('buffExpirado', (data) => {
+    if (data.buff === 'oracion') {
+        mostrarMensaje('⏰ Oración expiró', 'info');
+    }
+});
+socket.on('playerDeath', (data) => {
+    if (data.id === socket.id) { return; }
+    
+    otherPlayers.getChildren().forEach(other => {
+        if (other.id === data.id && other.active) {
+            // 🔥 FIX: si ya estaba muerto, no re-animar (evita duplicar)
+            if (other.isDead) return;
+            other.isDead = true;
+            other._respawnLlegado = false;   // 🔥 FIX: resetear SIEMPRE al morir (2da muerte)
+            if (!other.lastDir) other.lastDir = 'Abajo';
+            const animMuerte = other.pClass + '_die_' + other.lastDir;
+            const animMuerteFallback = other.pClass + '_die_Abajo';
+            
+            // 🔥 FIX: forzar stop de la animación actual (por si estaba atacando)
+            other.estaAtacando = false;
+            if (other.anims) other.anims.stop();
+            
+            // Reproducir animación de muerte
+            if (currentScene && currentScene.anims.exists(animMuerte)) { 
+                other.play(animMuerte, true); 
+            } else if (currentScene && currentScene.anims.exists(animMuerteFallback)) { 
+                other.play(animMuerteFallback, true); 
+            }
+            
+            
+            // ═══ FIX: NO ocultar, dejar visible como cadáver ═══
+            other.once('animationcomplete', () => {
+                if (!other || !other.active) return;
+                if (other._respawnLlegado) return;   // 🔥 FIX: ya revivió, no crear cadáver
+                
+                // 🔥 FIX: reactivar input del cadáver para que se pueda clickear
+                other.input.enabled = true;
+                other.setInteractive({ useHandCursor: true });
+                
+                other.setTint(0x888888);
+                other.setAlpha(0.7);
+                other.setDepth(other.y - 100);
+                
+                // Texto "💀 Nombre"
+                const textoCadáver = currentScene.add.text(other.x, other.y - 60, `💀 ${other.pName || 'Aliado'}`, {
+                    fontSize: '11px',
+                    fill: '#ff8888',
+                    fontFamily: 'monospace',
+                    stroke: '#000',
+                    strokeThickness: 3,
+                    align: 'center'
+                }).setOrigin(0.5).setDepth(999999);
+                
+                // Aura pulsante (achicada)
+                const auraCadáver = currentScene.add.circle(other.x, other.y, 12, 0xff4444, 0.2);
+                auraCadáver.setDepth(other.y - 101);
+                currentScene.tweens.add({
+                    targets: auraCadáver,
+                    radius: 20,
+                    alpha: 0.08,
+                    duration: 1200,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+                
+                other.textoCadáver = textoCadáver;
+                other.auraCadáver = auraCadáver;
+                
+                // Clickeable para seleccionar
+                // 🔥 FIX: limpiar listeners viejos antes de agregar
+                other.removeAllListeners('pointerdown');
+                other.removeAllListeners('pointerover');
+                other.removeAllListeners('pointerout');
+                // ❌ ELIMINADA: other._respawnLlegado = false; (no resetear acá, ya se hizo al morir)
+                other.input.enabled = true;
+                other.setInteractive({ useHandCursor: true });
+                other.on('pointerdown', () => {
+                    if (!other.isDead) return;
+                    if (!player || !player.isAlive) return;
+                    const dist = Phaser.Math.Distance.Between(player.x, player.y, other.x, other.y);
+                    if (dist > 200) {
+                        mostrarMensaje(`❌ ${other.pName} está muy lejos (${Math.round(dist)}px)`, 'error');
+                        return;
+                    }
+                    // 🔥 FIX: chequear consistencia del modo apuntar
+                    if (modoApuntarActivo && targetsApuntarDisponibles && targetsApuntarDisponibles.length > 0 && pClassName === 'CLERIGO') {
+                        const target = targetsApuntarDisponibles.find(t => t.id === other.id);
+                        if (target) {
+                            apuntarTargetActual = other.id;
+                            actualizarSeleccionApuntar();
+                            mostrarMensaje(`🎯 ${other.pName} seleccionado`, 'exito');
+                        } else {
+                            mostrarMensaje(`💀 ${other.pName} (usá Resurrección y elegí este cadáver)`, 'info');
+                        }
+                    } else if (modoApuntarActivo && (!targetsApuntarDisponibles || targetsApuntarDisponibles.length === 0)) {
+                        // flag desincronizada → resetear
+                        modoApuntarActivo = false;
+                        skillApuntarPendiente = null;
+                        if (flechaApuntarSprite && flechaApuntarSprite.active) flechaApuntarSprite.destroy();
+                        flechaApuntarSprite = null;
+                        mostrarMensaje(`💀 ${other.pName} (usá Resurrección para revivirlo)`, 'info');
+                    } else {
+                        mostrarMensaje(`💀 ${other.pName} (usá Resurrección y elegí este cadáver)`, 'info');
+                    }
+                });
+                other.on('pointerover', () => {
+                    if (!other.isDead) return;
+                    other.setAlpha(1);
+                    other.setTint(0xcccccc);
+                });
+                other.on('pointerout', () => {
+                    if (!other.isDead) return;
+                    other.setAlpha(0.7);
+                    other.setTint(0x888888);
+                });
+            });
         }
     });
-    socket.on('playerDeath', (data) => {
-        if (data.id === socket.id) { return; }
-        otherPlayers.getChildren().forEach(other => {
-            if (other.id === data.id && other.active) {
-                if (!other.lastDir) other.lastDir = 'Abajo';
-                const animMuerte = other.pClass + '_die_' + other.lastDir;
-                const animMuerteFallback = other.pClass + '_die_Abajo';
-                if (currentScene && currentScene.anims.exists(animMuerte)) { other.play(animMuerte, true); }
-                else if (currentScene && currentScene.anims.exists(animMuerteFallback)) { other.play(animMuerteFallback, true); }
-                other.isDead = true;
-                other.once('animationcomplete', () => { if (other && other.active) other.setVisible(false); });
-            }
-        });
-    });
+});
     socket.on('playerRespawn', (data) => {
         if (data.id === socket.id && player && player.isAlive) return;
         if (data.id === socket.id && player && !player.isAlive) {
@@ -3844,16 +4821,42 @@ if (pClassName === 'CLERIGO') {
             actualizarStatsUI(); guardarPartida(); socket.emit('solicitarEsqueletos');
             mostrarMensaje('✨ Has revivido!', 'exito');
         }
-        otherPlayers.getChildren().forEach(other => {
-            if (other.id === data.id) {
-                other.setVisible(true); other.isDead = false;
-                if (other.body) { other.body.enable = true; other.body.moves = true; }
-                if (!other.lastDir) other.lastDir = 'Abajo';
-                const idleKeyOtherRespawn = other.pClass + '_idle_' + other.lastDir;
-                if (currentScene && currentScene.anims.exists(idleKeyOtherRespawn)) { other.play(idleKeyOtherRespawn, true); }
-            }
-        });
-    });
+otherPlayers.getChildren().forEach(other => {
+    if (other.id === data.id) {
+        // ═══ NUEVO: Limpiar cadáver al revivir ═══
+        other._respawnLlegado = true;   // 🔥 FIX: avisar al animationcomplete que no cree cadáver
+        other.setVisible(true); 
+        other.isDead = false;
+        other.clearTint();
+        other.setAlpha(1);
+        other.setDepth(other.y);
+        
+        if (other.textoCadáver && other.textoCadáver.active) {
+            other.textoCadáver.destroy();
+            other.textoCadáver = null;
+        }
+        if (other.auraCadáver && other.auraCadáver.active) {
+            currentScene.tweens.killTweensOf(other.auraCadáver);
+            other.auraCadáver.destroy();
+            other.auraCadáver = null;
+        }
+        
+        other.removeAllListeners('pointerdown');
+        other.removeAllListeners('pointerover');
+        other.removeAllListeners('pointerout');
+        
+        // 🔥 FIX: restaurar hover normal (sin lógica de cadáver)
+        other.on('pointerover', () => { if (other.active) other.setAlpha(1); });
+        other.on('pointerout', () => { if (other.active) other.setAlpha(1); });
+        
+        if (other.body) { other.body.enable = true; other.body.moves = true; }
+        if (!other.lastDir) other.lastDir = 'Abajo';
+        const idleKeyOtherRespawn = other.pClass + '_idle_' + other.lastDir;
+        if (currentScene && currentScene.anims.exists(idleKeyOtherRespawn)) { other.play(idleKeyOtherRespawn, true); }
+      }
+   });
+});
+    
     socket.on('chatMessage', (data) => { if (data.chatCanal) { agregarMensajeChat(data.chatCanal, data.msg, data.type || 'info'); return; } if (data.name !== 'Sistema') mostrarMensaje(`[${data.name}] ${data.msg}`, 'info'); else mostrarMensaje(`${data.msg}`, 'info'); });
     socket.on('mensaje', (msg) => { mostrarMensaje(msg, 'info'); });
     socket.on('mostrarTextoCuracion', (data) => { if (currentScene && player && player.isAlive) { crearTextoDmg(currentScene, data.x, data.y, data.texto, data.color, data.size); } });
@@ -4035,8 +5038,47 @@ socket.on('inventarioCompleto', (data) => {
             }); 
         } 
     });
-    socket.on('esqueletoAttackAnim', (data) => {
+socket.on('esqueletoAttackAnim', (data) => {
         if (!window.esqueletosGrupo || !currentScene) return;
+        // 🔊 Sonido de ataque de esqueleto — ESPORÁDICO (no en cada ataque)
+        if (currentScene.sound && data && data.id) {
+            const ahora = Date.now();
+            const COOLDOWN_MINIMO = 2500;      // no suena más de 1 vez cada 2.5s
+            const PROBABILIDAD     = 0.20;     // 20% de chance cuando pasa el cooldown
+            const DIST_MAXIMA      = 600;      // solo si el esqueleto está cerca
+
+            const puedeSonar = !window._ultimoSonidoEsqueleto
+                || (ahora - window._ultimoSonidoEsqueleto > COOLDOWN_MINIMO);
+
+            if (puedeSonar) {
+                // Chequear distancia
+                let suena = true;
+                if (player && player.active) {
+                    const esqQueAtaca = window.esqueletosGrupo.getChildren().find(
+                        e => e.esqueletoId === data.id && e.active && !e.estaMuerto
+                    );
+                    if (esqQueAtaca) {
+                        const dist = Phaser.Math.Distance.Between(
+                            player.x, player.y, esqQueAtaca.x, esqQueAtaca.y
+                        );
+                        if (dist > DIST_MAXIMA) suena = false;
+                    } else {
+                        suena = false;
+                    }
+                }
+                // Tirar el dado
+                if (suena && Math.random() < PROBABILIDAD) {
+                    window._ultimoSonidoEsqueleto = ahora;
+                    const pitch = 0.9 + Math.random() * 0.2;   // 0.90 – 1.10
+                    try {
+                        currentScene.sound.play('skeletonAttack', {
+                            volume: window.volumenFX * 0.7,
+                            rate: pitch
+                        });
+                    } catch(e) { /* si no cargó, ignorar */ }
+                }
+            }
+        }
         window.esqueletosGrupo.getChildren().forEach(esq => {
             if (esq.esqueletoId === data.id && esq.active) {
                 if (esq.estaMuerto) return;
@@ -4076,7 +5118,71 @@ socket.on('inventarioCompleto', (data) => {
         } 
     });
     socket.on('esqueletoAttackMiss', (data) => { if (!currentScene) return; if (data.targetId === socket.id && player && player.isAlive) { crearTextoDmg(currentScene, player.x, player.y - 30, "MISS", "#ffff00", "14px"); } });
-    socket.on('esqueletoDeath', (data) => { if (currentScene && currentScene.sound) { if (!window.ultimoSonidoMuerte || Date.now() - window.ultimoSonidoMuerte > 150) { window.ultimoSonidoMuerte = Date.now(); const sonido = currentScene.sound.get('esqueletoMuere'); if (sonido && muerteSoundsCount < 2) { muerteSoundsCount++; sonido.setVolume(window.volumenFX); sonido.play(); setTimeout(() => muerteSoundsCount--, 500); } } } if (currentScene && Math.random() < 0.3) { crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5); } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id && esq.active) { if (esq.intervalTimer) { clearInterval(esq.intervalTimer); esq.intervalTimer = null; } if (esq.textoTimer && esq.textoTimer.active) { esq.textoTimer.destroy(); esq.textoTimer = null; } let currentDir = esq.currentDir || data.dir || 'Abajo'; const dieAnim = `ns_die_${dirALetra(currentDir)}`; esq.estaMuerto = true; if (currentScene && currentScene.anims.exists(dieAnim)) { if (esq.anims.isPlaying) esq.anims.stop(); esq.play(dieAnim, true); if (esq.body) esq.body.enable = false; esq.once('animationcomplete', () => { if (esq && esq.active) { if (currentScene) { currentScene.time.delayedCall(10000, () => { if (esq && esq.active) esq.destroy(); }); } } }); } else { esq.destroy(); } return; } }); } });
+    socket.on('esqueletoDeath', (data) => {
+        // 🔊 Sonido de muerte de esqueleto — ESPORÁDICO
+        if (currentScene && currentScene.sound && data) {
+            const ahora = Date.now();
+            const COOLDOWN_MINIMO_MUERTE = 2000;   // no suena más de 1 vez cada 2s
+            const PROBABILIDAD_MUERTE     = 0.25;  // 25% de chance
+            const DIST_MAXIMA_MUERTE      = 700;   // solo si muere cerca
+
+            const puedeSonar = !window._ultimoSonidoMuerteEsq
+                || (ahora - window._ultimoSonidoMuerteEsq > COOLDOWN_MINIMO_MUERTE);
+
+            if (puedeSonar) {
+                let suena = true;
+                if (player && player.active && data.x !== undefined && data.y !== undefined) {
+                    const dist = Phaser.Math.Distance.Between(player.x, player.y, data.x, data.y);
+                    if (dist > DIST_MAXIMA_MUERTE) suena = false;
+                }
+                if (suena && Math.random() < PROBABILIDAD_MUERTE) {
+                    window._ultimoSonidoMuerteEsq = ahora;
+                    const pitch = 0.9 + Math.random() * 0.2;   // 0.90 – 1.10
+                    try {
+                        currentScene.sound.play('esqueletoMuere', {
+                            volume: window.volumenFX * 0.8,
+                            rate: pitch
+                        });
+                    } catch(e) { /* si no cargó, ignorar */ }
+                }
+            }
+        }
+
+        // 💰 Drop de moneda (sin cambios)
+        if (currentScene && Math.random() < 0.3) {
+            crearMonedaSuelo(data.x, data.y, Math.floor(Math.random() * 10) + 5);
+        }
+
+        // 💀 Animación de muerte del esqueleto (sin cambios)
+        if (window.esqueletosGrupo) {
+            window.esqueletosGrupo.getChildren().forEach(esq => {
+                if (esq.esqueletoId === data.id && esq.active) {
+                    if (esq.intervalTimer) { clearInterval(esq.intervalTimer); esq.intervalTimer = null; }
+                    if (esq.textoTimer && esq.textoTimer.active) { esq.textoTimer.destroy(); esq.textoTimer = null; }
+                    let currentDir = esq.currentDir || data.dir || 'Abajo';
+                    const dieAnim = `ns_die_${dirALetra(currentDir)}`;
+                    esq.estaMuerto = true;
+                    if (currentScene && currentScene.anims.exists(dieAnim)) {
+                        if (esq.anims.isPlaying) esq.anims.stop();
+                        esq.play(dieAnim, true);
+                        if (esq.body) esq.body.enable = false;
+                        esq.once('animationcomplete', () => {
+                            if (esq && esq.active) {
+                                if (currentScene) {
+                                    currentScene.time.delayedCall(10000, () => {
+                                        if (esq && esq.active) esq.destroy();
+                                    });
+                                }
+                            }
+                        });
+                    } else {
+                        esq.destroy();
+                    }
+                    return;
+                }
+            });
+        }
+    });
     socket.on('esqueletoDestroy', (data) => { 
         if (window.esqueletosGrupo) {
             window.esqueletosGrupo.getChildren().forEach(esq => { 
@@ -4229,7 +5335,37 @@ function addOtherPlayer(self, info) {
     if (existente) { 
         existente.targetX = info.x; 
         existente.targetY = info.y; 
-        existente.setPosition(info.x, info.y); 
+        existente.setPosition(info.x, info.y);
+        
+        // 🔥 FIX: Sincronizar isDead en AMBAS direcciones
+        if (existente.isDead && info.isAlive !== false) {
+            // Estaba muerto pero el server dice vivo → revivir visualmente
+            existente.isDead = false;
+            existente.setVisible(true);
+            existente.clearTint();
+            existente.setAlpha(1);
+            existente.setDepth(info.y);
+            if (existente.textoCadáver && existente.textoCadáver.active) {
+                existente.textoCadáver.destroy();
+                existente.textoCadáver = null;
+            }
+            if (existente.auraCadáver && existente.auraCadáver.active) {
+                currentScene.tweens.killTweensOf(existente.auraCadáver);
+                existente.auraCadáver.destroy();
+                existente.auraCadáver = null;
+            }
+            existente.setInteractive({ useHandCursor: true });
+        } else if (!existente.isDead && info.isAlive === false) {
+            // 🔥 FIX: Estaba vivo pero el server dice muerto → mostrar como cadáver
+            existente.isDead = true;
+            existente.setTint(0x888888);
+            existente.setAlpha(0.7);
+            existente.setDepth(info.y - 100);
+            const dieKeyExist = (info.class || existente.pClass) + '_die_S';
+            if (currentScene && currentScene.anims.exists(dieKeyExist)) {
+                existente.play(dieKeyExist, true);
+            }
+        }
         return; 
     } 
     
@@ -4257,9 +5393,74 @@ function addOtherPlayer(self, info) {
     o.setInteractive(); 
     o.input.enabled = true; 
     o.auraSprite = null; 
+    o.isDead = (info.isAlive === false);   // 🔥 FIX: respetar estado del server
     
     // 🔥 FIX CRÍTICO: AGREGAR AL GRUPO otherPlayers
     otherPlayers.add(o);
+    
+    // 🔥 FIX: Si el server dice que está muerto, mostrarlo como cadáver
+    if (o.isDead) {
+        o.setTint(0x888888);
+        o.setAlpha(0.7);
+        o.setDepth(info.y - 100);
+        if (esClerigo) {
+            if (self.anims.exists('clerigo_die_down')) o.play('clerigo_die_down', true);
+        } else {
+            const dieKey = info.class + '_die_S';
+            if (self.anims.exists(dieKey)) o.play(dieKey, true);
+        }
+        setTimeout(() => {
+            if (!o.active) return;
+            const textoCad = currentScene.add.text(o.x, o.y - 60, `💀 ${info.name || 'Aliado'}`, {
+                fontSize: '11px', fill: '#ff8888', fontFamily: 'monospace',
+                stroke: '#000', strokeThickness: 3, align: 'center'
+            }).setOrigin(0.5).setDepth(999999);
+            const auraCad = currentScene.add.circle(o.x, o.y, 12, 0xff4444, 0.2);
+            auraCad.setDepth(o.y - 101);
+            currentScene.tweens.add({
+                targets: auraCad, radius: 20, alpha: 0.08,
+                duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+            });
+            o.textoCadáver = textoCad;
+            o.auraCadáver = auraCad;
+            
+            // 🔥 FIX NUEVO: agregar pointerdown para que el Clérigo pueda clickear el cadáver
+            o._respawnLlegado = false;
+            o.input.enabled = true;
+            o.setInteractive({ useHandCursor: true });
+            o.on('pointerdown', () => {
+                if (!o.isDead) return;
+                if (!player || !player.isAlive) return;
+                const dist = Phaser.Math.Distance.Between(player.x, player.y, o.x, o.y);
+                if (dist > 200) {
+                    mostrarMensaje(`❌ ${o.pName} está muy lejos (${Math.round(dist)}px)`, 'error');
+                    return;
+                }
+                if (modoApuntarActivo && targetsApuntarDisponibles && targetsApuntarDisponibles.length > 0 && pClassName === 'CLERIGO') {
+                    const target = targetsApuntarDisponibles.find(t => t.id === o.id);
+                    if (target) {
+                        apuntarTargetActual = o.id;
+                        actualizarSeleccionApuntar();
+                        mostrarMensaje(`🎯 ${o.pName} seleccionado`, 'exito');
+                    } else {
+                        mostrarMensaje(`💀 ${o.pName} (usá Resurrección y elegí este cadáver)`, 'info');
+                    }
+                } else {
+                    mostrarMensaje(`💀 ${o.pName} (usá Resurrección y elegí este cadáver)`, 'info');
+                }
+            });
+            o.on('pointerover', () => {
+                if (!o.isDead) return;
+                o.setAlpha(1);
+                o.setTint(0xcccccc);
+            });
+            o.on('pointerout', () => {
+                if (!o.isDead) return;
+                o.setAlpha(0.7);
+                o.setTint(0x888888);
+            });
+        }, 100);
+    }
     
     if (esClerigo) { 
         const TAMANO_VISUAL = 48 * 1.5; 
@@ -4417,6 +5618,8 @@ const ligaFocused = document.getElementById('liga-invitar-input') === document.a
             }
         }
     }
+    // 🙏 Plegarias — ayuda divina automática del Clérigo
+    procesarPlegarias();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4459,12 +5662,8 @@ function obtenerAliadosMuertosEnRango() {
         otherPlayers.getChildren().forEach(o => {
             if (!o.active || !o.isDead) return;
             const dist = Phaser.Math.Distance.Between(player.x, player.y, o.x, o.y);
-            if (dist > CURACION_RANGO) return;
-            let esAliado = true;
-            if (window.teamInfo && window.teamInfo.enTeam) {
-                esAliado = window.teamInfo.miembros && window.teamInfo.miembros.includes(o.pName);
-            }
-            if (!esAliado) return;
+            if (dist > 300) return;   // 🔓 Rango de Resurrección: 300px
+            // 🔓 SIN filtro de aliado: podés revivir a CUALQUIER jugador
             muertos.push({ id: o.id, x: o.x, y: o.y, nombre: o.pName });
         });
     }
@@ -4630,7 +5829,27 @@ function desactivarModoApuntar(confirmar = false) {
     targetsApuntarDisponibles = [];
     apuntarTargetActual = null;
     apuntarPointerId = null;
+    
     if (confirmar && targetCura && skillId && socket && socket.connected) {
+        // 🔥 FIX: validar que el target siga siendo válido
+        const esResurreccion = (skillId === 'clerigo_resurreccion');
+        const aliadosVivos = obtenerAliadosEnRango();
+        const aliadosMuertos = obtenerAliadosMuertosEnRango();
+        
+        if (esResurreccion) {
+            const targetValido = aliadosMuertos.find(t => t.id === targetCura);
+            if (!targetValido) {
+                mostrarMensaje('❌ El cadáver ya no está disponible (revivió o se alejó)', 'error');
+                return;
+            }
+        } else {
+            const targetValido = aliadosVivos.find(t => t.id === targetCura);
+            if (!targetValido) {
+                mostrarMensaje('❌ El aliado ya no está disponible (murió o se alejó)', 'error');
+                return;
+            }
+        }
+        
         ejecutarSkillConTarget(skillId, targetCura);
     }
 }
@@ -4691,6 +5910,13 @@ function usarSkill(skillId) {
     if (!player || !player.isAlive) return;
     if (playerHP <= 0) return;
 
+    // ═══ NUEVO: verificar cooldown de skill ═══
+    if (estaSkillEnCooldown(skillId)) {
+        const seg = segundosRestantesCooldown(skillId);
+        mostrarMensaje(`⏳ ${SKILLS_DATA[skillId]?.nombre || 'Skill'} en cooldown (${seg}s)`, 'error');
+        return;
+    }
+
     if (skillId === 'levantar_muerto') {
         if (ultimoEsqueletoClickeado) levantarEsqueleto(ultimoEsqueletoClickeado);
         else mostrarMensaje(`❌ Selecciona un cadaver primero (click en esqueleto muerto)`, 'error');
@@ -4702,7 +5928,10 @@ function usarSkill(skillId) {
         const ahora = Date.now();
         if (ahora - ultimoAtaqueDistancia < 1000) { mostrarMensaje(`⏳ Espera ${Math.ceil((1000 - (ahora - ultimoAtaqueDistancia)) / 1000)}s`, 'error'); return; }
         if (playerMana < 10) { mostrarMensaje(`❌ Mana insuficiente (10)`, 'error'); return; }
-        playerMana -= 10; actualizarStatsUI(); ultimoAtaqueDistancia = ahora;
+        playerMana -= 10; 
+        if (socket && socket.connected) socket.emit('sincronizarMana', { mana: playerMana });
+        actualizarStatsUI(); 
+        ultimoAtaqueDistancia = ahora;
         mostrarMensaje(skillId === 'fireball' ? '🔥 Fireball! -10 mana' : '💀 Bola de sombra! -10 mana', 'exito');
         let dir = player.lastDir;
         let targetX = player.x, targetY = player.y;
@@ -4765,7 +5994,10 @@ ataqueMagico = Math.floor(
         if (demonlord_sprite && demonlord_sprite.active && demonlordHP > 0) { const dist = Phaser.Math.Distance.Between(player.x, player.y, demonlord_sprite.x, demonlord_sprite.y); if (dist < distanciaMinima) { distanciaMinima = dist; enemigoMasCercano = { id: 'demonlord', x: demonlord_sprite.x, y: demonlord_sprite.y, esDemonlord: true }; } }
         if (window.invocadoresGrupo) { window.invocadoresGrupo.getChildren().forEach(inv => { if (inv.active && !inv.estaMuerto) { const dist = Phaser.Math.Distance.Between(player.x, player.y, inv.x, inv.y); if (dist < distanciaMinima) { distanciaMinima = dist; enemigoMasCercano = { id: inv.invocadorId, x: inv.x, y: inv.y, esDemonlord: false, esInvocador: true }; } } }); }
         if (!enemigoMasCercano) { mostrarMensaje(`❌ No hay enemigos en rango (400px)`, 'error'); return; }
-        playerMana -= 15; actualizarStatsUI(); ultimoAtaqueDistancia = ahora;
+        playerMana -= 15;
+        if (socket && socket.connected) socket.emit('sincronizarMana', { mana: playerMana });
+        actualizarStatsUI();
+        ultimoAtaqueDistancia = ahora;
         mostrarMensaje(`⚡ ¡Trueno! -15 mana`, 'exito');
         if (!player.attacking) {
             player.attacking = true; player.setVelocity(0, 0);
@@ -4823,7 +6055,11 @@ console.log(`⚡ Trueno: base=${Math.floor(ataqueMagicoTotal * (1 + buffDañoPil
     else if (skillId === 'sacrificio' && pClassName === 'CABALLERO') {
         if (sacrificioCooldown > 0 && Date.now() - sacrificioCooldown < SACRIFICIO_COOLDOWN) { const restante = Math.ceil((SACRIFICIO_COOLDOWN - (Date.now() - sacrificioCooldown)) / 1000); mostrarMensaje(`⏳ Espera ${restante}s`, 'error'); return; }
         if (playerMana < 30) { mostrarMensaje(`❌ Mana insuficiente (30)`, 'error'); return; }
-        playerMana -= 30; sacrificioActivo = true; sacrificioCooldown = Date.now(); actualizarStatsUI();
+        playerMana -= 30;
+        if (socket && socket.connected) socket.emit('sincronizarMana', { mana: playerMana });
+        sacrificioActivo = true;
+        sacrificioCooldown = Date.now();
+        actualizarStatsUI();
         mostrarMensaje('🛡️ ¡Sacrificio activado! 5s', 'exito');
         if (!aroSacrificio) { aroSacrificio = currentScene.add.sprite(player.x, player.y - 10, 'aura_1'); aroSacrificio.setDepth(player.y - 1); aroSacrificio.setScale(1.5); aroSacrificio.setAlpha(0.7); if (currentScene.anims.exists('aura_caballero_anim')) aroSacrificio.play('aura_caballero_anim'); }
         else { aroSacrificio.setVisible(true); aroSacrificio.setPosition(player.x, player.y - 10); aroSacrificio.setDepth(player.y - 1); if (!aroSacrificio.anims.isPlaying && currentScene.anims.exists('aura_caballero_anim')) aroSacrificio.play('aura_caballero_anim'); }
@@ -5060,20 +6296,31 @@ else if (skillId === 'clerigo_buff_deffis') {
         activarModoApuntar('clerigo_buff_deffis', false);
     }
 }
-else if (skillId === 'clerigo_buff_defmag') {
-    if (pClassName !== 'CLERIGO') { mostrarMensaje('❌ Solo Clérigo', 'error'); return; }
-    const aliados = obtenerAliadosEnRango();
-    if (aliados.length === 0) { mostrarMensaje('❌ No hay aliados en rango (200px)', 'error'); return; }
-    if (aliados.length === 1) {
-        iniciarCasteoClClerigo('clerigo_buff_defmag', aliados[0].id, () => {
-            if (socket && socket.connected) socket.emit('clerigoBuffDefMagica', { targetId: aliados[0].id });
-            mostrarMensaje(`🔰 Protección Mágica a ${aliados[0].nombre}`, 'exito');
-        });
-    } else {
-        if (!puedeUsarSkillClerigo('clerigo_buff_defmag')) return;
-        activarModoApuntar('clerigo_buff_defmag', false);
+    else if (skillId === 'clerigo_buff_defmag') {
+        if (pClassName !== 'CLERIGO') { mostrarMensaje('❌ Solo Clérigo', 'error'); return; }
+        const aliados = obtenerAliadosEnRango();
+        if (aliados.length === 0) { mostrarMensaje('❌ No hay aliados en rango (200px)', 'error'); return; }
+        if (aliados.length === 1) {
+            iniciarCasteoClClerigo('clerigo_buff_defmag', aliados[0].id, () => {
+                if (socket && socket.connected) socket.emit('clerigoBuffDefMagica', { targetId: aliados[0].id });
+                mostrarMensaje(`🔰 Protección Mágica a ${aliados[0].nombre}`, 'exito');
+            });
+        } else {
+            if (!puedeUsarSkillClerigo('clerigo_buff_defmag')) return;
+            activarModoApuntar('clerigo_buff_defmag', false);
+        }
     }
-  }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ═══ NUEVO: Iniciar cooldown visual después de usar la skill ═══
+    // ═══════════════════════════════════════════════════════════════
+    // (Solo para skills NO-Clérigo, porque las del Clérigo ya se marcan
+    //  en iniciarCasteoClClerigo cuando termina el casteo)
+    const esSkillClerigo = skillId.startsWith('clerigo_');
+    const cdSkill = COOLDOWNS_SKILLS[skillId];
+    if (cdSkill && !esSkillClerigo) {
+        iniciarCooldownSkill(skillId, cdSkill);
+    }
 }
 
 
@@ -5099,18 +6346,166 @@ function crearAroJugador() {
     return;
 }
 
-// ═══ NUEVO: HELPER DE BUFFS DEL CLÉRIGO ═══
-function obtenerBuffClerigoCliente(tipo) {
-    if (typeof buffsActivosCliente === 'undefined') return 0;
+// ═══ FIX PLEGARIAS: PvP ligero para no ayudar a enemigos ═══
+// Enemigo = me atacó en los últimos 5 segundos, o está atacando cerca
+let pvpAtacantesRecientes = {};
+const PVP_VENTANA_MS = 5000;
+
+function esJugadorEnemigo(nombreOtro, idOtro) {
     const ahora = Date.now();
-    let total = 0;
-    for (let nombre in buffsActivosCliente) {
-        const b = buffsActivosCliente[nombre];
-        if (!b || ahora > b.fin) { delete buffsActivosCliente[nombre]; continue; }
-        if (nombre === 'oracion' && tipo === 'daño') total += (b.valor || 0);
-        if (nombre === tipo) total += (b.valor || 0);
+    for (let id in pvpAtacantesRecientes) {
+        if (ahora - pvpAtacantesRecientes[id] > PVP_VENTANA_MS) delete pvpAtacantesRecientes[id];
     }
-    return total;
+    if (pvpAtacantesRecientes[idOtro] && ahora - pvpAtacantesRecientes[idOtro] < PVP_VENTANA_MS) return true;
+    if (otherPlayers && player) {
+        const otro = otherPlayers.getChildren().find(o => o.id === idOtro);
+        if (otro && otro.estaAtacando) {
+            const dist = Phaser.Math.Distance.Between(player.x, player.y, otro.x, otro.y);
+            if (dist < 100) return true;
+        }
+    }
+    return false;
+}
+// ═══════════════════════════════════════════════════════════════
+// ═══ PLEGARIAS — Ayuda divina automática del Clérigo (v2) ═══
+// ═══════════════════════════════════════════════════════════════
+// Requiere: Fe >= 5, Juicio >= 5, Plegarias >= 1
+// Cada 3s revisa a los jugadores vivos en 250px. Si alguno está en apuros
+// y NO es enemigo en PvP activo, tira un dado. Si activa, lanza un hechizo:
+//   - HP bajo (< 50%) → Curación
+//   - Maná bajo (< 30%) → Restauración de maná  (solo si hay dato real)
+//   - Aguante bajo (< 30%) → Restauración de aguante (solo esYo o con sync real)
+//   - Algo lastimado (50-80%) → Buff ATQ o DEF (al azar, solo otros)
+//   - Sano (> 80%) → Purificar (chance baja, solo otros)
+// NO lanza Photon ni Resurrección. NO gasta maná del Clérigo.
+// ═══════════════════════════════════════════════════════════════
+
+let plegariasUltimoTick = 0;
+const PLEGARIAS_INTERVALO = 3000;   // cada 3s
+const PLEGARIAS_RANGO = 250;        // rango de jugadores
+const PLEGARIAS_PROB_BASE = 0.15;   // 15% de probabilidad base
+
+function procesarPlegarias() {
+    if (!player || !player.isAlive) return;
+    if (pClassName !== 'CLERIGO') return;
+
+    // 🔒 Desbloqueo: Fe >= 5 Y Juicio >= 5
+    const nivelFe = playerStats.fe || 0;
+    const nivelJuicio = playerStats.juicio || 0;
+    if (nivelFe < 5 || nivelJuicio < 5) return;
+
+    // 🔒 Nivel de Plegarias debe ser >= 1
+    const nivelPlegarias = playerStats.plegarias || 0;
+    if (nivelPlegarias <= 0) return;
+
+    const ahora = Date.now();
+    if (ahora - plegariasUltimoTick < PLEGARIAS_INTERVALO) return;
+    plegariasUltimoTick = ahora;
+
+    // 🔍 LOG DE DIAGNÓSTICO
+    console.log('🔍 [PLEGARIA CLIENTE] Tick. fe=' + nivelFe + ' juicio=' + nivelJuicio + ' plegarias=' + nivelPlegarias + ' otherPlayers=' + (otherPlayers ? otherPlayers.getChildren().length : 'null'));
+
+    // % de ayuda según nivel: 2% por nivel (tope 100%)
+    const porcentajeAyuda = Math.min(1.0, nivelPlegarias * 0.02);
+    // Probabilidad: 15% base + 0.5% por nivel (tope 50%)
+    const probabilidad = Math.min(0.5, PLEGARIAS_PROB_BASE + nivelPlegarias * 0.005);
+
+    // ═══ Recolectar candidatos: el propio Clérigo + jugadores vivos en rango ═══
+    const candidatos = [];
+
+    // 🔹 El propio Clérigo SIEMPRE con stats reales
+    candidatos.push({
+        id: socket.id, x: player.x, y: player.y,
+        hp: playerHP, maxHp: playerMaxHP,
+        mana: playerMana, maxMana: playerMaxMana,
+        aguante: playerAguante, maxAguante: playerMaxAguante,
+        nombre: pName, esYo: true
+    });
+
+    // 🔹 Otros jugadores: usar stats reales del sprite (llegan por playerStatsUpdate)
+    if (otherPlayers) {
+        otherPlayers.getChildren().forEach(o => {
+            if (!o.active || o.isDead) return;
+            const dist = Phaser.Math.Distance.Between(player.x, player.y, o.x, o.y);
+            if (dist > PLEGARIAS_RANGO) return;
+            // ❌ Si es enemigo en PvP activo, NO es candidato
+            if (esJugadorEnemigo(o.pName, o.id)) return;
+
+            // 🔥 FIX: leer hp/mana reales guardados en el sprite por el listener playerStatsUpdate
+            const hpReal    = (typeof o.hp === 'number' && o.hp >= 0) ? o.hp : 1;
+            const maxHpReal = (typeof o.maxHp === 'number' && o.maxHp > 1) ? o.maxHp : 1;
+            const manaReal  = (typeof o.mana === 'number' && o.mana >= 0) ? o.mana : 0;
+            const maxManaReal = (typeof o.maxMana === 'number' && o.maxMana > 0) ? o.maxMana : 0;
+
+            candidatos.push({
+                id: o.id, x: o.x, y: o.y,
+                hp: hpReal, maxHp: maxHpReal,
+                mana: manaReal, maxMana: maxManaReal,
+                aguante: 0, maxAguante: 0,   // aguante no se sincroniza para otros
+                nombre: o.pName, esYo: false
+            });
+        });
+    }
+
+    // ═══ Evaluar cada candidato: armar lista de prioridades y elegir la más urgente ═══
+candidatos.forEach(a => {
+    const prioridades = [];
+
+    // ─── HP bajo (< 50%) → Curación ───
+    const hpPct = a.maxHp > 1 ? (a.hp / a.maxHp) : 1;
+    if (hpPct < 0.5) prioridades.push({ tipo: 'vida', urgencia: 1 - hpPct });
+
+    // ─── Maná bajo (< 30%) ───
+    if (a.maxMana > 0 && (a.mana / a.maxMana) < 0.3) {
+        prioridades.push({ tipo: 'mana', urgencia: 1 - (a.mana / a.maxMana) });
+    }
+
+    // ─── Aguante bajo (< 30%) ───
+    if (a.maxAguante > 0 && (a.aguante / a.maxAguante) < 0.3) {
+        prioridades.push({ tipo: 'aguante', urgencia: 1 - (a.aguante / a.maxAguante) });
+    }
+
+    // ─── Buff (otros, 50-80%) ───
+    if (!a.esYo && hpPct < 0.8 && hpPct >= 0.5 && Math.random() < 0.3) {
+        prioridades.push({ tipo: Math.random() < 0.5 ? 'buff_atk' : 'buff_def', urgencia: 0.5 });
+    }
+
+    // ─── Purificar (otros, >= 80%) ───
+    if (!a.esYo && hpPct >= 0.8 && Math.random() < 0.1) {
+        prioridades.push({ tipo: 'purificar', urgencia: 0.3 });
+    }
+
+    // ⚠️ CHEQUEAR ANTES de tocar prioridades[0]
+    if (prioridades.length === 0) return;
+
+    prioridades.sort((x, y) => y.urgencia - x.urgencia);
+    const tipoAyuda = prioridades[0].tipo;
+
+    // 🎲 UNA SOLA tirada (no dos)
+    const tirada = Math.random();
+    console.log(
+        `🔍 [PLEGARIA CLIENTE] Candidato ${a.nombre} ` +
+        `prioridad=${tipoAyuda} urgencia=${prioridades[0].urgencia.toFixed(2)} ` +
+        `tirada=${tirada.toFixed(3)} prob=${probabilidad.toFixed(3)}`
+    );
+
+    if (tirada > probabilidad) return;
+
+    // ⚠️ ESTE LOG TIENE QUE APARECER
+    console.log(`✅ [PLEGARIA CLIENTE] EMITIENDO a ${a.nombre} tipo=${tipoAyuda}`);
+
+    if (socket && socket.connected) {
+        socket.emit('plegariasAyuda', {
+            targetId: a.id,
+            tipoAyuda: tipoAyuda,
+            porcentaje: porcentajeAyuda,
+            nivelPlegarias: nivelPlegarias
+        });
+    }
+
+    reproducirSonidoPlegaria();
+    mostrarMensaje(`🙏 Plegaria escuchada: ${a.nombre} (${tipoAyuda})`, 'exito');
+});
 }
 
 // ═══ FIN PARTE 3/4 — INDEX.HTML ═══

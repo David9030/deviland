@@ -126,6 +126,18 @@ let arboles = [];
 let rocas = [];
 let minas = [];
 let inventariosJugadores = {};
+// ═══════════════════════════════════════════════════════════════
+// ═══ NUEVO: Emitir stats completos a TODOS (para Plegarias y UI) ═══
+// ═══════════════════════════════════════════════════════════════
+function emitirStatsJugador(jugadorId) {
+    const j = players[jugadorId];
+    if (!j) return;
+    io.emit('playerStatsUpdate', {
+        id: jugadorId,
+        hp: j.hp, maxHp: j.maxHp,
+        mana: j.mana, maxMana: j.maxMana
+    });
+}
 
 // ═══ NUEVO: ESTRUCTURAS DE PILARES Y LIGAS ═══
 let pilares = [];
@@ -1246,9 +1258,9 @@ function calcularDañoFinal(objetivoId, dañoBase, tipo = 'fisico', elemento = n
             const porcentajeAbsorcion = 0.15 + ((caballeroCercano.stats.sacrificio || 0) * 0.005);
             const dañoAbsorbido = Math.floor(daño * porcentajeAbsorcion);
             if (dañoAbsorbido > 0) {
-                caballeroCercano.hp = Math.max(0, caballeroCercano.hp - dañoAbsorbido);
-                daño = Math.max(0, daño - dañoAbsorbido);
-                io.emit('playerStatsUpdate', { id: caballeroCercano.id, hp: caballeroCercano.hp });
+caballeroCercano.hp = Math.max(0, caballeroCercano.hp - dañoAbsorbido);
+daño = Math.max(0, daño - dañoAbsorbido);
+emitirStatsJugador(caballeroCercano.id);
                 io.to(caballeroCercano.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `Sacrificio: absorbiste ${dañoAbsorbido} de daño` });
                 io.to(objetivoId).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${caballeroCercano.name} absorbio ${dañoAbsorbido} de daño por ti` });
             }
@@ -1330,12 +1342,16 @@ function revivirJugador(socketId) {
     const j = players[socketId];
     if (!j) return;
     j.isAlive = true;
+    // ═══ FIX: llenar vida, maná y aguante al MÁXIMO REAL del jugador ═══
     j.hp = j.maxHp || CONFIG.PLAYER.MAX_HP;
-    j.mana = (CONFIG.PLAYER.BASE_STATS[j.class]?.mana || 100);
+    j.mana = j.maxMana || (CONFIG.PLAYER.BASE_STATS[j.class]?.mana || 100);
+    // El aguante vive en el cliente, pero por las dudas lo dejamos al máximo también
+    if (j.aguante !== undefined) j.aguante = j.maxAguante || 100;
     j.x = 512;
     j.y = 470;
     jugadoresEnMapa[socketId] = 'principal';
     io.emit('playerRespawn', { id: socketId, x: 512, y: 512 });
+    emitirStatsJugador(socketId);
 }
 
 function cambiarJugadorDeMapa(socketId, mapa) {
@@ -1713,7 +1729,7 @@ setInterval(() => {
                         if (j && tieneHachaLegendaria(j)) { j.contraGolpeContador = (j.contraGolpeContador||0)+1; j.contraGolpeDanioAcumulado = (j.contraGolpeDanioAcumulado||0)+damage; if (j.contraGolpeContador >= 10) { j.contraGolpeBonus = Math.floor(j.contraGolpeDanioAcumulado*0.15); j.contraGolpeCargado = true; io.emit('contraGolpeCargado', { playerId: j.id }); j.contraGolpeContador = 0; j.contraGolpeDanioAcumulado = 0; io.to(j.id).emit('chatMessage', { type:'system', name:'Sistema', msg:`Contra-golpe listo! +${j.contraGolpeBonus} de daño.` }); } }
                         let dañoReflejado = false;
                         if (j && j.className === 'CABALLERO') { const inv = inventariosJugadores[closestRef.id]; const escId = j.equipamiento?.escudo; if (escId && inv && inv.items) { const esc = inv.items.find(i => i.id === escId); if (esc && esc.nombre && esc.nombre.includes('Escudo Espejo')) { const prob = esc.nombre.includes('+++') ? 0.30 : (esc.nombre.includes('++') ? 0.20 : 0.15); if (Math.random() < prob) { demonlord.hp = Math.max(0, demonlord.hp - damage); io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: damage }); dañoReflejado = true; } } } }
-                        if (!dañoReflejado) { if (angelBloqueaDaño(closestRef.id)) { io.emit('angelAbsorbe', { jugadorId: closestRef.id, x: closestRef.x, y: closestRef.y }); return; } closestRef.hp = Math.max(0, closestRef.hp - damage); io.emit('playerStatsUpdate', { id: closestRef.id, hp: closestRef.hp }); }
+                        if (!dañoReflejado) { if (angelBloqueaDaño(closestRef.id)) { io.emit('angelAbsorbe', { jugadorId: closestRef.id, x: closestRef.x, y: closestRef.y }); return; } closestRef.hp = Math.max(0, closestRef.hp - damage); emitirStatsJugador(closestRef.id); }
                         io.emit('demonlordAttackHit', { targetId: closestRef.id, damage: dañoReflejado ? 0 : Math.max(0, Math.floor(damage)), golpeX: hitboxRef.x + hitboxRef.w/2, golpeY: hitboxRef.y + hitboxRef.h/2 });
                         if (closestRef.hp <= 0) { closestRef.isAlive = false; io.emit('playerDeath', { id: closestRef.id, name: closestRef.name }); setTimeout(() => revivirJugador(closestRef.id), CONFIG.PLAYER.RESPAWN_TIME); }
                     } else { closestRef.hp = Math.max(0, closestRef.hp - Math.floor(CONFIG.DEMONLORD.ATTACK_DAMAGE)); io.emit('demonlordAttackHit', { targetId: closestRef.id, damage: Math.floor(CONFIG.DEMONLORD.ATTACK_DAMAGE), golpeX: hitboxRef.x + hitboxRef.w/2, golpeY: hitboxRef.y + hitboxRef.h/2 }); if (closestRef.hp <= 0) { closestRef.isAlive = false; io.emit('esqueletoDeath', { id: closestRef.id, x: closestRef.x, y: closestRef.y, exp: CONFIG.SKELETON.EXP, attackers: ['demonlord'], dir: closestRef.dir || 'Abajo' }); } }
@@ -1827,7 +1843,7 @@ setInterval(() => {
                         damage = Math.max(0, Math.floor(calcularDañoFinal(closestRef.id, danioBase, 'fisico')));
                         const j = players[closestRef.id];
                         if (j && tieneHachaLegendaria(j)) { j.contraGolpeContador = (j.contraGolpeContador||0)+1; j.contraGolpeDanioAcumulado = (j.contraGolpeDanioAcumulado||0)+damage; if (j.contraGolpeContador >= 10) { j.contraGolpeBonus = Math.floor(j.contraGolpeDanioAcumulado*0.15); j.contraGolpeCargado = true; io.emit('contraGolpeCargado', { playerId: j.id }); j.contraGolpeContador = 0; j.contraGolpeDanioAcumulado = 0; io.to(j.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `Contra-golpe listo! +${j.contraGolpeBonus} de daño.` }); } }
-                        if (angelBloqueaDaño(closestRef.id)) { io.emit('angelAbsorbe', { jugadorId: closestRef.id, x: closestRef.x, y: closestRef.y }); return; } closestRef.hp = Math.max(0, closestRef.hp - damage); io.emit('playerStatsUpdate', { id: closestRef.id, hp: closestRef.hp });
+                        if (angelBloqueaDaño(closestRef.id)) { io.emit('angelAbsorbe', { jugadorId: closestRef.id, x: closestRef.x, y: closestRef.y }); return; } closestRef.hp = Math.max(0, closestRef.hp - damage); emitirStatsJugador(closestRef.id);
                         if (j && j.className === 'CABALLERO') { const inv = inventariosJugadores[closestRef.id]; const escId = j.equipamiento?.escudo; if (escId && inv && inv.items) { const esc = inv.items.find(i => i.id === escId); if (esc && esc.nombre && esc.nombre.includes('Escudo Espejo')) { const prob = esc.nombre.includes('+++') ? 0.30 : (esc.nombre.includes('++') ? 0.20 : 0.15); if (Math.random() < prob) { const ese = esqueletos.find(e => e.id === esqueletoRef.id); if (ese) { ese.hp = Math.max(0, ese.hp - damage); io.emit('enemyDamaged', { id: ese.id, x: ese.x, y: ese.y, dmg: damage }); } } } } }
                     } else if (closestRef.id === 'demonlord') { damage = danioBase; closestRef.hp = Math.max(0, closestRef.hp - damage); }
                     else if (closestRef.isAlly) { damage = danioBase; closestRef.hp = Math.max(0, closestRef.hp - damage); io.emit('enemyDamaged', { id: closestRef.id, x: closestRef.x, y: closestRef.y, dmg: Math.max(0, Math.floor(damage)) }); if (closestRef.hp <= 0) { closestRef.isAlive = false; io.emit('esqueletoDeath', { id: closestRef.id, x: closestRef.x, y: closestRef.y, exp: 0, attackers: [], dir: closestRef.dir || 'Abajo' }); } }
@@ -1876,11 +1892,11 @@ setInterval(() => {
         const vidaEnemigo = objetivoDrenaje.hp;
         const drenaje = Math.floor(vidaEnemigo * (porcentajeDrenaje / 100));
         objetivoDrenaje.hp = Math.max(0, objetivoDrenaje.hp - drenaje);
-        j.hp = Math.min(j.maxHp, j.hp + drenaje);
-        j.ultimoDrenajeSangre = ahora;
-        const idObjetivo = objetivoDrenaje.id || 'demonlord';
-        io.emit('enemyDamaged', { id: idObjetivo, x: objetivoDrenaje.x, y: objetivoDrenaje.y, dmg: drenaje, tipo: 'sangre' });
-        io.emit('playerStatsUpdate', { id: socketId, hp: j.hp });
+j.hp = Math.min(j.maxHp, j.hp + drenaje);
+j.ultimoDrenajeSangre = ahora;
+const idObjetivo = objetivoDrenaje.id || 'demonlord';
+io.emit('enemyDamaged', { id: idObjetivo, x: objetivoDrenaje.x, y: objetivoDrenaje.y, dmg: drenaje, tipo: 'sangre' });
+emitirStatsJugador(socketId);
         io.to(socketId).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🩸 Drenaste ${drenaje} HP (${porcentajeDrenaje}%)` });
         if (objetivoDrenaje.hp <= 0 && idObjetivo !== 'demonlord') {
             objetivoDrenaje.isAlive = false;
@@ -1933,9 +1949,9 @@ setInterval(() => {
                         const damage = CONFIG.INVOCADOR.ATTACK_DAMAGE;
                         const dañoFinal = calcularDañoFinal(jugadorRef.id, damage, 'fisico');
                         if (angelBloqueaDaño(jugadorRef.id)) { io.emit('angelAbsorbe', { jugadorId: jugadorRef.id, x: jugadorRef.x, y: jugadorRef.y }); inv.atacandoMelee = false; return; }
-                        jugadorRef.hp = Math.max(0, jugadorRef.hp - dañoFinal);
-                        io.emit('playerStatsUpdate', { id: jugadorRef.id, hp: jugadorRef.hp });
-                        io.emit('invocadorAttackHit', { targetId: jugadorRef.id, damage: dañoFinal, x: jugadorRef.x, y: jugadorRef.y });
+jugadorRef.hp = Math.max(0, jugadorRef.hp - dañoFinal);
+emitirStatsJugador(jugadorRef.id);
+io.emit('invocadorAttackHit', { targetId: jugadorRef.id, damage: dañoFinal, x: jugadorRef.x, y: jugadorRef.y });
                         if (jugadorRef.hp <= 0) { jugadorRef.isAlive = false; io.emit('playerDeath', { id: jugadorRef.id, name: jugadorRef.name }); setTimeout(() => revivirJugador(jugadorRef.id), CONFIG.PLAYER.RESPAWN_TIME); }
                     }
                     inv.atacandoMelee = false;
@@ -1999,19 +2015,57 @@ io.on('connection', (socket) => {
     console.log('Cliente conectado:', socket.id);
     skillCooldowns[socket.id] = { furiaNecrotica: 0 };
     jugadoresEnMapa[socket.id] = 'principal';
-socket.on('sincronizarNivel', (data) => {
-    const j = players[socket.id];
-    if (!j) return;
-    const nivelCliente = parseInt(data.level) || 1;
-    const nivelServer = parseInt(j.level) || 1;
-    // Solo actualizar si el cliente tiene un nivel MÁS ALTO
-    if (nivelCliente > nivelServer) {
-        j.level = nivelCliente;
-        j.exp = parseInt(data.exp) || 0;
-    }
-    // Forzar refresh del ranking para todos
-reemitirRanking();
-});
+
+    // ═══ Sincronizar nivel cliente → server ═══
+    socket.on('sincronizarNivel', (data) => {
+        const j = players[socket.id];
+        if (!j) return;
+        const nivelCliente = parseInt(data.level) || 1;
+        const nivelServer = parseInt(j.level) || 1;
+        // Solo actualizar si el cliente tiene un nivel MÁS ALTO
+        if (nivelCliente > nivelServer) {
+            j.level = nivelCliente;
+            j.exp = parseInt(data.exp) || 0;
+        }
+        // Forzar refresh del ranking para todos
+        reemitirRanking();
+    });
+
+    // ═══ Sincronizar especialidades cliente → server ═══
+    socket.on('sincronizarEspecialidades', (data) => {
+        const j = players[socket.id];
+        if (!j) {
+            console.log('❌ [sincronizarEspecialidades] Jugador NO existe:', socket.id);
+            return;
+        }
+        if (!j.stats) j.stats = {};
+
+        const especialidades = ['fe', 'juicio', 'plegarias', 'templanza', 'angel', 'atqLuz', 'bendito',
+                                'corte', 'regeneracion', 'destreza', 'virtuoso', 'brutalidad', 'actoFugaz',
+                                'sacrificio', 'furia', 'critico', 'legion',
+                                'atqFuego', 'atqAgua', 'atqViento', 'atqTierra', 'atqOscuridad',
+                                'defFuego', 'defAgua', 'defViento', 'defRayo', 'defLuz', 'defOscuridad'];
+
+        especialidades.forEach(stat => {
+            if (data[stat] !== undefined) {
+                j.stats[stat] = Math.max(0, parseInt(data[stat]) || 0);
+            }
+        });
+
+        console.log('✅ [sincronizarEspecialidades] Stats actualizados:', {
+            fe: j.stats.fe, juicio: j.stats.juicio, plegarias: j.stats.plegarias
+        });
+    });
+
+    // ═══ NUEVO: sincronizar maná cliente → server ═══
+    socket.on('sincronizarMana', (data) => {
+        const j = players[socket.id];
+        if (!j || !j.isAlive) return;
+        const manaCliente = parseInt(data.mana);
+        if (isNaN(manaCliente)) return;
+        // El cliente es la fuente de verdad del GASTO de maná (skills que se pagan locales)
+        j.mana = Math.max(0, Math.min(j.maxMana || 100, manaCliente));
+    });
 
     // ═══ BUFFS: pedir buffs activos ═══
     socket.on('solicitarBuffsActivos', () => {
@@ -2066,7 +2120,7 @@ socket.on('newPlayer', (d) => {
             defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0,
             corte: 0, regeneracion: 0, destreza: 0, virtuoso: 0, brutalidad: 0, actoFugaz: 0,
             bendito: 0, sacrificio: 0, furia: 0, critico: 0,
-            atqFuego: 0, atqAgua: 0, atqViento: 0, atqTierra: 0, atqLuz: 0, atqOscuridad: 0, juicio: 0, templanza: 0, fe: 0, angel: 0,
+            atqFuego: 0, atqAgua: 0, atqViento: 0, atqTierra: 0, atqLuz: 0, atqOscuridad: 0, juicio: 0, templanza: 0, fe: 0, angel: 0, plegarias: 0,
         },
         minerales: {},
         equipamiento: { cabeza: null, pecho: null, piernas: null, pies: null, arma: null, escudo: null, ring1: null, ring2: null },
@@ -2249,28 +2303,38 @@ else j.maxHp = 500 + (j.stats.vitalidad * 10);
             bendito: j.stats.bendito || 0, sacrificio: j.stats.sacrificio || 0, furia: j.stats.furia || 0,
             critico: j.stats.critico || 0, atqFuego: j.stats.atqFuego || 0, atqAgua: j.stats.atqAgua || 0,
             atqViento: j.stats.atqViento || 0, atqTierra: j.stats.atqTierra || 0,
-            atqLuz: j.stats.atqLuz || 0, atqOscuridad: j.stats.atqOscuridad || 0
+            atqLuz: j.stats.atqLuz || 0, atqOscuridad: j.stats.atqOscuridad || 0,
+            juicio: j.stats.juicio || 0, templanza: j.stats.templanza || 0,
+            fe: j.stats.fe || 0, angel: j.stats.angel || 0, plegarias: j.stats.plegarias || 0
         });
-        io.emit('playerStatsUpdate', { id: socket.id, hp: j.hp, maxHp: j.maxHp, mana: j.mana, maxMana: j.maxMana });
+        emitirStatsJugador(socket.id);
     });
 
-    socket.on('usarPocion', (data) => {
-        const j = players[socket.id];
-        if (j) {
-            if (data.hpActual !== undefined) j.hp = Math.min(j.maxHp, data.hpActual);
-            j.hp = Math.min(j.maxHp, j.hp + (data.curacion || 50));
-            io.emit('playerStatsUpdate', { id: socket.id, hp: j.hp });
-        }
-    });
+socket.on('usarPocion', (data) => {
+    const j = players[socket.id];
+    if (j) {
+        if (data.hpActual !== undefined) j.hp = Math.min(j.maxHp, data.hpActual);
+        j.hp = Math.min(j.maxHp, j.hp + (data.curacion || 50));
+        io.emit('playerStatsUpdate', {
+            id: socket.id,
+            hp: j.hp, maxHp: j.maxHp,
+            mana: j.mana, maxMana: j.maxMana
+        });
+    }
+});
 
-    socket.on('usarPocionMana', (data) => {
-        const j = players[socket.id];
-        if (j) {
-            if (data.manaActual !== undefined) j.mana = Math.min(j.maxMana, data.manaActual);
-            j.mana = Math.min(j.maxMana, j.mana + (data.restauracion || 30));
-            io.emit('playerStatsUpdate', { id: socket.id, mana: j.mana });
-        }
-    });
+socket.on('usarPocionMana', (data) => {
+    const j = players[socket.id];
+    if (j) {
+        if (data.manaActual !== undefined) j.mana = Math.min(j.maxMana, data.manaActual);
+        j.mana = Math.min(j.maxMana, j.mana + (data.restauracion || 30));
+        io.emit('playerStatsUpdate', {
+            id: socket.id,
+            hp: j.hp, maxHp: j.maxHp,
+            mana: j.mana, maxMana: j.maxMana
+        });
+    }
+});
 
     socket.on('playerMovement', (data) => {
         let p = players[socket.id];
@@ -2323,7 +2387,7 @@ else j.maxHp = 500 + (j.stats.vitalidad * 10);
                     const curacion = Math.floor(j.maxHp * (anillo.idBase === 'anillo_cura_3' ? 0.30 : anillo.idBase === 'anillo_cura_2' ? 0.20 : 0.05));
                     if (curacion > 0) {
                         j.hp = Math.min(j.maxHp, j.hp + curacion);
-                        io.emit('playerStatsUpdate', { id: socket.id, hp: j.hp });
+                        emitirStatsJugador(socket.id);
                         io.to(socket.id).emit('mostrarTextoCuracion', { x: j.x, y: j.y - 50, texto: `+${curacion}`, color: '#88ff88', size: '20px' });
                     }
                 }
@@ -2447,14 +2511,20 @@ if (j.buffs && j.buffs.atkMagico && Date.now() < j.buffs.atkMagico.fin) {
         if (inv) { daniarInvocador(inv.id, Math.floor(Math.max(1, dañoTotal)), socket.id); }
     });
 
-    socket.on('playerMurio', (data) => {
-        const j = players[data.id];
-        if (j && j.isAlive) {
-            j.isAlive = false; j.hp = 0;
-            io.emit('playerDeath', { id: data.id, name: j.name });
-            esqueletos.forEach(e => { if (e.targetId === data.id) { e.targetId = null; e.targetType = null; } });
-        }
-    });
+socket.on('playerMurio', (data) => {
+    const j = players[data.id];
+    if (j && j.isAlive) {
+        j.isAlive = false; j.hp = 0;
+        io.emit('playerDeath', { id: data.id, name: j.name });
+        emitirStatsJugador(data.id);   // ⬅️ SOLO AGREGAR ESTA LÍNEA
+        esqueletos.forEach(e => { if (e.targetId === data.id) { e.targetId = null; e.targetType = null; } });
+        // 🔥 FIX: arrancar timer de respawn del lado servidor
+        setTimeout(() => {
+            const jj = players[data.id];
+            if (jj && !jj.isAlive) revivirJugador(data.id);
+        }, CONFIG.PLAYER.RESPAWN_TIME);
+    }
+});
 
     socket.on('playerRespawn', (data) => { if (data.id === socket.id) revivirJugador(socket.id); });
 
@@ -2702,8 +2772,8 @@ socket.on('solicitarInfoLiga', () => {
         if (!data.esLegion) {
             const vidaEnemigo = 200;
             if (j.hp < vidaEnemigo) { socket.emit('mensaje', 'Vida insuficiente'); return; }
-            j.hp = j.hp - vidaEnemigo;
-            io.emit('playerStatsUpdate', { id: socket.id, hp: j.hp });
+j.hp = j.hp - vidaEnemigo;
+emitirStatsJugador(socket.id);
         }
         let bonusEsqueletos = 0;
         const armaId = j.equipamiento?.arma;
@@ -2760,8 +2830,8 @@ socket.on('solicitarInfoLiga', () => {
             io.emit('esqueletoRevive', { id: c.id, x: c.x, y: c.y, ownerId: socket.id });
             levantados++;
         });
-        io.emit('playerStatsUpdate', { id: socket.id, hp: j.hp, mana: j.mana });
-        if (levantados > 1) socket.emit('mensaje', `💀 ¡Pasiva activada! Levantaste ${levantados} esqueletos`);
+emitirStatsJugador(socket.id);
+if (levantados > 1) socket.emit('mensaje', `💀 ¡Pasiva activada! Levantaste ${levantados} esqueletos`);
     });
 
     socket.on('cosechaOsea', (data) => {
@@ -2772,8 +2842,8 @@ socket.on('solicitarInfoLiga', () => {
         if (nivelOsc < 10) { socket.emit('mensaje', '❌ Necesitás nivel 10 de Oscuridad'); return; }
         const costoVida = data.costoVida || 150;
         if (j.hp <= costoVida) { socket.emit('mensaje', '❌ Vida insuficiente'); return; }
-        j.hp = Math.max(1, j.hp - costoVida);
-        io.emit('playerStatsUpdate', { id: socket.id, hp: j.hp });
+j.hp = Math.max(1, j.hp - costoVida);
+emitirStatsJugador(socket.id);
         let cosechados = 0;
         if (data.ids && Array.isArray(data.ids)) {
             data.ids.forEach(id => {
@@ -2839,8 +2909,8 @@ socket.on('solicitarInfoLiga', () => {
         const curacion = Math.floor(target.maxHp * (0.30 + feBonusPct));
         target.hp = Math.min(target.maxHp, target.hp + curacion);
         io.emit('clerigoCuraEffect', { curadorId: socket.id, curadorNombre: j.name, targetId: targetId, targetNombre: target.name, curacion: curacion, x: target.x, y: target.y });
-        io.emit('playerStatsUpdate', { id: socket.id, mana: j.mana });
-        io.emit('playerStatsUpdate', { id: targetId, hp: target.hp });
+        emitirStatsJugador(socket.id);
+        emitirStatsJugador(targetId);
         io.to(socket.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `✨ Curaste a ${target.name} por ${curacion} HP` });
         io.to(targetId).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `✨ ${j.name} te curó por ${curacion} HP` });
     });
@@ -2886,7 +2956,7 @@ socket.on('clerigoOracion', () => {
     });
 
     io.emit('clerigoOracionEffect', { curadorId: socket.id, curadorNombre: j.name, afectados: afectados, x: j.x, y: j.y, duracion: 10000 });
-    io.emit('playerStatsUpdate', { id: socket.id, mana: j.mana });
+    emitirStatsJugador(socket.id);
     afectados.forEach(id => { io.to(id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🙏 Oración de ${j.name}: +20% daño y +15% defensa por 10s` }); });
 });
 
@@ -2901,15 +2971,15 @@ socket.on('clerigoOracion', () => {
         const targetId = data.targetId;
         const target = players[targetId];
         if (!target || !target.isAlive) { socket.emit('mensaje', '❌ Target inválido'); return; }
-        if (getDistance(j.x, j.y, target.x, target.y) > 200) { socket.emit('mensaje', '❌ Muy lejos'); return; }
+        if (getDistance(j.x, j.y, target.x, target.y) > 300) { socket.emit('mensaje', '❌ Muy lejos (máx 300px)'); return; }
         j.mana -= 30;
         j.cooldownPurificar = ahora;
         if (estadosAlterados[targetId]) { delete estadosAlterados[targetId]; io.emit('estadoTerminado', { id: targetId, tipo: 'todos' }); }
         const curacion = Math.floor(target.maxHp * 0.10);
         target.hp = Math.min(target.maxHp, target.hp + curacion);
-        io.emit('clerigoPurificarEffect', { curadorId: socket.id, curadorNombre: j.name, targetId: targetId, targetNombre: target.name, curacion: curacion, x: target.x, y: target.y });
-        io.emit('playerStatsUpdate', { id: socket.id, mana: j.mana });
-        io.emit('playerStatsUpdate', { id: targetId, hp: target.hp });
+io.emit('clerigoPurificarEffect', { curadorId: socket.id, curadorNombre: j.name, targetId: targetId, targetNombre: target.name, curacion: curacion, x: target.x, y: target.y });
+emitirStatsJugador(socket.id);
+emitirStatsJugador(targetId);
         io.to(socket.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🕊️ Purificaste a ${target.name} (+${curacion} HP)` });
     });
 
@@ -2925,20 +2995,49 @@ socket.on('clerigoOracion', () => {
         const target = players[targetId];
         if (!target) { socket.emit('mensaje', '❌ Target inválido'); return; }
         if (target.isAlive) { socket.emit('mensaje', '❌ Ese jugador está vivo'); return; }
+        // 🔓 SIN validación de aliado: podés revivir a CUALQUIER jugador
         if (getDistance(j.x, j.y, target.x, target.y) > 200) { socket.emit('mensaje', '❌ Muy lejos'); return; }
         j.mana -= 100;
         j.cooldownResurreccion = ahora;
-        target.isAlive = true;
+        
+        // 🔥 FIX: capturar la posición del CADÁVER antes de moverlo
+        const cadaverX = target.x;
+        const cadaverY = target.y;
+        
+        // Calcular HP y maná (pero NO mover todavía al target)
         const feBonus = getValorEspecialidad(socket.id, 'fe') * 5;
         target.hp = Math.floor(target.maxHp * 0.50) + Math.floor(feBonus);
         target.mana = Math.floor((target.maxMana || 100) * 0.30);
-        target.x = j.x + (Math.random() - 0.5) * 40;
-        target.y = j.y + (Math.random() - 0.5) * 40;
-        io.emit('clerigoResurreccionEffect', { curadorId: socket.id, curadorNombre: j.name, targetId: targetId, targetNombre: target.name, hp: target.hp, x: target.x, y: target.y });
-        io.emit('playerRespawn', { id: targetId, x: target.x, y: target.y });
-        io.emit('playerStatsUpdate', { id: socket.id, mana: j.mana });
-        io.emit('playerStatsUpdate', { id: targetId, hp: target.hp, mana: target.mana });
-        io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `✨ ${j.name} revivió a ${target.name} con ${target.hp} HP` });
+        
+        // 🎬 Emitir el efecto VISUAL en la posición del CADÁVER
+        io.emit('clerigoResurreccionEffect', { 
+            curadorId: socket.id, 
+            curadorNombre: j.name, 
+            targetId: targetId, 
+            targetNombre: target.name, 
+            hp: target.hp, 
+            x: cadaverX, 
+            y: cadaverY 
+        });
+        
+        // ⏱️ Esperar a que la pluma toque el suelo (2.5s) ANTES de revivir
+        setTimeout(() => {
+            const t = players[targetId];
+            if (!t) return;
+            t.isAlive = true;
+            // 🔥 FIX: revivir EN LA POSICIÓN DEL CADÁVER (donde cayó la pluma)
+            t.x = cadaverX;
+            t.y = cadaverY;
+            
+io.emit('playerRespawn', { id: targetId, x: t.x, y: t.y });
+emitirStatsJugador(socket.id);
+emitirStatsJugador(targetId);
+            io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `✨ ${j.name} revivió a ${target.name} con ${t.hp} HP` });
+            
+            // ⬇️ NUEVO: Confirmar al Clérigo que la resurrección fue exitosa
+            // Solo acá se marca el cooldown en el cliente
+            io.to(socket.id).emit('clerigoResurreccionExito', { targetId: targetId });
+        }, 2500); // 2500ms = lo que dura la caída de la pluma
     });
 
     socket.on('clerigoPhoton', (data) => {
@@ -2949,36 +3048,110 @@ socket.on('clerigoOracion', () => {
         const ahora = Date.now();
         if (!j.cooldownPhoton) j.cooldownPhoton = 0;
         if (ahora - j.cooldownPhoton < 2000) { socket.emit('mensaje', `⏳ Photon en cooldown (${Math.ceil((2000 - (ahora - j.cooldownPhoton)) / 1000)}s)`); return; }
-        let objetivo = null, menorDist = 400, tipoObjetivo = null, idObjetivo = null;
-        for (let e of esqueletos) { if (e.isAlive && !e.isAlly && e.mapa === 'principal') { const d = getDistance(j.x, j.y, e.x, e.y); if (d < menorDist) { menorDist = d; objetivo = e; tipoObjetivo = 'esqueleto'; idObjetivo = e.id; } } }
-        for (let inv of invocadores) { if (inv.isAlive) { const d = getDistance(j.x, j.y, inv.x, inv.y); if (d < menorDist) { menorDist = d; objetivo = inv; tipoObjetivo = 'invocador'; idObjetivo = inv.id; } } }
-        if (demonlord.isAlive && demonlord.hp > 0) { const d = getDistance(j.x, j.y, demonlord.x, demonlord.y); if (d < menorDist) { menorDist = d; objetivo = demonlord; tipoObjetivo = 'demonlord'; idObjetivo = 'demonlord'; } }
-        if (!objetivo) { socket.emit('mensaje', '❌ No hay enemigos en rango (400px)'); return; }
+
+        // ═══ FIX: buscar el enemigo MÁS CERCANO para el origen del rayo
+        // (igual que trueno, pero DESPUÉS dañamos a TODOS en el radio de explosión)
+        let objetivoCentro = null, menorDist = 400, tipoCentro = null, idCentro = null;
+        for (let e of esqueletos) {
+            if (e.isAlive && !e.isAlly && e.mapa === 'principal') {
+                const d = getDistance(j.x, j.y, e.x, e.y);
+                if (d < menorDist) { menorDist = d; objetivoCentro = e; tipoCentro = 'esqueleto'; idCentro = e.id; }
+            }
+        }
+        for (let inv of invocadores) {
+            if (inv.isAlive) {
+                const d = getDistance(j.x, j.y, inv.x, inv.y);
+                if (d < menorDist) { menorDist = d; objetivoCentro = inv; tipoCentro = 'invocador'; idCentro = inv.id; }
+            }
+        }
+        if (demonlord.isAlive && demonlord.hp > 0) {
+            const d = getDistance(j.x, j.y, demonlord.x, demonlord.y);
+            if (d < menorDist) { menorDist = d; objetivoCentro = demonlord; tipoCentro = 'demonlord'; idCentro = 'demonlord'; }
+        }
+        if (!objetivoCentro) { socket.emit('mensaje', '❌ No hay enemigos en rango (400px)'); return; }
+
+        // ═══ Pagar el costo ANTES de aplicar el daño ═══
         j.mana -= 20;
         j.cooldownPhoton = ahora;
+
+        // ═══ Calcular daño base (igual que antes) ═══
         const bs = CONFIG.PLAYER.BASE_STATS[j.class] || CONFIG.PLAYER.BASE_STATS.clerigo;
         let atqMagicoBase = (bs.baseDamage || 40) + ((j.stats?.inteligencia || 0) * 1.5);
         const luzBonus = getValorEspecialidad(socket.id, 'atqLuz');
         const juicioBonus = getValorEspecialidad(socket.id, 'juicio');
         let danoBase = Math.floor(atqMagicoBase * 0.6) + luzBonus + juicioBonus;
-        if (j.buffs && j.buffs.oracion && Date.now() < j.buffs.oracion.fin) { danoBase = Math.floor(danoBase * (1 + j.buffs.oracion.danoBonus)); }
-        if (tipoObjetivo === 'demonlord') {
-            demonlord.hp = Math.max(0, demonlord.hp - danoBase);
-            if (!demonlord.attackers) demonlord.attackers = [];
-            if (!demonlord.attackers.includes(socket.id)) demonlord.attackers.push(socket.id);
-            io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: danoBase, hp: demonlord.hp });
-            if (demonlord.hp <= 0) {
-                demonlord.isAlive = false; demonlord.aturdido = false; registrarMuerteDemonlord();
-                io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
-                setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; demonlord.aturdido = false; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME);
-            }
-        } else if (tipoObjetivo === 'invocador') { daniarInvocador(idObjetivo, danoBase, socket.id); }
-        else if (tipoObjetivo === 'esqueleto') { daniarEsqueleto(objetivo, socket.id, danoBase, 'luz'); }
-        io.emit('clerigoPhotonEffect', { curadorId: socket.id, curadorNombre: j.name, targetId: idObjetivo, targetType: tipoObjetivo, targetX: objetivo.x, targetY: objetivo.y, dano: danoBase });
-        io.emit('playerStatsUpdate', { id: socket.id, mana: j.mana });
-        socket.emit('mensaje', `✨ Photon impactó a ${tipoObjetivo} por ${danoBase} de daño`);
-    });
+        if (j.buffs && j.buffs.oracion && Date.now() < j.buffs.oracion.fin) {
+            danoBase = Math.floor(danoBase * (1 + j.buffs.oracion.danoBonus));
+        }
 
+        // ═══ Radio de explosión (igual que en el cliente: RADIO_EXPLOSION = 45) ═══
+        const RADIO_EXPLOSION = 60;   // un poco más grande que el visual (45) para que se sienta bien
+        const cx = objetivoCentro.x;
+        const cy = objetivoCentro.y;
+
+        // ═══ Golpear a TODOS los esqueletos enemigos dentro del radio ═══
+        let impactos = 0;
+        esqueletos.forEach(e => {
+            if (!e.isAlive || e.isAlly || e.mapa !== 'principal') return;
+            const dist = getDistance(cx, cy, e.x, e.y);
+            if (dist <= RADIO_EXPLOSION) {
+                daniarEsqueleto(e, socket.id, danoBase, 'luz');
+                impactos++;
+            }
+        });
+
+        // ═══ Golpear a TODOS los invocadores dentro del radio ═══
+        invocadores.forEach(inv => {
+            if (!inv.isAlive) return;
+            const dist = getDistance(cx, cy, inv.x, inv.y);
+            if (dist <= RADIO_EXPLOSION) {
+                daniarInvocador(inv.id, danoBase, socket.id);
+                impactos++;
+            }
+        });
+
+        // ═══ Golpear al Demonlord si está dentro del radio ═══
+        if (demonlord.isAlive && demonlord.hp > 0) {
+            const dist = getDistance(cx, cy, demonlord.x, demonlord.y);
+            if (dist <= RADIO_EXPLOSION + 20) {   // +20 porque el Demonlord es grande
+                demonlord.hp = Math.max(0, demonlord.hp - danoBase);
+                if (!demonlord.attackers) demonlord.attackers = [];
+                if (!demonlord.attackers.includes(socket.id)) demonlord.attackers.push(socket.id);
+                io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: danoBase, hp: demonlord.hp });
+                impactos++;
+                if (demonlord.hp <= 0) {
+                    demonlord.isAlive = false; demonlord.aturdido = false; registrarMuerteDemonlord();
+                    io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
+                    setTimeout(() => {
+                        demonlord.hp = CONFIG.DEMONLORD.MAX_HP;
+                        demonlord.isAlive = true;
+                        demonlord.x = 1500; demonlord.y = 1500;
+                        demonlord.attackers = []; demonlord.aturdido = false;
+                        io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y });
+                    }, CONFIG.DEMONLORD.RESPAWN_TIME);
+                }
+            }
+        }
+
+        // ═══ Efecto visual en el punto de impacto ═══
+        io.emit('clerigoPhotonEffect', {
+            curadorId: socket.id,
+            curadorNombre: j.name,
+            targetId: idCentro,
+            targetType: tipoCentro,
+            targetX: cx,
+            targetY: cy,
+            dano: danoBase,
+            impactos: impactos
+        });
+        emitirStatsJugador(socket.id);
+
+        if (impactos === 0) {
+            socket.emit('mensaje', `✨ Photon detonó pero no golpeó a nadie`);
+        } else {
+            socket.emit('mensaje', `✨ Photon golpeó a ${impactos} enemigo(s) por ${danoBase} de daño c/u`);
+        }
+    });
     // ═══════════════════════════════════════════════════════════════
     // ═══ NUEVO: BUFFS DEL CLÉRIGO ═══
     // ═══════════════════════════════════════════════════════════════
@@ -2998,8 +3171,8 @@ socket.on('clerigoOracion', () => {
         j[campoCooldown] = ahora;
         if (!target.buffs) target.buffs = {};
         target.buffs[tipoBuff] = { fin: ahora + 15000, valor: valorBuff };
-        io.emit('clerigoBuffEffect', { curadorId: socketId, curadorNombre: j.name, targetId: targetId, targetNombre: target.name, tipoBuff: tipoBuff, valor: valorBuff, x: target.x, y: target.y });
-        io.emit('playerStatsUpdate', { id: socketId, mana: j.mana });
+io.emit('clerigoBuffEffect', { curadorId: socketId, curadorNombre: j.name, targetId: targetId, targetNombre: target.name, tipoBuff: tipoBuff, valor: valorBuff, x: target.x, y: target.y });
+emitirStatsJugador(socketId);
         io.to(socketId).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `✨ Buff ${tipoBuff} aplicado a ${target.name} por 15s` });
         io.to(targetId).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `✨ ${j.name} te aplicó Buff ${tipoBuff} por 15s` });
     }
@@ -3007,6 +3180,116 @@ socket.on('clerigoOracion', () => {
     socket.on('clerigoBuffAtkMagico', (data) => { aplicarBuffClerigo(socket.id, data, 'atkMagico', 0.25, data.targetId); });
     socket.on('clerigoBuffDefFisica', (data) => { aplicarBuffClerigo(socket.id, data, 'defFisica', 0.20, data.targetId); });
     socket.on('clerigoBuffDefMagica', (data) => { aplicarBuffClerigo(socket.id, data, 'defMagica', 0.20, data.targetId); });
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ PLEGARIAS — Ayuda divina automática del Clérigo ═══
+// ═══════════════════════════════════════════════════════════════
+socket.on('plegariasAyuda', (data) => {
+    console.log('🔍 [TEST PLEGARIA] Handler ejecutado. data:', JSON.stringify(data));
+
+    const j = players[socket.id];
+    if (!j || !j.isAlive) { console.log('🔍 [TEST PLEGARIA] Cortó: j no existe o no está vivo'); return; }
+    if (j.className !== 'CLERIGO') { console.log('🔍 [TEST PLEGARIA] Cortó: no es CLERIGO'); return; }
+
+    // 🔒 Desbloqueo: Fe >= 5 y Juicio >= 5
+    const nivelFe = j.stats?.fe || 0;
+    const nivelJuicio = j.stats?.juicio || 0;
+    if (nivelFe < 5 || nivelJuicio < 5) { console.log(`🔍 [TEST PLEGARIA] Cortó: fe=${nivelFe} juicio=${nivelJuicio} (necesita >=5)`); return; }
+
+    // 🔥 FIX: usar el nivelPlegarias que viene del CLIENTE (data), no el del server
+    const nivelPlegarias = parseInt(data.nivelPlegarias) || j.stats?.plegarias || 0;
+    if (nivelPlegarias <= 0) { console.log('🔍 [TEST PLEGARIA] Cortó: plegarias<=0 (data=' + data.nivelPlegarias + ', server=' + (j.stats?.plegarias || 0) + ')'); return; }
+
+    const targetId = data.targetId;
+    const target = players[targetId];
+    if (!target || !target.isAlive) { console.log('🔍 [TEST PLEGARIA] Cortó: target inválido'); return; }
+
+    console.log(`🙏 [SERVER PLAGARIA] ${j.name} → ${target.name} | tipo=${data.tipoAyuda} | nivel=${nivelPlegarias}`);
+
+    // ═══ Efecto visual para TODOS ═══
+    io.emit('plegariaEfecto', {
+        x: target.x,
+        y: target.y,
+        tipoAyuda: data.tipoAyuda,
+        curadorId: socket.id,
+        curadorNombre: j.name,
+        targetId: targetId,
+        targetNombre: target.name
+    });
+    console.log('🔍 [TEST PLEGARIA] EMIT EJECUTADO');
+
+    const porcentaje = Math.min(1.0, nivelPlegarias * 0.02);
+    const tipoAyuda = data.tipoAyuda;
+
+    // ─── Curación ───
+    if (tipoAyuda === 'vida') {
+        const curacion = Math.floor(target.maxHp * porcentaje);
+        const hpAntes = target.hp;
+        target.hp = Math.min(target.maxHp, target.hp + curacion);
+        console.log(`💚 [SERVER PLAGARIA VIDA] ${target.name}: ${hpAntes} → ${target.hp}/${target.maxHp} (+${curacion})`);
+        emitirStatsJugador(targetId);
+        io.to(targetId).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🙏 Plegaria te curó ${curacion} HP` });
+        io.to(socket.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🙏 Plegaria curó a ${target.name} (+${curacion} HP)` });
+    }
+    // ─── Restauración de maná ───
+    else if (tipoAyuda === 'mana') {
+        const restauracion = Math.floor((target.maxMana || 100) * porcentaje);
+        const manaAntes = target.mana;
+        target.mana = Math.min(target.maxMana || 100, target.mana + restauracion);
+        console.log(`💙 [SERVER PLAGARIA MANA] ${target.name}: ${manaAntes} → ${target.mana}/${target.maxMana} (+${restauracion})`);
+        io.to(targetId).emit('plegariasMana', {
+            mana: target.mana,
+            maxMana: target.maxMana || 100,
+            restaurado: target.mana - manaAntes
+        });
+        emitirStatsJugador(targetId);
+        io.to(targetId).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🙏 Plegaria te restauró ${restauracion} maná` });
+        io.to(socket.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🙏 Plegaria restauró maná a ${target.name} (+${restauracion})` });
+    }
+    // ─── Restauración de aguante ───
+    else if (tipoAyuda === 'aguante') {
+        io.to(targetId).emit('plegariasAguante', { cantidad: porcentaje });
+        io.to(socket.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🙏 Plegaria restauró aguante a ${target.name}` });
+    }
+    // ─── Buff de ataque físico ───
+    else if (tipoAyuda === 'buff_atk') {
+        if (!target.buffs) target.buffs = {};
+        target.buffs.atkFisico = { fin: Date.now() + 10000, valor: porcentaje };
+        io.emit('clerigoBuffEffect', {
+            curadorId: socket.id, curadorNombre: j.name,
+            targetId: targetId, targetNombre: target.name,
+            tipoBuff: 'atkFisico', valor: porcentaje,
+            x: target.x, y: target.y
+        });
+        io.to(targetId).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🙏 Plegaria: +${Math.floor(porcentaje*100)}% daño físico por 10s` });
+        io.to(socket.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🙏 Plegaria bendijo a ${target.name} (+${Math.floor(porcentaje*100)}% ATQ físico)` });
+    }
+    // ─── Buff de defensa física ───
+    else if (tipoAyuda === 'buff_def') {
+        if (!target.buffs) target.buffs = {};
+        target.buffs.defFisica = { fin: Date.now() + 10000, valor: porcentaje };
+        io.emit('clerigoBuffEffect', {
+            curadorId: socket.id, curadorNombre: j.name,
+            targetId: targetId, targetNombre: target.name,
+            tipoBuff: 'defFisica', valor: porcentaje,
+            x: target.x, y: target.y
+        });
+        io.to(targetId).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🙏 Plegaria: +${Math.floor(porcentaje*100)}% defensa física por 10s` });
+        io.to(socket.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🙏 Plegaria protegió a ${target.name} (+${Math.floor(porcentaje*100)}% DEF física)` });
+    }
+    // ─── Purificar ───
+    else if (tipoAyuda === 'purificar') {
+        if (estadosAlterados[targetId]) {
+            delete estadosAlterados[targetId];
+            io.emit('estadoTerminado', { id: targetId, tipo: 'todos' });
+        }
+        const curacion = Math.floor(target.maxHp * 0.05);
+        target.hp = Math.min(target.maxHp, target.hp + curacion);
+        emitirStatsJugador(targetId);
+        io.to(targetId).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🙏 Plegaria te purificó (+${curacion} HP)` });
+        io.to(socket.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🙏 Plegaria purificó a ${target.name}` });
+    }
+});
     // ═══════════════════════════════════════════════════════════════
     // ═══ FIN SKILLS DEL CLÉRIGO ═══
     // ═══════════════════════════════════════════════════════════════
@@ -3023,7 +3306,7 @@ socket.on('clerigoOracion', () => {
         const cost = cant * 10;
         if (j.mana < cost) { socket.emit('mensaje', `Necesitas ${cost} mana`); return; }
         j.mana -= cost;
-        io.emit('playerStatsUpdate', { id: socket.id, mana: j.mana });
+        emitirStatsJugador(socket.id);
         const bonus = cant * 0.07;
         const bonusDamage = Math.floor(CONFIG.SKELETON.ATTACK_DAMAGE * bonus);
         const ids = [];
@@ -3374,6 +3657,7 @@ setTimeout(() => {
         }
     });
 }, 1000);
+
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`DEVILAND - Puerto ${PORT}`));
 
