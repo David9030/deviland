@@ -9,6 +9,47 @@ const io = require('socket.io')(http);
 const path = require('path');
 const fs = require('fs');
 
+// ═══════════════════════════════════════════════════════════════
+// ═══ ACADEMIA DE LA LIGA — CONSTANTES ═══
+// ═══════════════════════════════════════════════════════════════
+const ACADEMIA_TECH_POR_NIVEL = {
+    oro: 1,
+    hp: 2,
+    atkFis: 3,
+    atkMag: 4,
+    defFis: 5,
+    defMag: 6
+};
+
+const ACADEMIA_NOMBRES = {
+    oro: 'Produccion de Oro',
+    hp: 'HP del Heroe',
+    atkFis: 'Ataque Fisico',
+    atkMag: 'Ataque Magico',
+    defFis: 'Defensa Fisica',
+    defMag: 'Defensa Magica'
+};
+
+const ACADEMIA_BONUS = {
+    oro: 60,
+    hp: 20,
+    atkFis: 12,
+    atkMag: 12,
+    defFis: 8,
+    defMag: 8
+};
+
+const ACADEMIA_MAX_NIVEL_TECH = 50;
+const ACADEMIA_MAX_NIVEL = 6;
+
+function calcularCostoAcademia(nivelActual) {
+    return 50000 * Math.pow(2, nivelActual - 1);
+}
+
+function calcularCostoTech(nivelActual) {
+    return (nivelActual * (nivelActual - 1) * 5) + 50;
+}
+
 const CONFIG = {
     PORT: 10000,
     DEMONLORD: { MAX_HP: 5000, RESPAWN_TIME: 50000, SPEED: 6, ATTACK_COOLDOWN: 2000, ATTACK_DAMAGE: 200, VISION_RANGE: 400, EXP: 500 },
@@ -152,6 +193,8 @@ let ultimaAlarmaPilar = {};      // { pilarId: timestampUltimaAlarma }
 const INVENTARIOS_FILE = './inventarios.json';
 const PILARES_FILE = './pilares.json';
 const LIGAS_FILE = './ligas.json';
+const ACADEMIA_FILE = './academia_persistencia.json';
+let academiaPersistencia = {};
 
 try {
     if (fs.existsSync(INVENTARIOS_FILE)) {
@@ -185,6 +228,16 @@ try {
 } catch(e) {
     console.log('⚠️ Error al cargar ligas:', e.message);
 }
+try {
+    if (fs.existsSync(ACADEMIA_FILE)) {
+        academiaPersistencia = JSON.parse(fs.readFileSync(ACADEMIA_FILE, 'utf8'));
+        console.log(`✅ Academia cargada desde disco (${Object.keys(academiaPersistencia).length} jugadores)`);
+    } else {
+        console.log('📂 No hay academia previa, arrancando de cero');
+    }
+} catch(e) {
+    console.log('⚠️ Error al cargar academia:', e.message);
+}
 
 // 🔥 FIX: MIGRACIÓN - asegurar que todos los pilares tengan dueñoNombre guardado
 pilares.forEach(p => {
@@ -202,10 +255,23 @@ console.log(`🔍 [MIGRACIÓN] Pilares con dueñoNombre: ${pilares.filter(p => p
 // Guardar automáticamente cada 30 segundos
 setInterval(() => {
     try {
+        // ═══ NUEVO: volcar cristanite y academia de cada jugador conectado al archivo de persistencia ═══
+for (let socketId in players) {
+    const j = players[socketId];
+    if (!j || !j.name) continue;
+    academiaPersistencia[j.name] = {
+        cristanite: j.cristanite || 0,
+        academia: j.academia || { oro: 0, hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0 },
+        level: j.level || 1,                          
+        exp: j.exp || 0,                              
+        stats: j.stats || {}                          
+    };
+}
         fs.writeFileSync(INVENTARIOS_FILE, JSON.stringify(inventariosJugadores, null, 2));
         fs.writeFileSync(PILARES_FILE, JSON.stringify(pilares, null, 2));
         fs.writeFileSync(LIGAS_FILE, JSON.stringify(ligas, null, 2));
-        console.log(`💾 Guardado: ${Object.keys(inventariosJugadores).length} inv, ${pilares.length} pilares, ${Object.keys(ligas).length} ligas`);
+        fs.writeFileSync(ACADEMIA_FILE, JSON.stringify(academiaPersistencia, null, 2));
+        console.log(`💾 Guardado: ${Object.keys(inventariosJugadores).length} inv, ${pilares.length} pilares, ${Object.keys(ligas).length} ligas, ${Object.keys(academiaPersistencia).length} academias`);
     } catch(e) {
         console.log('⚠️ Error al guardar datos:', e.message);
     }
@@ -274,6 +340,55 @@ function getValorEspecialidad(jugadorId, stat) {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// ═══ ACADEMIA: Bonus de stats ═══
+// ═══════════════════════════════════════════════════════════════
+function aplicarBonusAcademia(jugadorId) {
+    const j = players[jugadorId];
+    if (!j || !j.academia) return { hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0, oroPorHora: 0 };
+    
+    const ac = j.academia;
+    return {
+        hp: (ac.hp || 0) * ACADEMIA_BONUS.hp,
+        atkFis: (ac.atkFis || 0) * ACADEMIA_BONUS.atkFis,
+        atkMag: (ac.atkMag || 0) * ACADEMIA_BONUS.atkMag,
+        defFis: (ac.defFis || 0) * ACADEMIA_BONUS.defFis,
+        defMag: (ac.defMag || 0) * ACADEMIA_BONUS.defMag,
+        oroPorHora: (ac.oro || 0) * ACADEMIA_BONUS.oro
+    };
+}
+// ═══════════════════════════════════════════════════════════════
+// ✅ FIX HP/MANA — Helper central que recalcula maxHp/maxMana
+//    SIEMPRE con academia + buff de pilar. Llamarlo antes de
+//    cualquier clamp, curación o emisión de stats.
+// ═══════════════════════════════════════════════════════════════
+function recalcularMaxHp(jugadorId) {
+    const j = players[jugadorId];
+    if (!j) return;
+
+    const bonusAc = aplicarBonusAcademia(jugadorId);
+    const hpBase = (j.className === 'BARBARO' ? 800
+                  : (j.className === 'MAGO' || j.className === 'NECROMANCER' ? 300 : 500))
+                  + ((j.stats?.vitalidad || 0) * 10)
+                  + (bonusAc.hp || 0);
+
+    const buffVida = obtenerBuffPilarJugador(jugadorId, 'vida');
+    j.maxHp = Math.floor(hpBase * (1 + buffVida));
+    if (j.hp > j.maxHp) j.hp = j.maxHp;
+
+    const bs = CONFIG.PLAYER.BASE_STATS[j.class] || CONFIG.PLAYER.BASE_STATS.warrior;
+    let manaBase = bs.mana || 100;
+    const inv = inventariosJugadores[jugadorId];
+    if (inv && j.equipamiento?.arma) {
+        const arma = inv.items.find(i => i.id === j.equipamiento.arma);
+        if (arma && arma.manaBonus) manaBase += arma.manaBonus;
+    }
+    const buffMana = obtenerBuffPilarJugador(jugadorId, 'mana');
+    let manaTotal = manaBase + ((j.stats?.sabiduria || 0) * 10);
+    j.maxMana = Math.floor(manaTotal * (1 + buffMana));
+    if (j.mana > j.maxMana) j.mana = j.maxMana;
+}
+
 function getPlayerDefenseFisica(playerId) {
     const j = players[playerId];
     if (!j) return 0;
@@ -300,7 +415,11 @@ function getPlayerDefenseFisica(playerId) {
         def += getValorEspecialidad(playerId, 'templanza');
         def += getValorEspecialidad(playerId, 'virtuoso');
     }
-    
+
+    // ═══ NUEVO: ACADEMIA (defensa fisica) ═══
+    const bonusAcademiaDefFis = aplicarBonusAcademia(playerId);
+    def += bonusAcademiaDefFis.defFis;
+
     return Math.max(0, Math.floor(def));
 }
 
@@ -365,6 +484,10 @@ function getPlayerDefensaMagica(playerId) {
         def += getValorEspecialidad(playerId, 'templanza');
         def += getValorEspecialidad(playerId, 'virtuoso');
     }
+    
+    // ═══ NUEVO: ACADEMIA (defensa magica) ═══
+    const bonusAcademiaDefMag = aplicarBonusAcademia(playerId);
+    def += bonusAcademiaDefMag.defMag;
     
     return Math.max(0, Math.floor(def));
 }
@@ -841,7 +964,10 @@ ligas[ligaId] = {
     oro: 0,
     exp: 0,
     nivel: 1,
-    misionActual: null
+    misionActual: null,
+    // ═══ NUEVO: ACADEMIA ═══
+    academiaNivel: 1,
+    boveda: 0
 };
     chatLiga[ligaId] = [];
     asignarMision(ligas[ligaId]);   // ⬅️ NUEVO
@@ -1666,30 +1792,7 @@ setInterval(() => {
     for (let socketId in players) {
         const j = players[socketId];
         if (!j || !j.isAlive) continue;
-        const buffVida = obtenerBuffPilarJugador(socketId, 'vida');
-        const buffMana = obtenerBuffPilarJugador(socketId, 'mana');
-        // Recalcular maxHp y maxMana con buffs
-        const bs = CONFIG.PLAYER.BASE_STATS[j.class] || CONFIG.PLAYER.BASE_STATS.warrior;
-        let hpBase = (j.className === 'BARBARO' ? 800 : (j.className === 'MAGO' || j.className === 'NECROMANCER' ? 300 : 500)) + ((j.stats?.vitalidad || 0) * 10);
-        let manaBase = bs.mana || 100;
-        const inv = inventariosJugadores[socketId];
-        if (inv && j.equipamiento?.arma) {
-            const arma = inv.items.find(i => i.id === j.equipamiento.arma);
-            if (arma && arma.manaBonus) manaBase += arma.manaBonus;
-        }
-        let manaTotal = manaBase + ((j.stats?.sabiduria || 0) * 10) + ((j.stats?.inteligencia || 0) * 10);
-        let hpTotal = hpBase + (hpBase * buffVida);
-        let manaTotalConBuff = manaTotal + (manaTotal * buffMana);
-        if (j.maxHp !== Math.floor(hpTotal)) {
-            j.maxHp = Math.floor(hpTotal);
-            if (j.hp > j.maxHp) j.hp = j.maxHp;
-            io.emit('playerStatsUpdate', { id: socketId, hp: j.hp, maxHp: j.maxHp });
-        }
-        if (j.maxMana !== Math.floor(manaTotalConBuff)) {
-            j.maxMana = Math.floor(manaTotalConBuff);
-            if (j.mana > j.maxMana) j.mana = j.maxMana;
-            io.emit('playerStatsUpdate', { id: socketId, mana: j.mana, maxMana: j.maxMana });
-        }
+        recalcularMaxHp(socketId);
     }
 }, 5000);
 
@@ -2017,19 +2120,46 @@ io.on('connection', (socket) => {
     jugadoresEnMapa[socket.id] = 'principal';
 
     // ═══ Sincronizar nivel cliente → server ═══
-    socket.on('sincronizarNivel', (data) => {
-        const j = players[socket.id];
-        if (!j) return;
-        const nivelCliente = parseInt(data.level) || 1;
-        const nivelServer = parseInt(j.level) || 1;
-        // Solo actualizar si el cliente tiene un nivel MÁS ALTO
-        if (nivelCliente > nivelServer) {
-            j.level = nivelCliente;
-            j.exp = parseInt(data.exp) || 0;
+socket.on('sincronizarNivel', (data) => {
+    const j = players[socket.id];
+    if (!j) return;
+
+    const nivelCliente = parseInt(data.level) || 1;
+    const nivelServer = parseInt(j.level) || 1;
+
+    // Solo actualizar si el cliente tiene un nivel MÁS ALTO
+    if (nivelCliente > nivelServer) {
+        j.level = nivelCliente;
+        j.exp = parseInt(data.exp) || 0;
+    }
+
+    // ⬇️ NUEVO: sincronizar stats (puntosDisponibles, puntosEspecialidad, especialidades, academia, etc.)
+    if (data.stats && typeof data.stats === 'object') {
+        const statsRecibidos = data.stats;
+        for (let k in statsRecibidos) {
+            const val = statsRecibidos[k];
+
+            // ─── Campos numéricos simples (puntos, especialidades, atributos) ───
+            if (typeof val === 'number' && !isNaN(val)) {
+                // Usar el MÁXIMO para no perder progreso nunca
+                j.stats[k] = Math.max(j.stats[k] || 0, val);
+            }
+
+            // ─── Academia (objeto anidado) ───
+            else if (k === 'academia' && val && typeof val === 'object') {
+                if (!j.academia) j.academia = { oro: 0, hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0 };
+                for (let tech in val) {
+                    if (typeof val[tech] === 'number' && !isNaN(val[tech])) {
+                        j.academia[tech] = Math.max(j.academia[tech] || 0, val[tech]);
+                    }
+                }
+            }
         }
-        // Forzar refresh del ranking para todos
-        reemitirRanking();
-    });
+    }
+
+    // Forzar refresh del ranking para todos
+    reemitirRanking();
+});
 
     // ═══ Sincronizar especialidades cliente → server ═══
     socket.on('sincronizarEspecialidades', (data) => {
@@ -2110,6 +2240,12 @@ socket.on('newPlayer', (d) => {
     else if (d.className === 'NECROMANCER') { atq = 15; hpInicial = 300; }
     else if (d.className === 'CLERIGO') { atq = 40; hpInicial = 500; }
 
+    // ✅ FIX: sumar bonus de academia al HP inicial
+    if (academiaPersistencia[d.name] && academiaPersistencia[d.name].academia) {
+        const ac = academiaPersistencia[d.name].academia;
+        hpInicial += (ac.hp || 0) * ACADEMIA_BONUS.hp;
+    }
+
     players[socket.id] = {
         id: socket.id, x: 512, y: 470, class: (d.class || 'warrior').toLowerCase(), name: d.name, className: d.className,
         hp: hpInicial, maxHp: hpInicial, isAlive: true, deathCount: 0, deathPosition: null,
@@ -2133,7 +2269,17 @@ socket.on('newPlayer', (d) => {
 contraGolpeContador: 0, contraGolpeDanioAcumulado: 0, contraGolpeCargado: false, contraGolpeBonus: 0,
 // ═══ NUEVO: estado del Ángel ═══
 angelInmuneHasta: 0,
-angelUltimoUso: 0
+angelUltimoUso: 0,
+    // ═══ NUEVO: ACADEMIA ═══
+    cristanite: 0,
+    academia: {
+        oro: 0,
+        hp: 0,
+        atkFis: 0,
+        atkMag: 0,
+        defFis: 0,
+        defMag: 0
+    }
 };
     jugadoresEnMapa[socket.id] = 'principal';
 
@@ -2179,6 +2325,50 @@ angelUltimoUso: 0
             io.emit('pilaresIniciales', pilaresSnapshot);
         }
     }, 1200);
+// ═══ NUEVO: restaurar cristanite, academia, level, exp y stats desde disco ═══
+if (academiaPersistencia[d.name]) {
+    const guardado = academiaPersistencia[d.name];
+    players[socket.id].cristanite = guardado.cristanite || 0;
+    players[socket.id].academia = guardado.academia || { oro: 0, hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0 };
+
+    // ⬇️ NUEVO: restaurar nivel y exp
+    if (guardado.level && guardado.level > 1) {
+        players[socket.id].level = guardado.level;
+        players[socket.id].exp = guardado.exp || 0;
+    }
+    // ⬇️ NUEVO: restaurar stats (puntosDisponibles, puntosEspecialidad, especialidades, etc.)
+    if (guardado.stats) {
+        for (let k in guardado.stats) {
+            if (guardado.stats[k] !== undefined && !isNaN(guardado.stats[k])) {
+                players[socket.id].stats[k] = Math.max(players[socket.id].stats[k] || 0, parseInt(guardado.stats[k]) || 0);
+            }
+        }
+    }
+
+    console.log(`🎓 Progreso restaurado para ${d.name}: level=${players[socket.id].level}, cristanite=${players[socket.id].cristanite}, techs=`, players[socket.id].academia);
+
+// Recalcular maxHp con bonus de academia (sin importar si hp tech es 0)
+    const bonusAc = aplicarBonusAcademia(socket.id);
+    players[socket.id].maxHp = (players[socket.id].className === 'BARBARO' ? 800 : (players[socket.id].className === 'MAGO' || players[socket.id].className === 'NECROMANCER' ? 300 : 500))
+        + ((players[socket.id].stats.vitalidad || 0) * 10)
+        + bonusAc.hp;
+    if (players[socket.id].hp > players[socket.id].maxHp) players[socket.id].hp = players[socket.id].maxHp;
+
+    emitirStatsJugador(socket.id);
+}
+
+// ═══ NUEVO: enviar stats completos al cliente (SIEMPRE, con o sin persistencia) ═══
+socket.emit('playerStatsCompletos', {
+    stats: players[socket.id].stats,
+    academia: players[socket.id].academia,
+    cristanite: players[socket.id].cristanite,
+    level: players[socket.id].level,
+    exp: players[socket.id].exp,
+    maxHp: players[socket.id].maxHp,
+    maxMana: players[socket.id].maxMana,
+    hp: players[socket.id].hp,
+    mana: players[socket.id].mana
+});
 
     setTimeout(() => {
         migrarLigasAlReconectar(socket.id);
@@ -2251,15 +2441,12 @@ socket.on('actualizarInventario', (data) => {
         j.stats.templanza = Math.max(0, stats.templanza || 0);
         j.stats.fe = Math.max(0, stats.fe || 0);
         j.stats.angel = Math.max(0, stats.angel || 0);
-        const bs = CONFIG.PLAYER.BASE_STATS[j.class] || CONFIG.PLAYER.BASE_STATS.warrior;
-        j.maxHp = (j.className === 'BARBARO' ? 800 : (j.className === 'MAGO' || j.className === 'NECROMANCER' ? 300 : 500)) + ((j.stats.vitalidad || 0) * 10);
-        let manaBase = bs.mana || 100;
-        const inv = inventariosJugadores[socket.id];
-        if (inv && j.equipamiento?.arma) { const arma = inv.items.find(i => i.id === j.equipamiento.arma); if (arma && arma.manaBonus) manaBase += arma.manaBonus; }
-        j.maxMana = manaBase + ((j.stats.sabiduria || 0) * 10) + ((j.stats.inteligencia || 0) * 10);
+
+        // ✅ FIX: recalcular maxHp/maxMana con academia y pilar
+        recalcularMaxHp(socket.id);
     }
     // 🔥 FIX: Reemitir ranking cuando cambia el equipamiento/stats (afecta poder)
-reemitirRanking();
+    reemitirRanking();
 });
     socket.on('asignarPuntoStat', (data) => {
         const j = players[socket.id];
@@ -2279,13 +2466,14 @@ reemitirRanking();
     if (j.stats[stat] >= TOPE_ESPECIALIDAD) { socket.emit('mensaje', '❌ Máximo alcanzado (100)'); return; }
     j.stats.puntosEspecialidad--; j.stats[stat]++;
 }
-        if (stat === 'vitalidad') {
-if (j.className === 'BARBARO') j.maxHp = 800 + (j.stats.vitalidad * 10);
-else if (j.className === 'MAGO' || j.className === 'NECROMANCER') j.maxHp = 300 + (j.stats.vitalidad * 10);
-else if (j.className === 'CLERIGO') j.maxHp = 500 + (j.stats.vitalidad * 10);
-else j.maxHp = 500 + (j.stats.vitalidad * 10);
-            j.hp = Math.min(j.hp, j.maxHp);
-        }
+if (stat === 'vitalidad') {
+    const bonusAcVida = aplicarBonusAcademia(socket.id);  // ⬅️ NUEVO
+    if (j.className === 'BARBARO') j.maxHp = 800 + (j.stats.vitalidad * 10) + bonusAcVida.hp;
+    else if (j.className === 'MAGO' || j.className === 'NECROMANCER') j.maxHp = 300 + (j.stats.vitalidad * 10) + bonusAcVida.hp;
+    else if (j.className === 'CLERIGO') j.maxHp = 500 + (j.stats.vitalidad * 10) + bonusAcVida.hp;
+    else j.maxHp = 500 + (j.stats.vitalidad * 10) + bonusAcVida.hp;
+    j.hp = Math.min(j.hp, j.maxHp);
+}
         if (stat === 'inteligencia') {
             const bs2 = CONFIG.PLAYER.BASE_STATS[j.class] || CONFIG.PLAYER.BASE_STATS.warrior;
             let manaBase = bs2.mana || 100;
@@ -2312,28 +2500,28 @@ else j.maxHp = 500 + (j.stats.vitalidad * 10);
 
 socket.on('usarPocion', (data) => {
     const j = players[socket.id];
-    if (j) {
-        if (data.hpActual !== undefined) j.hp = Math.min(j.maxHp, data.hpActual);
-        j.hp = Math.min(j.maxHp, j.hp + (data.curacion || 50));
-        io.emit('playerStatsUpdate', {
-            id: socket.id,
-            hp: j.hp, maxHp: j.maxHp,
-            mana: j.mana, maxMana: j.maxMana
-        });
-    }
+    if (!j) return;
+    recalcularMaxHp(socket.id);
+    if (data.hpActual !== undefined) j.hp = Math.min(j.maxHp, data.hpActual);
+    j.hp = Math.min(j.maxHp, j.hp + (data.curacion || 50));
+    io.emit('playerStatsUpdate', {
+        id: socket.id,
+        hp: j.hp, maxHp: j.maxHp,
+        mana: j.mana, maxMana: j.maxMana
+    });
 });
 
 socket.on('usarPocionMana', (data) => {
     const j = players[socket.id];
-    if (j) {
-        if (data.manaActual !== undefined) j.mana = Math.min(j.maxMana, data.manaActual);
-        j.mana = Math.min(j.maxMana, j.mana + (data.restauracion || 30));
-        io.emit('playerStatsUpdate', {
-            id: socket.id,
-            hp: j.hp, maxHp: j.maxHp,
-            mana: j.mana, maxMana: j.maxMana
-        });
-    }
+    if (!j) return;
+    recalcularMaxHp(socket.id);
+    if (data.manaActual !== undefined) j.mana = Math.min(j.maxMana, data.manaActual);
+    j.mana = Math.min(j.maxMana, j.mana + (data.restauracion || 30));
+    io.emit('playerStatsUpdate', {
+        id: socket.id,
+        hp: j.hp, maxHp: j.maxHp,
+        mana: j.mana, maxMana: j.maxMana
+    });
 });
 
     socket.on('playerMovement', (data) => {
@@ -2398,6 +2586,10 @@ socket.on('usarPocionMana', (data) => {
         ultimoAtaque.set(socket.id, ahora);
         socket.broadcast.emit('playerAttacked', { id: socket.id, dir: j.dir, class: j.class });
 let dañoTotal = data.damageBonus || j.ataqueFisico;
+
+// ═══ NUEVO: ACADEMIA (ataque) ═══
+const bonusAcademiaAtk = aplicarBonusAcademia(socket.id);
+dañoTotal += bonusAcademiaAtk.atkFis;  // para ataques físicos
 // ═══ NUEVO: Juicio del Clérigo ═══
 if (j.className === 'CLERIGO') {
     dañoTotal += getValorEspecialidad(socket.id, 'juicio');
@@ -2737,6 +2929,130 @@ socket.on('solicitarInfoLiga', () => {
     socket.on('solicitarRankingLigas', () => {
         socket.emit('rankingLigas', { ranking: obtenerRankingLigas() });
     });
+    // ═══════════════════════════════════════════════════════════════
+    // 🎓 ACADEMIA — EVENTOS DEL SERVIDOR
+    // ═══════════════════════════════════════════════════════════════
+
+    socket.on('solicitarAcademia', () => {
+        const j = players[socket.id];
+        if (!j) return;
+        const liga = getLigaDeJugador(socket.id);
+        if (!liga) {
+            socket.emit('academiaInfo', {
+                enLiga: false, liga: null, techs: {},
+                cristanite: j.cristanite || 0, academia: j.academia || null, esLider: false
+            });
+            return;
+        }
+        if (!liga.academiaNivel) liga.academiaNivel = 1;
+        if (!liga.boveda) liga.boveda = 0;
+        if (!j.cristanite) j.cristanite = 0;
+        if (!j.academia) j.academia = { oro: 0, hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0 };
+
+        socket.emit('academiaInfo', {
+            enLiga: true,
+            esLider: (liga.lider === socket.id),
+            liga: {
+                id: liga.id,
+                nombre: liga.nombre,
+                academiaNivel: liga.academiaNivel,
+                boveda: liga.boveda
+            },
+            techs: j.academia,
+            cristanite: j.cristanite,
+            maxTechPorNivel: (liga.academiaNivel || 1) * 10
+        });
+    });
+
+    socket.on('subirAcademia', () => {
+        const j = players[socket.id];
+        if (!j) return;
+        const liga = getLigaDeJugador(socket.id);
+        if (!liga) { socket.emit('mensaje', '❌ No estás en una liga'); return; }
+        if (liga.lider !== socket.id) { socket.emit('mensaje', '❌ Solo el líder puede subir la academia'); return; }
+        if (!liga.academiaNivel) liga.academiaNivel = 1;
+        if (liga.academiaNivel >= ACADEMIA_MAX_NIVEL) {
+            socket.emit('academiaActualizada', { mensaje: '❌ Academia al nivel máximo' });
+            return;
+        }
+        const costo = calcularCostoAcademia(liga.academiaNivel);
+        if ((liga.boveda || 0) < costo) {
+            socket.emit('academiaActualizada', { mensaje: `❌ Faltan ${(costo - liga.boveda).toLocaleString()} oro en bóveda` });
+            return;
+        }
+        liga.boveda -= costo;
+        liga.academiaNivel += 1;
+
+        liga.miembros.forEach(m => {
+            io.to(m).emit('mensaje', `🎓 Academia de la liga subida a Nivel ${liga.academiaNivel}`);
+            io.to(m).emit('academiaActualizada', { mensaje: `✅ Academia Nivel ${liga.academiaNivel}` });
+            emitirStatsJugador(m);
+        });
+    });
+
+    socket.on('mejorarTechAcademia', (data) => {
+        const j = players[socket.id];
+        if (!j) return;
+        const liga = getLigaDeJugador(socket.id);
+        if (!liga) { socket.emit('mensaje', '❌ No estás en una liga'); return; }
+        const tech = data.tech;
+        if (!ACADEMIA_TECH_POR_NIVEL[tech]) { socket.emit('mensaje', '❌ Tech inválida'); return; }
+        if (!j.academia) j.academia = { oro: 0, hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0 };
+        if (!j.cristanite) j.cristanite = 0;
+
+        const nivelActual = j.academia[tech] || 0;
+        const maxTech = Math.min(ACADEMIA_MAX_NIVEL_TECH, (liga.academiaNivel || 1) * 10);
+        if (nivelActual >= ACADEMIA_MAX_NIVEL_TECH) { socket.emit('mensaje', '❌ Tech al máximo (50)'); return; }
+        if (nivelActual >= maxTech) {
+            socket.emit('mensaje', `❌ Necesitás subir la academia a Nivel ${Math.ceil((nivelActual + 1) / 10)}`);
+            return;
+        }
+        const costo = calcularCostoTech(nivelActual + 1);
+        if (j.cristanite < costo) {
+            socket.emit('academiaActualizada', { mensaje: `❌ Faltan ${costo - j.cristanite} cristanite` });
+            return;
+        }
+        j.cristanite -= costo;
+        j.academia[tech] = nivelActual + 1;
+
+        // ═══ FIX 2: recalcular maxHp si la tech es HP ═══
+        if (tech === 'hp') {
+            const bonusAc = aplicarBonusAcademia(socket.id);
+            j.maxHp = (j.className === 'BARBARO' ? 800 : (j.className === 'MAGO' || j.className === 'NECROMANCER' ? 300 : 500))
+                    + ((j.stats.vitalidad || 0) * 10)
+                    + bonusAc.hp;
+            if (j.hp > j.maxHp) j.hp = j.maxHp;
+        }
+
+        emitirStatsJugador(socket.id);
+        socket.emit('academiaActualizada', { mensaje: `✅ ${ACADEMIA_NOMBRES[tech]} Nv.${j.academia[tech]}` });
+    });
+
+    socket.on('convertirOroCristanite', (data) => {
+        const j = players[socket.id];
+        if (!j) return;
+        const cantidadOro = Math.floor(parseInt(data.oro) || 0);
+        if (cantidadOro <= 0) { socket.emit('mensaje', '❌ Cantidad inválida'); return; }
+
+        const inv = inventariosJugadores[socket.id];
+        if (!inv || !inv.items) { socket.emit('mensaje', '❌ Sin inventario'); return; }
+        const oroItem = inv.items.find(i => i.id === 'oro');
+        if (!oroItem || oroItem.cantidad < cantidadOro) {
+            socket.emit('mensaje', `❌ Oro insuficiente (tenés ${oroItem ? oroItem.cantidad : 0})`);
+            return;
+        }
+        oroItem.cantidad -= cantidadOro;
+        if (oroItem.cantidad <= 0) {
+            const idx = inv.items.findIndex(i => i.id === 'oro');
+            if (idx !== -1) inv.items.splice(idx, 1);
+        }
+        const cristaniteGanado = Math.floor(cantidadOro / 10);
+        if (!j.cristanite) j.cristanite = 0;
+        j.cristanite += cristaniteGanado;
+
+        socket.emit('academiaActualizada', { mensaje: `✅ +${cristaniteGanado} cristanite (−${cantidadOro} oro)` });
+    });
+    // ═══════════════════════════════════════════════════════════════
 
     socket.on('chatLigaMensaje', (data) => {
         if (!data.msg) return;
@@ -2903,10 +3219,11 @@ emitirStatsJugador(socket.id);
         const target = players[targetId];
         if (!target || !target.isAlive) { socket.emit('mensaje', '❌ Target inválido'); return; }
         if (getDistance(j.x, j.y, target.x, target.y) > 200) { socket.emit('mensaje', '❌ Muy lejos (máx 200px)'); return; }
-        j.mana -= 40;
-        j.cooldownCura = ahora;
-        const feBonusPct = getValorEspecialidad(socket.id, 'fe'); // 0..0.5 (Nv.100 → +50%)
-        const curacion = Math.floor(target.maxHp * (0.30 + feBonusPct));
+j.mana -= 40;
+j.cooldownCura = ahora;
+recalcularMaxHp(targetId); 
+const feBonusPct = getValorEspecialidad(socket.id, 'fe'); // 0..0.5 (Nv.100 → +50%)
+const curacion = Math.floor(target.maxHp * (0.30 + feBonusPct));
         target.hp = Math.min(target.maxHp, target.hp + curacion);
         io.emit('clerigoCuraEffect', { curadorId: socket.id, curadorNombre: j.name, targetId: targetId, targetNombre: target.name, curacion: curacion, x: target.x, y: target.y });
         emitirStatsJugador(socket.id);
@@ -2960,28 +3277,29 @@ socket.on('clerigoOracion', () => {
     afectados.forEach(id => { io.to(id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🙏 Oración de ${j.name}: +20% daño y +15% defensa por 10s` }); });
 });
 
-    socket.on('clerigoPurificar', (data) => {
-        const j = players[socket.id];
-        if (!j || !j.isAlive) return;
-        if (j.className !== 'CLERIGO') { socket.emit('mensaje', '❌ Solo Clérigo'); return; }
-        if (j.mana < 30) { socket.emit('mensaje', '❌ Maná insuficiente (30)'); return; }
-        const ahora = Date.now();
-        if (!j.cooldownPurificar) j.cooldownPurificar = 0;
-        if (ahora - j.cooldownPurificar < 15000) { socket.emit('mensaje', `⏳ Purificar en cooldown (${Math.ceil((15000 - (ahora - j.cooldownPurificar)) / 1000)}s)`); return; }
-        const targetId = data.targetId;
-        const target = players[targetId];
-        if (!target || !target.isAlive) { socket.emit('mensaje', '❌ Target inválido'); return; }
-        if (getDistance(j.x, j.y, target.x, target.y) > 300) { socket.emit('mensaje', '❌ Muy lejos (máx 300px)'); return; }
-        j.mana -= 30;
-        j.cooldownPurificar = ahora;
-        if (estadosAlterados[targetId]) { delete estadosAlterados[targetId]; io.emit('estadoTerminado', { id: targetId, tipo: 'todos' }); }
-        const curacion = Math.floor(target.maxHp * 0.10);
-        target.hp = Math.min(target.maxHp, target.hp + curacion);
-io.emit('clerigoPurificarEffect', { curadorId: socket.id, curadorNombre: j.name, targetId: targetId, targetNombre: target.name, curacion: curacion, x: target.x, y: target.y });
-emitirStatsJugador(socket.id);
-emitirStatsJugador(targetId);
-        io.to(socket.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🕊️ Purificaste a ${target.name} (+${curacion} HP)` });
-    });
+socket.on('clerigoPurificar', (data) => {
+    const j = players[socket.id];
+    if (!j || !j.isAlive) return;
+    if (j.className !== 'CLERIGO') { socket.emit('mensaje', '❌ Solo Clérigo'); return; }
+    if (j.mana < 30) { socket.emit('mensaje', '❌ Maná insuficiente (30)'); return; }
+    const ahora = Date.now();
+    if (!j.cooldownPurificar) j.cooldownPurificar = 0;
+    if (ahora - j.cooldownPurificar < 15000) { socket.emit('mensaje', `⏳ Purificar en cooldown (${Math.ceil((15000 - (ahora - j.cooldownPurificar)) / 1000)}s)`); return; }
+    const targetId = data.targetId;
+    const target = players[targetId];
+    if (!target || !target.isAlive) { socket.emit('mensaje', '❌ Target inválido'); return; }
+    if (getDistance(j.x, j.y, target.x, target.y) > 300) { socket.emit('mensaje', '❌ Muy lejos (máx 300px)'); return; }
+    j.mana -= 30;
+    j.cooldownPurificar = ahora;
+    if (estadosAlterados[targetId]) { delete estadosAlterados[targetId]; io.emit('estadoTerminado', { id: targetId, tipo: 'todos' }); }
+    recalcularMaxHp(targetId);                              // ⬅️ LÍNEA NUEVA
+    const curacion = Math.floor(target.maxHp * 0.10);
+    target.hp = Math.min(target.maxHp, target.hp + curacion);
+    io.emit('clerigoPurificarEffect', { curadorId: socket.id, curadorNombre: j.name, targetId: targetId, targetNombre: target.name, curacion: curacion, x: target.x, y: target.y });
+    emitirStatsJugador(socket.id);
+    emitirStatsJugador(targetId);
+    io.to(socket.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🕊️ Purificaste a ${target.name} (+${curacion} HP)` });
+});
 
     socket.on('clerigoResurreccion', (data) => {
         const j = players[socket.id];
@@ -3560,11 +3878,26 @@ socket.on('solicitarJugadoresActuales', () => {
     });
 
     // ═══ DESCONEXIÓN ═══
-    socket.on('disconnect', () => {
-        try { fs.writeFileSync(INVENTARIOS_FILE, JSON.stringify(inventariosJugadores, null, 2)); } catch(e) {}
-        try { fs.writeFileSync(PILARES_FILE, JSON.stringify(pilares, null, 2)); } catch(e) {}
-        try { fs.writeFileSync(LIGAS_FILE, JSON.stringify(ligas, null, 2)); } catch(e) {}
-        const tid = playerTeam[socket.id];
+socket.on('disconnect', () => {
+    try { fs.writeFileSync(INVENTARIOS_FILE, JSON.stringify(inventariosJugadores, null, 2)); } catch(e) {}
+    try { fs.writeFileSync(PILARES_FILE, JSON.stringify(pilares, null, 2)); } catch(e) {}
+    try { fs.writeFileSync(LIGAS_FILE, JSON.stringify(ligas, null, 2)); } catch(e) {}
+
+    // ═══ NUEVO: guardar cristanite y academia del jugador que se desconecta ═══
+const jugadorDesconectado = players[socket.id];
+if (jugadorDesconectado && jugadorDesconectado.name) {
+    academiaPersistencia[jugadorDesconectado.name] = {
+        cristanite: jugadorDesconectado.cristanite || 0,
+        academia: jugadorDesconectado.academia || { oro: 0, hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0 },
+        level: jugadorDesconectado.level || 1,        // ⬅️ NUEVO
+        exp: jugadorDesconectado.exp || 0,            // ⬅️ NUEVO
+        stats: jugadorDesconectado.stats || {}        // ⬅️ NUEVO
+    };
+    try { fs.writeFileSync(ACADEMIA_FILE, JSON.stringify(academiaPersistencia, null, 2)); } catch(e) {}
+}
+
+    const tid = playerTeam[socket.id];
+    // ...
         if (tid && teams[tid]) {
             const team = teams[tid];
             const idx = team.miembros.indexOf(socket.id);
@@ -3582,14 +3915,13 @@ socket.on('solicitarJugadoresActuales', () => {
         Object.keys(players).forEach(id => {
             io.to(id).emit('rankingTop10', { ranking: obtenerTop10() });
         });
-        io.emit('playerDisconnected', socket.id);
-    });
-});
+ io.emit('playerDisconnected', socket.id);
+    });      // ← cierra socket.on('disconnect')
 
+});          
 // ═══════════════════════════════════════════════════════════════
 // ═══ INTERVALOS GLOBALES DE LIGAS Y PILARES ═══
 // ═══════════════════════════════════════════════════════════════
-
 // Expiración de invitaciones de team
 setInterval(() => {
     const ahora = Date.now();
