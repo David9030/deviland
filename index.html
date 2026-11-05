@@ -4088,7 +4088,12 @@ setTimeout(() => {
     let sacrificioActivoServer = {};
     socket.on('activarSacrificio', () => { sacrificioActivoServer[socket.id] = true; });
     socket.on('desactivarSacrificio', () => { sacrificioActivoServer[socket.id] = false; });
-    socket.on('newPlayer', (info) => { if (info.id !== socket.id) { addOtherPlayer(this, info); mostrarMensaje(`📡 ${info.name} (${info.className || info.class})`, 'info'); setTimeout(() => { socket.emit('solicitarJugadoresActuales'); }, 300); } });
+socket.on('newPlayer', (info) => { 
+    if (info.id !== socket.id) { 
+        addOtherPlayer(currentScene, info); 
+        mostrarMensaje(`[+] ${info.name} (${info.className || info.class})`, 'info'); 
+    } 
+});
 // 🔥 FIX: Manejar bloqueo de movimiento (mina, obstáculo, etc.)
 socket.on('playerMovementBlocked', (data) => {
     if (player && player.isAlive) {
@@ -4105,112 +4110,195 @@ socket.on('playerMovementBlocked', (data) => {
         }
     }
 });
-
 socket.on('playerMoved', (info) => { 
     otherPlayers.getChildren().forEach(other => { 
-        if (info.id === other.id) { 
-            // 🆕 Guardar hp/maxHp frescos que llegan por playerMoved
-            if (typeof info.hp === 'number') other.hp = info.hp;
-            if (typeof info.maxHp === 'number') other.maxHp = info.maxHp;
-            // 🔥 FIX: si es cadáver, solo actualizar posición (NO animación)
-            if (other.isDead) {
-                other.setPosition(info.x, info.y);
-                other.targetX = info.x;
-                other.targetY = info.y;
-                if (other.textoCadáver && other.textoCadáver.active) {
-                    other.textoCadáver.setPosition(info.x, info.y - 60);
-                }
-                if (other.auraCadáver && other.auraCadáver.active) {
-                    other.auraCadáver.setPosition(info.x, info.y);
-                }
-                return;
+        if (info.id !== other.id) return;
+        
+        // Actualizar stats (para Plegarias / barras de HP)
+        if (typeof info.hp === 'number') other.hp = info.hp;
+        if (typeof info.maxHp === 'number') other.maxHp = info.maxHp;
+        if (typeof info.mana === 'number') other.mana = info.mana;
+        if (typeof info.maxMana === 'number') other.maxMana = info.maxMana;
+        
+        // Si es cadaver: solo mover, sin animacion
+        if (other.isDead) {
+            other.setPosition(info.x, info.y);
+            other.targetX = info.x;
+            other.targetY = info.y;
+            if (other.textoCadaver && other.textoCadaver.active) {
+                other.textoCadaver.setPosition(info.x, info.y - 60);
             }
-            
-            const dist = Phaser.Math.Distance.Between(other.x, other.y, info.x, info.y);
-            
-            // 🔥 FIX: Si la distancia es grande (>200px), teleportar directamente
-            if (dist > 200) {
-                other.setPosition(info.x, info.y);
-                other.targetX = info.x;
-                other.targetY = info.y;
-            } else {
-                other.targetX = info.x; 
-                other.targetY = info.y; 
+            if (other.auraCadaver && other.auraCadaver.active) {
+                other.auraCadaver.setPosition(info.x, info.y);
             }
-            other.lastDir = info.dir;
-            
-            // Aura
-            if (info.auraVisible) { 
-                if (!other.auraSprite) { 
-                    other.auraSprite = currentScene.add.sprite(info.x, info.y - 10, 'aura_1'); 
-                    other.auraSprite.setDepth(other.y - 1); 
-                    other.auraSprite.setScale(2.5); 
-                    other.auraSprite.setAlpha(0.7); 
-                    if (currentScene.anims.exists('aura_caballero_anim')) { 
-                        other.auraSprite.play('aura_caballero_anim'); 
-                    } 
-                } else { 
-                    other.auraSprite.setVisible(true); 
-                    other.auraSprite.setPosition(info.x, info.y - 10); 
-                    other.auraSprite.setDepth(other.y - 1); 
+            return;
+        }
+        
+        // Guardar ultima direccion / estado (para el update)
+        other.lastDir = info.dir || other.lastDir || 'Abajo';
+        other.ultimoIsMoving = info.isMoving;
+        
+        // Snap SOLO si desync es grave (>300px)
+        const dist = Phaser.Math.Distance.Between(other.x, other.y, info.x, info.y);
+        if (dist > 300) {
+            other.setPosition(info.x, info.y);
+            other.targetX = info.x;
+            other.targetY = info.y;
+        } else {
+            other.targetX = info.x; 
+            other.targetY = info.y; 
+        }
+        
+        // Aura
+        if (info.auraVisible) { 
+            if (!other.auraSprite) { 
+                other.auraSprite = currentScene.add.sprite(info.x, info.y - 10, 'aura_1'); 
+                other.auraSprite.setDepth(other.y - 1); 
+                other.auraSprite.setScale(2.5); 
+                other.auraSprite.setAlpha(0.7); 
+                if (currentScene.anims.exists('aura_caballero_anim')) { 
+                    other.auraSprite.play('aura_caballero_anim'); 
                 } 
             } else { 
-                if (other.auraSprite) { 
-                    other.auraSprite.setVisible(false); 
-                    other.auraSprite.stop(); 
-                } 
+                other.auraSprite.setVisible(true); 
+                other.auraSprite.setPosition(info.x, info.y - 10); 
+                other.auraSprite.setDepth(other.y - 1); 
             } 
-            
-            // 🔥 FIX: NO interrumpir animación de ataque
-            if (!other.estaAtacando && other.anims) {
-                if (info.isMoving) {
-                    const prefijoAnimOther = (other.pClass === 'clerigo' || other.pClass === 'necromancer_sprite') ? 'clerigo' : other.pClass;
-                    other.play(prefijoAnimOther + '_walk_' + info.dir, true); 
-                } else {
-                    other.play(prefijoAnimOther + '_idle_' + info.dir, true); 
-                }
-            }
+        } else { 
+            if (other.auraSprite) { 
+                other.auraSprite.setVisible(false); 
+                other.auraSprite.stop(); 
+            } 
         } 
+        // NO llamar a other.play() aca - el update() maneja la animacion
     }); 
 });
+
 socket.on('playerDisconnected', (id) => { 
     otherPlayers.getChildren().forEach(other => { 
         if (id === other.id) { 
             if (other.auraSprite) other.auraSprite.destroy(); 
+            if (other.textoCadaver && other.textoCadaver.active) other.textoCadaver.destroy();
+            if (other.auraCadaver && other.auraCadaver.active) other.auraCadaver.destroy();
             other.destroy(); 
         } 
     }); 
-    // 🔥 FIX: Refrescar el panel de pilares si está abierto (por si el jugador era dueño de alguno)
+    // Refrescar el panel de pilares si esta abierto
     if (document.getElementById('pilares-ui') && document.getElementById('pilares-ui').style.display === 'block') {
         renderizarPilaresUI();
     }
 });
+
 socket.on('playerAttacked', (data) => { 
     otherPlayers.getChildren().forEach(other => { 
-        if (other.id === data.id) { 
-            other.estaAtacando = true;
-            const prefijoAtkOther = (other.pClass === 'clerigo' || other.pClass === 'necromancer_sprite') ? 'clerigo' : other.pClass;
-            other.play(prefijoAtkOther + '_atk_' + data.dir, true); 
-            other.once('animationcomplete', () => { 
-                if (other.active) {
-                    other.estaAtacando = false;
-                    other.play(other.pClass + '_idle_' + data.dir, true); 
-                }
-            }); 
-        } 
+        if (other.id !== data.id) return;
+        if (other.isDead) return;
+        
+        // Limpiar listeners viejos
+        other.removeAllListeners('animationcomplete');
+        
+        other.estaAtacando = true;
+        other.lastDir = data.dir;
+        const prefijoAtkOther = (other.pClass === 'clerigo' || other.pClass === 'necromancer_sprite') 
+            ? 'clerigo' : other.pClass;
+        const atkKey = prefijoAtkOther + '_atk_' + data.dir;
+        const atkFallback = prefijoAtkOther + '_atk_Abajo';
+        
+        if (currentScene.anims.exists(atkKey)) {
+            other.play(atkKey, true);
+        } else if (currentScene.anims.exists(atkFallback)) {
+            other.play(atkFallback, true);
+        } else {
+            other.estaAtacando = false;
+            return;
+        }
+        
+        other.once('animationcomplete', () => { 
+            if (!other.active) return;
+            other.estaAtacando = false;
+            // El update() retomara walk/idle segun velocidad
+        }); 
     }); 
 });
-    socket.on('playerAttackHit', (data) => {
-        // ═══ NUEVO: Registrar PvP — si alguien me ataca, lo marco como enemigo reciente ═══
-        if (data.playerId && data.targetId === socket.id) {
-            pvpAtacantesRecientes[data.playerId] = Date.now();
-        }
 
-        if (!currentScene) return;
-        const hitbox = currentScene.add.rectangle(data.hitbox.x + data.hitbox.w/2, data.hitbox.y + data.hitbox.h/2, data.hitbox.w, data.hitbox.h, data.damage > 0 ? 0xff0000 : 0xffff00, 0);
-        hitbox.setDepth(10001);
-        currentScene.time.delayedCall(200, () => { if (hitbox && hitbox.active) hitbox.destroy(); });
+socket.on('playerAttackHit', (data) => {
+    // Registrar PvP - si alguien me ataca, lo marco como enemigo reciente
+    if (data.playerId && data.targetId === socket.id) {
+        pvpAtacantesRecientes[data.playerId] = Date.now();
+    }
+
+    if (!currentScene) return;
+    const hitbox = currentScene.add.rectangle(data.hitbox.x + data.hitbox.w/2, data.hitbox.y + data.hitbox.h/2, data.hitbox.w, data.hitbox.h, data.damage > 0 ? 0xff0000 : 0xffff00, 0);
+    hitbox.setDepth(10001);
+    currentScene.time.delayedCall(200, () => { if (hitbox && hitbox.active) hitbox.destroy(); });
+});
+    // ============================================================
+// SNAPSHOT: estado completo de un jugador (al conectarse)
+// ============================================================
+socket.on('playerSnapshot', (info) => {
+    if (!info || !info.id || info.id === socket.id) return;
+    if (!currentScene || !otherPlayers) return;
+    
+    const existente = otherPlayers.getChildren().find(o => o.id === info.id);
+    if (existente) {
+        // Ya existe: solo actualizar posicion y stats
+        if (!existente.isDead) {
+            existente.targetX = info.x;
+            existente.targetY = info.y;
+            existente.lastDir = info.dir || existente.lastDir;
+        }
+        if (typeof info.hp === 'number') existente.hp = info.hp;
+        if (typeof info.maxHp === 'number') existente.maxHp = info.maxHp;
+        if (typeof info.mana === 'number') existente.mana = info.mana;
+        if (typeof info.maxMana === 'number') existente.maxMana = info.maxMana;
+    } else {
+        // No existe: crear
+        addOtherPlayer(currentScene, {
+            id: info.id,
+            x: info.x,
+            y: info.y,
+            dir: info.dir,
+            isMoving: false,
+            class: info.className === 'MAGO' ? 'mago_sprite' 
+                 : info.className === 'NECROMANCER' ? 'necromancer_sprite'
+                 : info.className === 'CLERIGO' ? 'clerigo'
+                 : info.className === 'BARBARO' ? 'barbaro'
+                 : info.className === 'CABALLERO' ? 'caballero'
+                 : 'warrior',
+            name: info.name,
+            hp: info.hp,
+            maxHp: info.maxHp,
+            mana: info.mana,
+            maxMana: info.maxMana,
+            isAlive: info.isAlive !== false
+        });
+    }
+});
+
+// ============================================================
+// HEARTBEAT: resincronizacion cada 2s (por si se perdio un paquete)
+// ============================================================
+socket.on('playerHeartbeat', (info) => {
+    if (!info || !info.id || info.id === socket.id) return;
+    if (!otherPlayers) return;
+    
+    otherPlayers.getChildren().forEach(other => {
+        if (other.id !== info.id) return;
+        if (other.isDead) return;
+        
+        if (typeof info.hp === 'number') other.hp = info.hp;
+        if (typeof info.maxHp === 'number') other.maxHp = info.maxHp;
+        if (typeof info.mana === 'number') other.mana = info.mana;
+        if (typeof info.maxMana === 'number') other.maxMana = info.maxMana;
+        
+        const dist = Phaser.Math.Distance.Between(other.x, other.y, info.x, info.y);
+        // Solo corregir si esta MUY desincronizado
+        if (dist > 80) {
+            other.targetX = info.x;
+            other.targetY = info.y;
+        }
     });
+});
     socket.on('auraCaballeroUpdate', (data) => { if (!currentScene) return; window.otherPlayers.getChildren().forEach(other => { if (other.id === data.id) { if (data.visible) { if (!other.auraSprite) { other.auraSprite = currentScene.add.sprite(data.x, data.y, 'aura_1'); other.auraSprite.setDepth(99999); other.auraSprite.setScale(data.scale || 2.5); other.auraSprite.setAlpha(data.alpha || 0.5); if (currentScene.anims.exists('aura_caballero_anim')) { other.auraSprite.play('aura_caballero_anim'); } } else { other.auraSprite.setVisible(true); other.auraSprite.setPosition(data.x, data.y); other.auraSprite.setDepth(data.y - 2); other.auraSprite.setScale(data.scale || 2.5); other.auraSprite.setAlpha(data.alpha || 0.5); if (!other.auraSprite.anims.isPlaying && currentScene.anims.exists('aura_caballero_anim')) { other.auraSprite.play('aura_caballero_anim'); } } } else { if (other.auraSprite) { other.auraSprite.setVisible(false); other.auraSprite.stop(); } } } }); });
     socket.on('crearMonedaServidor', (data) => { crearMonedaSuelo(data.x, data.y, data.cantidad); });
     socket.on('minasIniciales', (data) => { data.forEach(m => { if (m.activo !== false) { const img = this.physics.add.image(m.x, m.y, 'mina'); img.setScale(1.2); img.setDepth(m.y); img.setImmovable(true); img.body.setSize(20, 20); img.body.setOffset(15, 25); img.minaId = m.id; if (window.minasGrupo) window.minasGrupo.add(img); } }); });
@@ -5524,24 +5612,53 @@ window.invocadoresGrupo = currentScene.add.group(); function crearInvocadorClien
     socket.on('rocaRespawn', (data) => { const img = this.add.image(data.x, data.y, 'roca').setScale(0.8).setDepth(data.y); img.rocaId = data.id; if (window.rocasGrupo) window.rocasGrupo.add(img); });
     setInterval(() => { if (!player || !player.isAlive) return; monedasSuelo.forEach(m => { if (m && m.texto) m.texto.setVisible(Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 100); }); dropsSuelo.forEach(d => { if (d && d.texto) d.texto.setVisible(Phaser.Math.Distance.Between(player.x, player.y, d.x, d.y) < 100); }); }, 100);
     setInterval(() => { const ahora = Date.now(); for (let i = dropsSuelo.length - 1; i >= 0; i--) { if (dropsSuelo[i] && !dropsSuelo[i].recogida && ahora - (dropsSuelo[i].timestamp || ahora) > 120000) { if (dropsSuelo[i].texto) dropsSuelo[i].texto.destroy(); dropsSuelo[i].destroy(); dropsSuelo.splice(i, 1); } } for (let i = monedasSuelo.length - 1; i >= 0; i--) { if (monedasSuelo[i] && !monedasSuelo[i].recogida && ahora - (monedasSuelo[i].timestamp || ahora) > 120000) { if (monedasSuelo[i].texto) monedasSuelo[i].texto.destroy(); if (monedasSuelo[i].animInterval) clearInterval(monedasSuelo[i].animInterval); monedasSuelo[i].destroy(); monedasSuelo.splice(i, 1); } } }, 10000);
-this.events.on('update', () => { 
+this.events.on('update', (time, delta) => { 
+    const dt = Math.min(delta, 100) / 1000;
+    const k = 14;
+    const lerpFactor = 1 - Math.exp(-k * dt);
+    
     otherPlayers.getChildren().forEach(other => { 
-        if (other.targetX !== undefined && other.targetY !== undefined) { 
-            const dx = other.targetX - other.x;
-            const dy = other.targetY - other.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            
-            // 🔥 FIX: Interpolación más rápida (0.5 en vez de 0.25) + snap si está muy cerca
-            if (dist > 1) {
-                other.x += dx * 0.5;
-                other.y += dy * 0.5;
-            } else {
-                other.x = other.targetX;
-                other.y = other.targetY;
+        if (other.targetX === undefined || other.targetY === undefined) return;
+        
+        if (other.isDead) {
+            other.setPosition(other.targetX, other.targetY);
+            other.setDepth(other.y - 100);
+            return;
+        }
+        
+        const dx = other.targetX - other.x;
+        const dy = other.targetY - other.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if (dist < 2) {
+            other.x = other.targetX;
+            other.y = other.targetY;
+        } else {
+            other.x += dx * lerpFactor;
+            other.y += dy * lerpFactor;
+        }
+        other.setDepth(other.y);
+        
+        if (other.estaAtacando) return;
+        
+        const velocidad = dist / Math.max(dt, 0.016);
+        const seEstaMoviendo = velocidad > 15;
+        
+        const prefijoAnimOther = (other.pClass === 'clerigo' || other.pClass === 'necromancer_sprite') 
+            ? 'clerigo' : other.pClass;
+        const dirAnim = other.lastDir || 'Abajo';
+        const animDeseada = seEstaMoviendo 
+            ? prefijoAnimOther + '_walk_' + dirAnim 
+            : prefijoAnimOther + '_idle_' + dirAnim;
+        
+        if (currentScene.anims.exists(animDeseada)) {
+            const animActual = other.anims.currentAnim ? other.anims.currentAnim.key : null;
+            if (animActual !== animDeseada) {
+                other.play(animDeseada, true);
             }
-            other.setDepth(other.y); 
-        } 
+        }
     }); 
+    
     if (player && player.active && btnAttack) actualizarIconoAtaque(); 
 });
     window.addEventListener('beforeunload', () => guardarPartida());
@@ -5646,79 +5763,88 @@ socket.on('academiaActualizada', (data) => {
 
 function addOtherPlayer(self, info) { 
     if (!info || !info.class) { 
-        console.warn('⚠️ addOtherPlayer: info sin class', info); 
+        console.warn('addOtherPlayer: info sin class', info); 
         return; 
     } 
     
-    // 🔥 FIX: Evitar duplicados (si ya existe, solo actualizar posición)
+    // Evitar duplicados
     const existente = otherPlayers.getChildren().find(o => o.id === info.id);
     if (existente) { 
         existente.targetX = info.x; 
         existente.targetY = info.y; 
-        existente.setPosition(info.x, info.y);
         
-        // 🔥 FIX: Sincronizar isDead en AMBAS direcciones
         if (existente.isDead && info.isAlive !== false) {
-            // Estaba muerto pero el server dice vivo → revivir visualmente
             existente.isDead = false;
             existente.setVisible(true);
             existente.clearTint();
             existente.setAlpha(1);
             existente.setDepth(info.y);
-            if (existente.textoCadáver && existente.textoCadáver.active) {
-                existente.textoCadáver.destroy();
-                existente.textoCadáver = null;
+            if (existente.textoCadaver && existente.textoCadaver.active) {
+                existente.textoCadaver.destroy();
+                existente.textoCadaver = null;
             }
-            if (existente.auraCadáver && existente.auraCadáver.active) {
-                currentScene.tweens.killTweensOf(existente.auraCadáver);
-                existente.auraCadáver.destroy();
-                existente.auraCadáver = null;
+            if (existente.auraCadaver && existente.auraCadaver.active) {
+                currentScene.tweens.killTweensOf(existente.auraCadaver);
+                existente.auraCadaver.destroy();
+                existente.auraCadaver = null;
             }
             existente.setInteractive({ useHandCursor: true });
         } else if (!existente.isDead && info.isAlive === false) {
-            // 🔥 FIX: Estaba vivo pero el server dice muerto → mostrar como cadáver
             existente.isDead = true;
             existente.setTint(0x888888);
             existente.setAlpha(0.7);
             existente.setDepth(info.y - 100);
-            const dieKeyExist = (info.class || existente.pClass) + '_die_S';
-            if (currentScene && currentScene.anims.exists(dieKeyExist)) {
-                existente.play(dieKeyExist, true);
-            }
         }
         return; 
     } 
     
-    const spriteVisual = getSpriteVisual(info.class); 
-    const esClerigo = (info.class === 'clerigo'); 
-    const escala = esClerigo ? 0.8 : 1.5; 
-    const texturaInicial = esClerigo ? 'clerigo_idle_down_1' : (spriteVisual + '_armed_idle_S_0'); 
-    const o = self.physics.add.sprite(info.x, info.y, texturaInicial).setScale(escala); 
+const spriteVisual = getSpriteVisual(info.class); 
+const esClerigo = (info.class === 'clerigo'); 
+const esNecromancer = (info.class === 'necromancer_sprite');
+
+// Escala unificada: usar la MISMA que el player local
+let escala;
+if (esClerigo) escala = 1.2;        // CLERIGO
+else if (esNecromancer) escala = 1.0;  // NECROMANCER
+else escala = 1.5;                  // CABALLERO / BARBARO / WARRIOR / MAGO
+
+const texturaInicial = esClerigo ? 'clerigo_idle_down_1' : (esNecromancer ? 'clerigo_idle_down_1' : (spriteVisual + '_armed_idle_S_0')); 
+const o = self.physics.add.sprite(info.x, info.y, texturaInicial).setScale(escala); 
+    
     o.id = info.id; 
     o.pClass = info.class; 
     o.pName = info.name; 
+    
+    // Estado inicial COMPLETO (evita T-pose, flicker de depth, etc.)
     o.targetX = info.x; 
     o.targetY = info.y; 
-    o.setDepth(100000); 
+    o.lastDir = info.dir || 'Abajo'; 
+    o.ultimoIsMoving = info.isMoving || false;
+    o.setDepth(info.y);
     o.estaAtacando = false;
+    o.isDead = (info.isAlive === false);
+    o.hp = info.hp || 500;
+    o.maxHp = info.maxHp || 500;
+    o.mana = info.mana || 100;
+    o.maxMana = info.maxMana || 100;
     
     if (esClerigo) { 
-        o.setSize(30, 50); 
-        o.setOffset(19, 14); 
+        o.body.setSize(30, 50); 
+        o.body.setOffset(19, 14); 
     } else { 
-        o.setSize(10, 10); 
-        o.setOffset(123, 123); 
+        o.body.setSize(10, 10); 
+        o.body.setOffset(123, 123); 
     } 
     o.body.setImmovable(true); 
+    o.body.moves = true;
+    o.body.enable = true;
     o.setInteractive(); 
     o.input.enabled = true; 
     o.auraSprite = null; 
-    o.isDead = (info.isAlive === false);   // 🔥 FIX: respetar estado del server
     
-    // 🔥 FIX CRÍTICO: AGREGAR AL GRUPO otherPlayers
     otherPlayers.add(o);
     
-    // 🔥 FIX: Si el server dice que está muerto, mostrarlo como cadáver
+    // Si nace muerto, mostrarlo como cadaver
     if (o.isDead) {
         o.setTint(0x888888);
         o.setAlpha(0.7);
@@ -5731,7 +5857,7 @@ function addOtherPlayer(self, info) {
         }
         setTimeout(() => {
             if (!o.active) return;
-            const textoCad = currentScene.add.text(o.x, o.y - 60, `💀 ${info.name || 'Aliado'}`, {
+            const textoCad = currentScene.add.text(o.x, o.y - 60, 'CADAVER: ' + (info.name || 'Aliado'), {
                 fontSize: '11px', fill: '#ff8888', fontFamily: 'monospace',
                 stroke: '#000', strokeThickness: 3, align: 'center'
             }).setOrigin(0.5).setDepth(999999);
@@ -5741,48 +5867,21 @@ function addOtherPlayer(self, info) {
                 targets: auraCad, radius: 20, alpha: 0.08,
                 duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
             });
-            o.textoCadáver = textoCad;
-            o.auraCadáver = auraCad;
-            
-            // 🔥 FIX NUEVO: agregar pointerdown para que el Clérigo pueda clickear el cadáver
-            o._respawnLlegado = false;
-            o.input.enabled = true;
-            o.setInteractive({ useHandCursor: true });
-            o.on('pointerdown', () => {
-                if (!o.isDead) return;
-                if (!player || !player.isAlive) return;
-                const dist = Phaser.Math.Distance.Between(player.x, player.y, o.x, o.y);
-                if (dist > 200) {
-                    mostrarMensaje(`❌ ${o.pName} está muy lejos (${Math.round(dist)}px)`, 'error');
-                    return;
-                }
-                if (modoApuntarActivo && targetsApuntarDisponibles && targetsApuntarDisponibles.length > 0 && pClassName === 'CLERIGO') {
-                    const target = targetsApuntarDisponibles.find(t => t.id === o.id);
-                    if (target) {
-                        apuntarTargetActual = o.id;
-                        actualizarSeleccionApuntar();
-                        mostrarMensaje(`🎯 ${o.pName} seleccionado`, 'exito');
-                    } else {
-                        mostrarMensaje(`💀 ${o.pName} (usá Resurrección y elegí este cadáver)`, 'info');
-                    }
-                } else {
-                    mostrarMensaje(`💀 ${o.pName} (usá Resurrección y elegí este cadáver)`, 'info');
-                }
-            });
-            o.on('pointerover', () => {
-                if (!o.isDead) return;
-                o.setAlpha(1);
-                o.setTint(0xcccccc);
-            });
-            o.on('pointerout', () => {
-                if (!o.isDead) return;
-                o.setAlpha(0.7);
-                o.setTint(0x888888);
-            });
+            o.textoCadaver = textoCad;
+            o.auraCadaver = auraCad;
         }, 100);
+    } else {
+        // Reproducir idle inicial (sin T-pose)
+        if (esClerigo) {
+            if (self.anims.exists('clerigo_idle_down')) o.play('clerigo_idle_down', true);
+        } else {
+            const idleKey = info.class + '_idle_S';
+            if (self.anims.exists(idleKey)) o.play(idleKey, true);
+        }
     }
     
-if (esClerigo) { 
+// Escalado uniforme para CLERIGO y NECROMANCER
+if (esClerigo || esNecromancer) { 
     const TAMANO_VISUAL = 48 * 1.0; 
     const ANCHO_EXTRA = 1.2;
     o.on('animationstart', (anim) => { 
@@ -5794,15 +5893,7 @@ if (esClerigo) {
     }); 
 }
     
-    // 🔥 FIX: Reproducir idle inicial para que no se vea en T-pose
-    if (esClerigo) {
-        if (self.anims.exists('clerigo_idle_down')) o.play('clerigo_idle_down', true);
-    } else {
-        const idleKey = info.class + '_idle_S';
-        if (self.anims.exists(idleKey)) o.play(idleKey, true);
-    }
-    
-    console.log(`✅ Otro jugador agregado: ${info.name} (${info.id})`);
+    console.log('Otro jugador agregado: ' + info.name + ' (' + info.id + ')');
 }
 function update() {
     if (!player || !player.isAlive) return;

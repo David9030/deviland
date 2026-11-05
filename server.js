@@ -2223,6 +2223,25 @@ socket.on('sincronizarNivel', (data) => {
     socket.emit('minasIniciales', minas);
     socket.emit('esqueletosIniciales', esqueletos.filter(e => e.isAlive === true));
     socket.emit('currentPlayers', players);
+    // ✅ Snapshot completo de todos los jugadores ya conectados
+Object.keys(players).forEach(id => {
+    if (id !== socket.id) {
+        socket.emit('playerSnapshot', {
+            id: id,
+            x: players[id].x,
+            y: players[id].y,
+            dir: players[id].dir || 'Abajo',
+            isMoving: false,
+            hp: players[id].hp,
+            maxHp: players[id].maxHp,
+            mana: players[id].mana,
+            maxMana: players[id].maxMana,
+            className: players[id].className,
+            name: players[id].name,
+            isAlive: players[id].isAlive
+        });
+    }
+});
     socket.emit('demonlordState', { hp: demonlord.hp, isAlive: demonlord.isAlive, x: demonlord.x, y: demonlord.y, dir: demonlord.dir });
     socket.emit('cofreEstado', { x: cofre.x, y: cofre.y, abierto: cofre.abierto });
     socket.emit('invocadoresIniciales', invocadores);
@@ -2298,6 +2317,25 @@ angelUltimoUso: 0,
 
     // 🔥 FIX: Reemitir ranking a todos cuando alguien se conecta
     reemitirRanking();
+
+    // ═══════════════════════════════════════════════════════════════
+    // ✅ SNAPSHOT COMPLETO del jugador recién creado para todos
+    //    (garantiza que los demás lo vean en su posición real)
+    // ═══════════════════════════════════════════════════════════════
+    io.emit('playerSnapshot', {
+        id: socket.id,
+        x: players[socket.id].x,
+        y: players[socket.id].y,
+        dir: players[socket.id].dir || 'Abajo',
+        isMoving: false,
+        hp: players[socket.id].hp,
+        maxHp: players[socket.id].maxHp,
+        mana: players[socket.id].mana,
+        maxMana: players[socket.id].maxMana,
+        className: players[socket.id].className,
+        name: players[socket.id].name,
+        isAlive: players[socket.id].isAlive
+    });
 
     // ═══ FIX: enviar pilares DESPUÉS de crear el jugador ═══
     socket.emit('pilaresIniciales', pilares.map(p => ({
@@ -2524,42 +2562,40 @@ socket.on('usarPocionMana', (data) => {
     });
 });
 
-    socket.on('playerMovement', (data) => {
-        let p = players[socket.id];
-        if (!p || !p.isAlive) return;
-        
-        let bloqueado = false;
-        // ═══ FIX CRÍTICO: Si el jugador YA ESTÁ dentro del radio de una mina, NO bloquear el movimiento ═══
-        // (esto permite atravesar/alejarse de la zona sin trabarse)
-        const yaEstabaCerca = colisionaConObjeto(p.x, p.y, 20);       // posición actual del server
-        const nuevaPosicionChoca = colisionaConObjeto(data.x, data.y, 20);
-        
-        if (nuevaPosicionChoca && !yaEstabaCerca) {
-            // Solo bloquear si estaba AFUERA y se quiere METER
-            bloqueado = true;
-            socket.emit('playerMovementBlocked', { x: p.x, y: p.y });
-        } else {
-            // Si ya estaba cerca (dentro de la mina) → permitir movimiento libre
-            p.x = data.x; 
-            p.y = data.y; 
-            p.dir = data.dir; 
-            p.isMoving = data.isMoving;
-        }
-        
-        // 🔥 FIX: SIEMPRE emitir playerMoved a TODOS (incluso si está bloqueado)
-        io.emit('playerMoved', { 
-            id: socket.id, 
-            x: p.x, 
-            y: p.y, 
-            dir: p.dir || data.dir, 
-            isMoving: bloqueado ? false : data.isMoving, 
-            hp: p.hp, 
-            maxHp: p.maxHp, 
-            timestamp: data.timestamp, 
-            auraVisible: data.auraVisible || false,
-            bloqueado: bloqueado
-        });
+socket.on('playerMovement', (data) => {
+    let p = players[socket.id];
+    if (!p || !p.isAlive) return;
+    
+    let bloqueado = false;
+    const yaEstabaCerca = colisionaConObjeto(p.x, p.y, 20);
+    const nuevaPosicionChoca = colisionaConObjeto(data.x, data.y, 20);
+    
+    if (nuevaPosicionChoca && !yaEstabaCerca) {
+        bloqueado = true;
+        socket.emit('playerMovementBlocked', { x: p.x, y: p.y });
+    } else {
+        p.x = data.x; 
+        p.y = data.y; 
+        p.dir = data.dir; 
+        p.isMoving = data.isMoving;
+    }
+    
+    // ✅ broadcast: NO re-enviar al que se movió
+    socket.broadcast.emit('playerMoved', { 
+        id: socket.id, 
+        x: p.x, 
+        y: p.y, 
+        dir: p.dir || data.dir, 
+        isMoving: bloqueado ? false : data.isMoving, 
+        hp: p.hp, 
+        maxHp: p.maxHp,
+        mana: p.mana,
+        maxMana: p.maxMana,
+        timestamp: data.timestamp, 
+        auraVisible: data.auraVisible || false,
+        bloqueado: bloqueado
     });
+});
     socket.on('truenoRemoto', (data) => { socket.broadcast.emit('truenoVisual', data); });
     socket.on('cambiarMapa', (data) => { if (players[socket.id] && data.mapa) { cambiarJugadorDeMapa(socket.id, data.mapa); } });
 
@@ -3946,6 +3982,27 @@ setInterval(() => {
     console.log('TOP 10 JUGADORES:');
     ranking.forEach((j, i) => { console.log(`  ${i+1}. ${j.nombre} (${j.clase}) - Nivel ${j.nivel} - Poder: ${j.poder}`); });
 }, 60000);
+// ═══════════════════════════════════════════════════════════════
+// ✅ HEARTBEAT: reenviar posición de todos los jugadores cada 2s
+//    Garantiza que un cliente que se perdió un paquete se resincronice
+// ═══════════════════════════════════════════════════════════════
+setInterval(() => {
+    Object.keys(players).forEach(id => {
+        const p = players[id];
+        if (!p || !p.isAlive) return;
+        io.emit('playerHeartbeat', {
+            id: id,
+            x: p.x,
+            y: p.y,
+            dir: p.dir || 'Abajo',
+            isMoving: p.isMoving || false,
+            hp: p.hp,
+            maxHp: p.maxHp,
+            mana: p.mana,
+            maxMana: p.maxMana
+        });
+    });
+}, 2000);
 process.on('SIGINT', () => {
     console.log('💾 Guardando antes de salir...');
     try {
