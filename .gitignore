@@ -1,6 +1,5 @@
 ﻿# Dependencias
 node_modules/
-package-lock.json
 
 # Entorno
 .env
@@ -22,11 +21,22 @@ desktop.ini
 
 # Backups y temporales
 *.bak
-*.bak2
+*.bak[0-9]*
+*.bak-*
 *.tmp
 *.swp
 temp_*.txt
 nueva_funcion.txt
+*_BACKUP*
+*_BACKUP_*
+index_ANTES_*
+index_BACKUP*
+
+# Archivos de debug
+error.txt
+error_real.txt
+error_utf8.txt
+error*.txt
 
 # Herramientas de desarrollo
 ngrok.exe
@@ -36,3 +46,4 @@ ngrok-v3-stable-windows-amd64.zip
 inventarios.json
 pilares.json
 ligas.json
+academia_persistencia.json

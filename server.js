@@ -222,12 +222,22 @@ try {
     if (fs.existsSync(LIGAS_FILE)) {
         ligas = JSON.parse(fs.readFileSync(LIGAS_FILE, 'utf8'));
         console.log(`✅ Ligas cargadas desde disco (${Object.keys(ligas).length} ligas)`);
+        // 🔥 FIX: reparar ligas viejas sin miembrosNombres
+        for (let id in ligas) {
+            const l = ligas[id];
+            if (!Array.isArray(l.miembrosNombres)) l.miembrosNombres = [];
+            // sincronizar largo con miembros (rellenar con "???")
+            while (l.miembrosNombres.length < l.miembros.length) l.miembrosNombres.push('???');
+            // sincronizar largo con miembros (recortar)
+            l.miembrosNombres.length = l.miembros.length;
+        }
     } else {
         console.log('📂 No hay ligas previas, arrancando de cero');
     }
 } catch(e) {
     console.log('⚠️ Error al cargar ligas:', e.message);
 }
+
 try {
     if (fs.existsSync(ACADEMIA_FILE)) {
         academiaPersistencia = JSON.parse(fs.readFileSync(ACADEMIA_FILE, 'utf8'));
@@ -259,13 +269,7 @@ setInterval(() => {
 for (let socketId in players) {
     const j = players[socketId];
     if (!j || !j.name) continue;
-    academiaPersistencia[j.name] = {
-        cristanite: j.cristanite || 0,
-        academia: j.academia || { oro: 0, hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0 },
-        level: j.level || 1,                          
-        exp: j.exp || 0,                              
-        stats: j.stats || {}                          
-    };
+const _p = academiaPersistencia[j.name] || {}; academiaPersistencia[j.name] = { cristanite: Math.max(j.cristanite||0, _p.cristanite||0), academia: j.academia || _p.academia || { oro:0,hp:0,atkFis:0,atkMag:0,defFis:0,defMag:0 }, level: Math.max(j.level||1, _p.level||1), exp: j.exp||0, stats: j.stats||_p.stats||{}, magiaElegida: j.magiaElegida || _p.magiaElegida || null };
 }
         fs.writeFileSync(INVENTARIOS_FILE, JSON.stringify(inventariosJugadores, null, 2));
         fs.writeFileSync(PILARES_FILE, JSON.stringify(pilares, null, 2));
@@ -283,6 +287,7 @@ let teams = {};
 let playerTeam = {};
 let invitacionesPendientes = {};
 let estadosAlterados = {};
+let estadosCongelados = {};
 let jugadoresEnMapa = {};
 let esqueletosEnAuraSacrificio = {};
 let cofre = { x: Math.random() * 2800 + 100, y: Math.random() * 2800 + 100, abierto: false };
@@ -384,7 +389,10 @@ function recalcularMaxHp(jugadorId) {
         if (arma && arma.manaBonus) manaBase += arma.manaBonus;
     }
     const buffMana = obtenerBuffPilarJugador(jugadorId, 'mana');
-    let manaTotal = manaBase + ((j.stats?.sabiduria || 0) * 10);
+    // FIX: sumar inteligencia (igual que el cliente)
+    let manaTotal = manaBase
+                  + ((j.stats?.sabiduria || 0) * 10)
+                  + ((j.stats?.inteligencia || 0) * 10);
     j.maxMana = Math.floor(manaTotal * (1 + buffMana));
     if (j.mana > j.maxMana) j.mana = j.maxMana;
 }
@@ -539,7 +547,7 @@ function esAliadoDelDueño(pilar, jugadorId) {
     if (teamDueño && teamJugador && teamDueño === teamJugador) return true;
     // Liga
     const ligaDueño = pilar.dueñoLigaId;
-    if (ligaDueño && ligas[ligaDueño] && ligas[ligaDueño].miembros.includes(jugadorId)) return true;
+    if (ligaDueño && ligas[ligaDueño]) { const _liga = ligas[ligaDueño]; if (_liga.miembros.includes(jugadorId)) return true; const _j = players[jugadorId]; if (_j && Array.isArray(_liga.miembrosNombres) && _liga.miembrosNombres.includes(_j.name)) return true; }
     return false;
 }
 
@@ -1468,11 +1476,14 @@ function revivirJugador(socketId) {
     const j = players[socketId];
     if (!j) return;
     j.isAlive = true;
-    // ═══ FIX: llenar vida, maná y aguante al MÁXIMO REAL del jugador ═══
+
+    // FIX: recalcular maxHp/maxMana con TODOS los bonus antes de llenar
+    recalcularMaxHp(socketId);
+
     j.hp = j.maxHp || CONFIG.PLAYER.MAX_HP;
     j.mana = j.maxMana || (CONFIG.PLAYER.BASE_STATS[j.class]?.mana || 100);
-    // El aguante vive en el cliente, pero por las dudas lo dejamos al máximo también
     if (j.aguante !== undefined) j.aguante = j.maxAguante || 100;
+
     j.x = 512;
     j.y = 470;
     jugadoresEnMapa[socketId] = 'principal';
@@ -1618,6 +1629,40 @@ function colisionaConObjeto(x, y, radio) {
 function getVelocidadEsqueleto(e) { for (let id in esqueletosEnAuraSacrificio) { if (esqueletosEnAuraSacrificio[id] && esqueletosEnAuraSacrificio[id].includes(e.id)) { return CONFIG.SKELETON.SPEED * 0.85; } } return CONFIG.SKELETON.SPEED; }
 
 function moverEsqueletoHaciaObjetivo(e, objetivo) { const dx = objetivo.x - e.x, dy = objetivo.y - e.y, dist = Math.hypot(dx, dy); if (dist < 35) return; const velE = getVelocidadEsqueleto(e); const moveX = (dx / dist) * velE, moveY = (dy / dist) * velE; let newX = Math.min(Math.max(e.x + moveX, 50), 2950), newY = Math.min(Math.max(e.y + moveY, 50), 2950); if (colisionaConObjeto(newX, newY, 20)) { newX = Math.min(Math.max(e.x + moveX, 50), 2950); newY = e.y; if (!colisionaConObjeto(newX, newY, 20)) { e.x = newX; e.y = newY; e.dir = dx > 0 ? 'Derecha' : 'Izquierda'; io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: true }); return; } newX = e.x; newY = Math.min(Math.max(e.y + moveY, 50), 2950); if (!colisionaConObjeto(newX, newY, 20)) { e.x = newX; e.y = newY; e.dir = dy > 0 ? 'Abajo' : 'Arriba'; io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: true }); return; } io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: false }); return; } e.x = newX; e.y = newY; if (Math.abs(dx) > Math.abs(dy)) e.dir = dx > 0 ? 'Derecha' : 'Izquierda'; else e.dir = dy > 0 ? 'Abajo' : 'Arriba'; io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: true }); }
+function aplicarCongelamiento(objetivoId, duracionMs, atacanteId = null, skillId = null) {
+    estadosCongelados[objetivoId] = { fin: Date.now() + duracionMs, atacanteId, skillId };
+    const esqueleto = esqueletos.find(e => e.id === objetivoId && e.isAlive);
+    if (esqueleto) {
+        esqueleto.congelado = true;
+        io.emit('esqueletoMoved', { id: esqueleto.id, x: esqueleto.x, y: esqueleto.y, dir: esqueleto.dir, isMoving: false, congelado: true });
+    }
+    if (objetivoId === 'demonlord' && demonlord.isAlive) {
+        demonlord.congelado = true;
+        io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false, congelado: true });
+    }
+    const inv = invocadores.find(i => i.id === objetivoId && i.isAlive);
+    if (inv) {
+        inv.congelado = true;
+        io.emit('invocadorMoved', { id: inv.id, x: inv.x, y: inv.y, dir: inv.dir, isMoving: false, estado: 'idle', congelado: true });
+    }
+    io.emit('congelamientoAplicado', { objetivoId, duracionMs, atacanteId, skillId });
+}
+
+function estaCongelado(objetivoId) {
+    const e = estadosCongelados[objetivoId];
+    if (!e) return false;
+    if (Date.now() >= e.fin) {
+        delete estadosCongelados[objetivoId];
+        const esq = esqueletos.find(x => x.id === objetivoId);
+        if (esq) esq.congelado = false;
+        if (objetivoId === 'demonlord') demonlord.congelado = false;
+        const inv = invocadores.find(i => i.id === objetivoId);
+        if (inv) inv.congelado = false;
+        return false;
+    }
+    return true;
+}
+
 
 function aplicarQuemadura(objetivoId, dañoFuegoTotal, duracionSegundos = 5) { if (!estadosAlterados[objetivoId]) estadosAlterados[objetivoId] = {}; const danioPorTick = Math.floor(dañoFuegoTotal * 0.1); estadosAlterados[objetivoId].quemadura = { danio: danioPorTick, fin: Date.now() + (duracionSegundos * 1000) }; let ox = 0, oy = 0; const obj = esqueletos.find(e => e.id === objetivoId); if (obj) { ox = obj.x; oy = obj.y; } else if (objetivoId === 'demonlord') { ox = demonlord.x; oy = demonlord.y; } io.emit('enemyDamaged', { id: objetivoId, x: ox, y: oy, dmg: danioPorTick, tipo: 'quemadura' }); }
 
@@ -1714,6 +1759,16 @@ setInterval(() => {
     }
 }, 1000);
 
+setInterval(() => {
+    const ahora = Date.now();
+    for (let id in estadosCongelados) {
+        if (estadosCongelados[id].fin <= ahora) {
+            delete estadosCongelados[id];
+            io.emit('congelamientoTerminado', { objetivoId: id });
+        }
+    }
+}, 500);
+
 // ═══════════════════════════════════════════════════════════════
 // ═══ NUEVO: INTERVALO DE REGENERACIÓN Y VENTANA DE PILARES ═══
 // ═══════════════════════════════════════════════════════════════
@@ -1782,7 +1837,8 @@ if (oroItem) {
             bonusLiga: p.dueñoLigaId ? 10 : 0,
             totalOro: oroItem ? oroItem.cantidad : oroFinal
         });
-    });
+    io.to(p.dueñoId).emit('inventarioCompleto', inventariosJugadores[p.dueñoId]);
+        });
 }, 30000);   // cada 30 segundos
 // ═══════════════════════════════════════════════════════════════
 // ═══ NUEVO: INTERVALO DE BUFF DE PILARES A JUGADORES ═══
@@ -1802,6 +1858,7 @@ setInterval(() => {
 setInterval(() => {
     if (!demonlord.isAlive) return;
     if (demonlord.aturdido) { io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false }); return; }
+    if (estaCongelado('demonlord')) { io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false, congelado: true }); return; }
     let closest = null, closestDist = Infinity;
     for (let id in players) { let p = players[id]; if (p && p.isAlive && (jugadoresEnMapa[id] || 'principal') === 'principal') { let d = getDistance(demonlord.x, demonlord.y, p.x, p.y); if (d < closestDist) { closestDist = d; closest = p; } } }
     if (!closest) { for (let e of esqueletos) { if (e.isAlive && e.mapa === 'principal') { let d = getDistance(demonlord.x, demonlord.y, e.x, e.y); if (d < closestDist) { closestDist = d; closest = e; } } } }
@@ -1840,7 +1897,7 @@ setInterval(() => {
             }, 400);
         }
     } else { io.emit('demonlordMoved',{x:demonlord.x,y:demonlord.y,dir:demonlord.dir,isMoving:false}); }
-    if(demonlord.attackCooldown>0)demonlord.attackCooldown-=100;
+        if(demonlord.attackCooldown>0)demonlord.attackCooldown-=100;
 }, 100);
 
 // ═══════════════════════════════════════════════════════════════
@@ -1849,6 +1906,7 @@ setInterval(() => {
 setInterval(() => {
     esqueletos.forEach(e => {
         if (!e.isAlive) return;
+        if (estaCongelado(e.id)) { io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: false, congelado: true }); return; }
         if (e.reviviendoHasta && Date.now() < e.reviviendoHasta) { io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: false }); return; }
         if (e.reviviendoHasta && Date.now() >= e.reviviendoHasta) { e.reviviendoHasta = null; }
         if (e.aturdido) { io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: false }); return; }
@@ -2016,6 +2074,7 @@ setInterval(() => {
     const ahora = Date.now();
     invocadores.forEach(inv => {
         if (!inv.isAlive) return;
+        if (estaCongelado(inv.id)) { io.emit('invocadorMoved', { id: inv.id, x: inv.x, y: inv.y, dir: inv.dir, isMoving: false, estado: 'idle', congelado: true }); return; }
         if (inv.estado === 'reaparecer') { if (ahora - inv.escapeInicio > 300) { inv.estado = 'idle'; io.emit('invocadorMoved', { id: inv.id, x: inv.x, y: inv.y, dir: inv.dir, isMoving: false, estado: 'idle' }); } return; }
         if (inv.estado === 'huir') {
             const tiempoHuyendo = ahora - inv.escapeInicio;
@@ -2249,7 +2308,7 @@ Object.keys(players).forEach(id => {
     // (los pilares se envían dentro de newPlayer, después de crear el jugador)
     socket.emit('ligasIniciales', { ligas: obtenerRankingLigas() });
 
-socket.on('newPlayer', (d) => {
+    socket.on('newPlayer', (d) => {
     const bs = CONFIG.PLAYER.BASE_STATS[d.class] || CONFIG.PLAYER.BASE_STATS.warrior;
     let atq = 15, hpInicial = 500;
     if (d.className === 'BARBARO') { atq = 80; hpInicial = 800; }
@@ -2298,7 +2357,8 @@ angelUltimoUso: 0,
         atkMag: 0,
         defFis: 0,
         defMag: 0
-    }
+    },
+    magiaElegida: null
 };
     jugadoresEnMapa[socket.id] = 'principal';
 
@@ -2344,6 +2404,7 @@ angelUltimoUso: 0,
         nivelVida: p.nivelVida, nivelDefFisica: p.nivelDefFisica,
         nivelDefMagica: p.nivelDefMagica, nivelBuff: p.nivelBuff,
         dueñoId: p.dueñoId, dueñoLigaId: p.dueñoLigaId,
+        dueño: p.dueñoId, dueñoLiga: p.dueñoLigaId,
         dueñoNombre: p.dueñoNombre || (p.dueñoId && players[p.dueñoId] ? players[p.dueñoId].name : null)
     })));
 
@@ -2368,6 +2429,7 @@ if (academiaPersistencia[d.name]) {
     const guardado = academiaPersistencia[d.name];
     players[socket.id].cristanite = guardado.cristanite || 0;
     players[socket.id].academia = guardado.academia || { oro: 0, hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0 };
+    players[socket.id].magiaElegida = guardado.magiaElegida || null;
 
     // ⬇️ NUEVO: restaurar nivel y exp
     if (guardado.level && guardado.level > 1) {
@@ -2405,7 +2467,8 @@ socket.emit('playerStatsCompletos', {
     maxHp: players[socket.id].maxHp,
     maxMana: players[socket.id].maxMana,
     hp: players[socket.id].hp,
-    mana: players[socket.id].mana
+    mana: players[socket.id].mana,
+    magiaElegida: players[socket.id].magiaElegida
 });
 
     setTimeout(() => {
@@ -2804,6 +2867,7 @@ socket.on('playerMurio', (data) => {
             nivelVida: p.nivelVida, nivelDefFisica: p.nivelDefFisica,
             nivelDefMagica: p.nivelDefMagica, nivelBuff: p.nivelBuff,
             dueñoId: p.dueñoId, dueñoLigaId: p.dueñoLigaId,
+            dueño: p.dueñoId, dueñoLiga: p.dueñoLigaId,
             dueñoNombre: p.dueñoNombre || (p.dueñoId && players[p.dueñoId] ? players[p.dueñoId].name : null)
         })));
     });
@@ -2827,6 +2891,7 @@ socket.on('playerMurio', (data) => {
             nivelVida: pilar.nivelVida, nivelDefFisica: pilar.nivelDefFisica,
             nivelDefMagica: pilar.nivelDefMagica, nivelBuff: pilar.nivelBuff,
             dueñoId: pilar.dueñoId, dueñoLigaId: pilar.dueñoLigaId,
+            dueño: pilar.dueñoId, dueñoLiga: pilar.dueñoLigaId,
             dueñoNombre: pilar.dueñoNombre || (pilar.dueñoId && players[pilar.dueñoId] ? players[pilar.dueñoId].name : null),
             ventanaRecuperacion: pilar.ventanaRecuperacion,
             dueñoOriginalId: pilar.dueñoOriginalId
@@ -3239,6 +3304,29 @@ emitirStatsJugador(socket.id);
         }
         io.to(socket.id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `💀 Cosechaste ${cosechados} esqueletos (-${costoVida} HP, duran 60s)` });
     });
+socket.on('elegirMagia', (data) => {
+    const j = players[socket.id];
+    if (!j || !j.isAlive) return;
+    if (j.className !== 'MAGO') { socket.emit('mensaje', '❌ Solo Mago'); return; }
+    if (j.magiaElegida) {
+        const nombreActual = j.magiaElegida === 'fuego' ? 'Meteoro (Fuego)' : 'Absoluto (Agua)';
+        socket.emit('mensaje', `❌ Ya elegiste tu camino: ${nombreActual}`);
+        return;
+    }
+    const camino = data.camino;
+    if (camino !== 'fuego' && camino !== 'agua') { socket.emit('mensaje', '❌ Camino inválido'); return; }
+    const nivelFuego = j.stats?.atqFuego || 0;
+    const nivelAgua = j.stats?.atqAgua || 0;
+    if (camino === 'fuego' && nivelFuego < 30) { socket.emit('mensaje', `❌ Necesitás Nv.30 de Fuego (tenés ${nivelFuego})`); return; }
+    if (camino === 'agua' && nivelAgua < 30) { socket.emit('mensaje', `❌ Necesitás Nv.30 de Agua (tenés ${nivelAgua})`); return; }
+    j.magiaElegida = camino;
+    academiaPersistencia[j.name] = academiaPersistencia[j.name] || {};
+    academiaPersistencia[j.name].magiaElegida = camino;
+    const skillDesbloqueada = camino === 'fuego' ? 'Meteoro' : 'Absoluto';
+    socket.emit('magiaElegidaExito', { camino, skillDesbloqueada });
+    socket.emit('mensaje', `✨ ¡Camino de ${camino === 'fuego' ? 'Fuego 🔥' : 'Agua 🧊'} elegido! Desbloqueaste ${skillDesbloqueada}`);
+    io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `✨ ${j.name} eligió el camino de ${camino === 'fuego' ? 'Fuego 🔥 (Meteoro)' : 'Agua 🧊 (Absoluto)'}` });
+});
 
     // ═══════════════════════════════════════════════════════════════
     // ═══ NUEVO: SKILLS DEL CLÉRIGO ═══
@@ -3393,6 +3481,96 @@ emitirStatsJugador(targetId);
             io.to(socket.id).emit('clerigoResurreccionExito', { targetId: targetId });
         }, 2500); // 2500ms = lo que dura la caída de la pluma
     });
+
+socket.on('absolutoHit', (data) => {
+    const j = players[socket.id];
+    if (!j || !j.isAlive) return;
+    if (j.className !== 'MAGO') return;
+    if (j.magiaElegida !== 'agua') { socket.emit('mensaje', '❄️ Necesitás el Camino del Agua'); return; }
+// El cliente ya descontó el maná localmente y sincronizó vía 'sincronizarMana'.
+// No volver a cobrar acá para evitar doble cobro.
+    emitirStatsJugador(socket.id);
+    const targetX = data.targetX;
+    const targetY = data.targetY;
+    const RADIO = data.radio || 80;
+    const danoBase = data.dano || 100;
+    const afectados = [];
+    esqueletos.forEach(e => { if (e.isAlive && !e.isAlly && getDistance(targetX, targetY, e.x, e.y) <= RADIO) afectados.push({ tipo: 'esqueleto', obj: e }); });
+    if (demonlord.isAlive && demonlord.hp > 0 && getDistance(targetX, targetY, demonlord.x, demonlord.y) <= RADIO + 30) afectados.push({ tipo: 'demonlord', obj: demonlord });
+    invocadores.forEach(inv => { if (inv.isAlive && getDistance(targetX, targetY, inv.x, inv.y) <= RADIO) afectados.push({ tipo: 'invocador', obj: inv }); });
+    afectados.forEach(a => {
+        if (a.tipo === 'esqueleto') {
+            daniarEsqueleto(a.obj, socket.id, danoBase, 'agua');
+            const ang = Math.atan2(a.obj.y - targetY, a.obj.x - targetX);
+            a.obj.x = Math.min(Math.max(a.obj.x + Math.cos(ang) * 25, 50), 2950);
+            a.obj.y = Math.min(Math.max(a.obj.y + Math.sin(ang) * 25, 50), 2950);
+            io.emit('esqueletoMoved', { id: a.obj.id, x: a.obj.x, y: a.obj.y, dir: a.obj.dir, isMoving: false });
+            aplicarCongelamiento(a.obj.id, 5000, socket.id, 'absoluto');
+        } else if (a.tipo === 'demonlord') {
+            demonlord.hp = Math.max(0, demonlord.hp - danoBase);
+            if (!demonlord.attackers) demonlord.attackers = [];
+            if (!demonlord.attackers.includes(socket.id)) demonlord.attackers.push(socket.id);
+            io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: danoBase, tipo: 'hielo' });
+            aplicarCongelamiento('demonlord', 5000, socket.id, 'absoluto');
+            if (demonlord.hp <= 0) {
+                demonlord.isAlive = false; registrarMuerteDemonlord();
+                io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
+                setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; demonlord.congelado = false; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME);
+            }
+        } else if (a.tipo === 'invocador') {
+            daniarInvocador(a.obj.id, danoBase, socket.id);
+            aplicarCongelamiento(a.obj.id, 5000, socket.id, 'absoluto');
+        }
+    });
+});
+
+socket.on('meteoroHit', (data) => {
+    const j = players[socket.id];
+    if (!j || !j.isAlive) return;
+    if (j.className !== 'MAGO') return;
+    if (j.magiaElegida !== 'fuego') { socket.emit('mensaje', '🔥 Necesitás el Camino del Fuego'); return; }
+// El cliente ya descontó el maná localmente y sincronizó vía 'sincronizarMana'.
+// No volver a cobrar acá para evitar doble cobro.
+    const centroX = data.targetX;
+    const centroY = data.targetY;
+    const danoBase = data.dano || 100;
+    const RADIO = data.radio || 90;
+    let dañoFuegoTotal = (j.stats?.atqFuego || 0);
+    const inv = inventariosJugadores[socket.id];
+    if (inv && j.equipamiento?.arma) {
+        const arma = inv.items.find(i => i.id === j.equipamiento.arma);
+        if (arma && arma.dañoFuego) dañoFuegoTotal += arma.dañoFuego;
+    }
+    const quemaduraBase = danoBase + dañoFuegoTotal * 2;
+    const afectados = [];
+    esqueletos.forEach(e => { if (e.isAlive && !e.isAlly && getDistance(centroX, centroY, e.x, e.y) <= RADIO) afectados.push({ tipo: 'esqueleto', obj: e, dist: getDistance(centroX, centroY, e.x, e.y) }); });
+    if (demonlord.isAlive && demonlord.hp > 0 && getDistance(centroX, centroY, demonlord.x, demonlord.y) <= RADIO + 30) afectados.push({ tipo: 'demonlord', obj: demonlord, dist: getDistance(centroX, centroY, demonlord.x, demonlord.y) });
+    invocadores.forEach(i2 => { if (i2.isAlive && getDistance(centroX, centroY, i2.x, i2.y) <= RADIO) afectados.push({ tipo: 'invocador', obj: i2, dist: getDistance(centroX, centroY, i2.x, i2.y) }); });
+    afectados.forEach(a => {
+        const danoFinal = Math.floor(danoBase * (1 - (a.dist / RADIO) * 0.3));
+        if (a.tipo === 'esqueleto') { daniarEsqueleto(a.obj, socket.id, danoFinal, 'fuego'); aplicarQuemadura(a.obj.id, quemaduraBase, 5); }
+        else if (a.tipo === 'demonlord') {
+            demonlord.hp = Math.max(0, demonlord.hp - danoFinal);
+            if (!demonlord.attackers) demonlord.attackers = [];
+            if (!demonlord.attackers.includes(socket.id)) demonlord.attackers.push(socket.id);
+            io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: danoFinal, tipo: 'fuego' });
+            aplicarQuemadura('demonlord', quemaduraBase, 5);
+            if (demonlord.hp <= 0) {
+                demonlord.isAlive = false; registrarMuerteDemonlord();
+                io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
+                setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME);
+            }
+        }
+        else if (a.tipo === 'invocador') { daniarInvocador(a.obj.id, danoFinal, socket.id); aplicarQuemadura(a.obj.id, quemaduraBase, 5); }
+    });
+    // 🆕 Avisar a los DEMÁS jugadores que cayó un meteoro (para que vean el efecto)
+    socket.broadcast.emit('meteoroVisualRemoto', {
+        targetX: centroX,
+        targetY: centroY,
+        radio: RADIO
+    });
+});
+
 
     socket.on('clerigoPhoton', (data) => {
         const j = players[socket.id];
@@ -3551,7 +3729,7 @@ socket.on('plegariasAyuda', (data) => {
     if (nivelFe < 5 || nivelJuicio < 5) { console.log(`🔍 [TEST PLEGARIA] Cortó: fe=${nivelFe} juicio=${nivelJuicio} (necesita >=5)`); return; }
 
     // 🔥 FIX: usar el nivelPlegarias que viene del CLIENTE (data), no el del server
-    const nivelPlegarias = parseInt(data.nivelPlegarias) || j.stats?.plegarias || 0;
+    const nivelPlegarias = j.stats?.plegarias || 0;
     if (nivelPlegarias <= 0) { console.log('🔍 [TEST PLEGARIA] Cortó: plegarias<=0 (data=' + data.nivelPlegarias + ', server=' + (j.stats?.plegarias || 0) + ')'); return; }
 
     const targetId = data.targetId;
@@ -3779,6 +3957,7 @@ socket.on('solicitarJugadoresActuales', () => {
                 nivelVida: p.nivelVida, nivelDefFisica: p.nivelDefFisica,
                 nivelDefMagica: p.nivelDefMagica, nivelBuff: p.nivelBuff,
                 dueñoId: p.dueñoId, dueñoLigaId: p.dueñoLigaId,
+                dueño: p.dueñoId, dueñoLiga: p.dueñoLigaId,
                 dueñoNombre: p.dueñoNombre || (p.dueñoId && players[p.dueñoId] ? players[p.dueñoId].name : null)
             })));
             return;
@@ -3922,13 +4101,14 @@ socket.on('disconnect', () => {
     // ═══ NUEVO: guardar cristanite y academia del jugador que se desconecta ═══
 const jugadorDesconectado = players[socket.id];
 if (jugadorDesconectado && jugadorDesconectado.name) {
-    academiaPersistencia[jugadorDesconectado.name] = {
-        cristanite: jugadorDesconectado.cristanite || 0,
-        academia: jugadorDesconectado.academia || { oro: 0, hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0 },
-        level: jugadorDesconectado.level || 1,        // ⬅️ NUEVO
-        exp: jugadorDesconectado.exp || 0,            // ⬅️ NUEVO
-        stats: jugadorDesconectado.stats || {}        // ⬅️ NUEVO
-    };
+academiaPersistencia[jugadorDesconectado.name] = {
+    cristanite: jugadorDesconectado.cristanite || 0,
+    academia: jugadorDesconectado.academia || { oro: 0, hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0 },
+    level: jugadorDesconectado.level || 1,
+    exp: jugadorDesconectado.exp || 0,
+    stats: jugadorDesconectado.stats || {},
+    magiaElegida: jugadorDesconectado.magiaElegida || null
+};
     try { fs.writeFileSync(ACADEMIA_FILE, JSON.stringify(academiaPersistencia, null, 2)); } catch(e) {}
 }
 
