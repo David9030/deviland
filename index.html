@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -302,7 +302,7 @@ body.modo-movil #btn-fullscreen-movil { font-size: 20px !important; }
 <!-- 🏛️ BOTÓN PILARES (HUD) -->
 <div id="btn-pilares-hud" onclick="togglePilares()" style="display:none; position:fixed; top:75px; left:15px; width:50px; height:50px; background-color:rgba(0,0,0,0.75); border:2px solid #ffffff; border-radius:8px; cursor:pointer; z-index:999999; background-image:url('iconos/pilar_boton.png'); background-size:70%; background-repeat:no-repeat; background-position:center; -webkit-tap-highlight-color:transparent;" title="Pilares"></div>
 <!-- 🏅 BOTÓN LIGA (HUD) -->
-<div id="btn-liga-hud" onclick="toggleLiga()" style="display:none; position:fixed; top:135px; left:15px; width:50px; height:50px; background-color:rgba(0,0,0,0.75); border:2px solid #ffffff; border-radius:8px; cursor:pointer; z-index:999999; background-image:url('iconos/liga_boton.png'); background-size:70%; background-repeat:no-repeat; background-position:center; -webkit-tap-highlight-color:transparent;" title="Liga"></div>
+<div id="btn-liga-hud" onclick="toggleLiga()" style="display:none; position:fixed; top:135px; left:15px; width:50px; height:50px; background-color:rgba(0,0,0,0.75); border:2px solid #ffffff; border-radius:8px; cursor:pointer; z-index:999999; background-image:url('iconos/liga_boton.png'); background-size:70%; background-repeat:no-repeat; background-position:center; -webkit-tap-highlight-color:transparent;" title="Liga"><span id="liga-dot" style="display:none; position:absolute; top:-5px; right:-5px; width:12px; height:12px; background:red; border-radius:50%; box-shadow:0 0 4px red; z-index:999999;"></span></div>
 <div id="pociones-rapidas" style="position:fixed; bottom:15px; right:90px; display:flex; gap:5px; z-index:99999;">
     <div id="slot-pocion-1" class="slot" onclick="usarPocionSlot(0)" ondrop="dropPocionRapida(event, 0)" ondragover="event.preventDefault()" style="width:60px; height:60px;">
         <span style="font-size:20px; opacity:0.3;">❓</span>
@@ -445,6 +445,26 @@ body.modo-movil #btn-fullscreen-movil { font-size: 20px !important; }
             <div style="color:#aaa;font-size:10px;text-align:center;margin-bottom:5px;">Crear liga cuesta 5.000.000 de oro</div>
             <input type="text" id="liga-nombre-input" placeholder="Nombre de la liga (3-20 caracteres)" style="width:100%;padding:6px;background:#000;border:1px solid #fff;color:#fff;text-align:center;font-family:monospace;font-size:11px;box-sizing:border-box;">
             <button onclick="crearLigaUI()" style="width:100%;padding:8px;margin-top:6px;background:#000;color:#ffaa00;border:1px solid #ffaa00;cursor:pointer;font-family:monospace;font-size:12px;">CREAR LIGA</button>
+        </div>
+        <!-- ═══ NUEVO: SOLICITAR UNIRME (cuando NO estás en liga) ═══ -->
+        <div id="liga-solicitar-section" style="display:none;margin-top:10px;padding:8px;background:#111;border:1px solid #444;border-radius:4px;">
+            <div style="color:#aaa;font-size:10px;text-align:center;margin-bottom:5px;">Escribí el nombre exacto de la liga a la que querés unirte</div>
+            <input type="text" id="liga-solicitar-input" placeholder="Nombre de la liga" style="width:100%;padding:6px;background:#000;border:1px solid #fff;color:#fff;text-align:center;font-family:monospace;font-size:11px;box-sizing:border-box;">
+            <button onclick="solicitarUnirseLigaUI()" style="width:100%;padding:8px;margin-top:6px;background:#000;color:#88ff88;border:1px solid #88ff88;cursor:pointer;font-family:monospace;font-size:12px;">📨 SOLICITAR UNIRME</button>
+        </div>
+
+        <!-- ═══ NUEVO: PANEL DE SOLICITUDES (solo líder/sublíder) ═══ -->
+        <div id="liga-solicitudes-section" style="display:none;margin-top:10px;padding:8px;background:#111;border:1px solid #ffaa00;border-radius:4px;">
+            <div style="color:#ffaa00;font-size:11px;font-weight:bold;margin-bottom:5px;">📨 SOLICITUDES PENDIENTES <span id="liga-solicitudes-badge" style="background:#ff4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px;">0</span></div>
+            <div id="liga-solicitudes-lista" style="max-height:200px;overflow-y:auto;color:#fff;font-size:11px;"></div>
+        </div>
+
+        <!-- ═══ NUEVO: SUBLÍDERES (solo líder) ═══ -->
+        <div id="liga-sublideres-section" style="display:none;margin-top:10px;padding:8px;background:#111;border:1px solid #66ccff;border-radius:4px;">
+            <div style="color:#66ccff;font-size:11px;font-weight:bold;margin-bottom:5px;">⭐ SUBLÍDERES (máx 3)</div>
+            <div id="liga-sublideres-lista" style="color:#fff;font-size:11px;margin-bottom:5px;"></div>
+            <input type="text" id="liga-sublider-input" placeholder="Nombre del jugador a nombrar sublíder" style="width:100%;padding:5px;background:#000;border:1px solid #66ccff;color:#fff;text-align:center;font-family:monospace;font-size:10px;box-sizing:border-box;">
+            <button onclick="nombrarSubliderUI()" style="width:100%;padding:6px;margin-top:4px;background:#000;color:#66ccff;border:1px solid #66ccff;cursor:pointer;font-family:monospace;font-size:10px;">⭐ NOMBRAR SUBLÍDER</button>
         </div>
         <div id="liga-invitar-section" style="display:none;margin-top:10px;">
             <input type="text" id="liga-invitar-input" placeholder="Nombre del jugador" style="width:100%;padding:6px;background:#000;border:1px solid #fff;color:#fff;text-align:center;font-family:monospace;font-size:11px;box-sizing:border-box;">
@@ -606,7 +626,8 @@ const COOLDOWNS_SKILLS = {
     golpe_brutal:         15000,
     cosecha_osea:         60000,
     furia_necrotica:      120000,
-    levantar_muerto:      1000
+    levantar_muerto:      1000,
+    espadas_giratorias:   18000,  
 };
 // ═══ NUEVO: Tiempos de casteo del Clérigo (ms) ═══
 const CAST_TIMES_CLERIGO = {
@@ -1052,6 +1073,17 @@ const SKILLS_DATA = {
     clerigo_buff_atkfis:  { id: 'clerigo_buff_atkfis',  nombre: 'Bendición Física', descripcion: 'Buff +25% daño físico a un aliado por 15s. Rango 200px. Cooldown 20s.', costo: '30 mana',   icono: 'skills/buff_atk_fisico.png',   soloClerigo: true, clase: 'CLERIGO' },
     clerigo_buff_atkmag:  { id: 'clerigo_buff_atkmag',  nombre: 'Bendición Mágica', descripcion: 'Buff +25% daño mágico a un aliado por 15s. Rango 200px. Cooldown 20s.', costo: '30 mana',   icono: 'skills/buff_atk_magico.png',   soloClerigo: true, clase: 'CLERIGO' },
     clerigo_buff_deffis:  { id: 'clerigo_buff_deffis',  nombre: 'Protección Física',descripcion: 'Buff +20% defensa física a un aliado por 15s. Rango 200px. Cooldown 20s.', costo: '30 mana',   icono: 'skills/buff_def_fisica.png',   soloClerigo: true, clase: 'CLERIGO' },
+        espadas_giratorias: {
+        id: 'espadas_giratorias',
+        nombre: 'Espadas Giratorias',
+        descripcion: 'Invoca 4 espadas que giran alrededor tuyo por 4 segundos. Dañan a TODOS los enemigos en el área cada segundo. Se mueven con vos. Requiere Corte Nv.10.',
+        costo: '25 aguante',
+        icono: 'espadasgiratorias/espadas (5).png',
+        soloWarrior: true,
+        soloCaballero: true,
+        clase: 'WARRIOR',
+        requiereCorte: 10
+    },
     clerigo_buff_defmag:  { id: 'clerigo_buff_defmag',  nombre: 'Protección Mágica',descripcion: 'Buff +20% defensa mágica a un aliado por 15s. Rango 200px. Cooldown 20s.', costo: '30 mana',   icono: 'skills/buff_def_magica.png',   soloClerigo: true, clase: 'CLERIGO' }
 };
 
@@ -2050,6 +2082,11 @@ setInterval(() => {
             }
         }
     }
+    // ═══ FIX: cierre defensivo si ya eligió pero el modal quedó abierto
+    if (magiaElegida) {
+        const uiCierre = document.getElementById('elegir-magia-ui');
+        if (uiCierre && uiCierre.style.display === 'block') uiCierre.style.display = 'none';
+    }
 }, 2000);
 // ═══════════════════════════════════════════════════════════════
 // ═══ NUEVO: Reproducir sonido de skill del Clérigo (GLOBAL) ═══
@@ -2801,9 +2838,21 @@ function renderizarSkillsInline() {
             }
         }
 
-        const bloqueada = ((skill.id === 'cosecha_osea') && ((playerStats.atqOscuridad || 0) < 10)) || bloqueoMagia;
+        const bloqueada = ((skill.id === 'cosecha_osea') && ((playerStats.atqOscuridad || 0) < 10))
+                       || ((skill.id === 'espadas_giratorias') && ((playerStats.corte || 0) < 10))
+                       || bloqueoMagia;
         const div = document.createElement('div'); div.className = 'skill-slot' + (isEquipped ? ' equipped' : ''); div.setAttribute('data-skill-id', skill.id); div.setAttribute('draggable', bloqueada ? 'false' : 'true'); div.addEventListener('contextmenu', (e) => e.preventDefault());
-        if (bloqueada) { div.style.opacity = '0.35'; div.style.filter = 'grayscale(1)'; div.style.cursor = 'not-allowed'; div.title = bloqueoMagia ? motivoBloqueoMagia : ('Requiere 10 de Oscuridad (tenes ' + (playerStats.atqOscuridad || 0) + ')'); } else if (skill.descripcion) { div.title = skill.nombre + ': ' + skill.descripcion + ' | Costo: ' + (skill.costo || '?'); }
+        if (bloqueada) { 
+            let motivo = bloqueoMagia ? motivoBloqueoMagia : '';
+            if (!motivo && skill.id === 'espadas_giratorias') motivo = 'Requiere Corte Nv.10 (tenés Nv.' + (playerStats.corte || 0) + ')';
+            if (!motivo && skill.id === 'cosecha_osea') motivo = 'Requiere 10 de Oscuridad (tenés ' + (playerStats.atqOscuridad || 0) + ')';
+            div.style.opacity = '0.35'; 
+            div.style.filter = 'grayscale(1)'; 
+            div.style.cursor = 'not-allowed'; 
+            div.title = motivo; 
+        } else if (skill.descripcion) { 
+            div.title = skill.nombre + ': ' + skill.descripcion + ' | Costo: ' + (skill.costo || '?'); 
+        }
         const slotIcon = document.createElement('div'); slotIcon.className = 'slot-icon';
         const img = document.createElement('img'); img.src = skill.icono; img.className = 'skill-icon-img'; img.style.width = '50px'; img.style.height = '50px'; img.draggable = false;
         img.onerror = function () {
@@ -2949,6 +2998,13 @@ function getDefensaElemental(elemento) {
     switch(elemento) { case 'fuego': return playerStats.defFuego || 0; case 'agua': return playerStats.defAgua || 0; case 'viento': return playerStats.defViento || 0; case 'rayo': return playerStats.defRayo || 0; case 'luz': return playerStats.defLuz || 0; case 'oscuridad': return playerStats.defOscuridad || 0; default: return 0; }
 }
 
+// ═══ NUEVO: Bonus de especialidad elemental (×5 por nivel) ═══
+function getBonusElementalCliente(nivel) {
+    if (!nivel || nivel <= 0) return 0;
+    return nivel * 5;
+}
+
+
 function calcularCosechaOsea() {
     const nivelOsc = playerStats.atqOscuridad || 0;
     if (nivelOsc < 10) return { nivelRequerido: 10, esqueletos: 0, costoVida: 0, valido: false };
@@ -3028,6 +3084,93 @@ function crearBarraEnemigo(id, x, y, hp, maxHp, esDemonlord = false) {
     barra.fillStyle(color, 1); barra.fillRect(x - ancho/2, y + offsetY, ancho * porcentaje, alto);
     enemyHealthBars[id] = { barra: barra, fondo: fondo, ancho: ancho, alto: alto, offsetY: offsetY, maxHp: maxHp };
 }
+
+// ═══════════════════════════════════════════════════════════════
+// ⚔️ Actualizar espadas giratorias (rotación + daño por segundo)
+// ═══════════════════════════════════════════════════════════════
+function actualizarEspadasGiratorias() {
+    if (!espadasGiratoriasActivas || !player || !player.active) return;
+
+    const ahora = Date.now();
+    const config = espadasGiratoriasActivas;
+
+    if (config.aura && config.aura.active) {
+        config.aura.setPosition(player.x, player.y + config.offsetY);
+        config.aura.setDepth(player.y - 1);
+    }
+
+    if (ahora >= config.fin) {
+        if (!config.danoAplicado) {
+            config.danoAplicado = true;
+
+            const fuerza = playerStats.fuerza || 0;
+            const corte = playerStats.corte || 0;
+            const danoBase = fuerza * 0.8 + 20;
+            const multiplicador = 1 + corte * 0.02;
+            const dano = Math.floor(danoBase * multiplicador);
+
+            const tickAura = currentScene.add.circle(player.x, player.y, config.radioDano, 0xffdd66, 0.25);
+            tickAura.setDepth(player.y - 2);
+            currentScene.tweens.add({
+                targets: tickAura,
+                alpha: 0,
+                radius: config.radioDano + 20,
+                duration: 400,
+                ease: 'Cubic.easeOut',
+                onComplete: () => { if (tickAura && tickAura.active) tickAura.destroy(); }
+            });
+
+            if (window.esqueletosGrupo) {
+                window.esqueletosGrupo.getChildren().forEach(esq => {
+                    if (!esq.active || esq.isAlly || esq.estaMuerto) return;
+                    const dist = Phaser.Math.Distance.Between(player.x, player.y, esq.x, esq.y);
+                    if (dist <= config.radioDano) {
+                        if (socket && socket.connected) {
+                            socket.emit('esqueletoHit', { id: esq.esqueletoId, damageBonus: dano, elemento: 'corte' });
+                        }
+                        crearTextoDmg(currentScene, esq.x, esq.y - 30, '⚔️' + dano, '#ffdd66', '16px');
+                    }
+                });
+            }
+
+            if (window.invocadoresGrupo) {
+                window.invocadoresGrupo.getChildren().forEach(inv => {
+                    if (!inv.active || inv.estaMuerto) return;
+                    const dist = Phaser.Math.Distance.Between(player.x, player.y, inv.x, inv.y);
+                    if (dist <= config.radioDano) {
+                        if (socket && socket.connected) {
+                            socket.emit('esqueletoHit', { id: inv.invocadorId, damageBonus: dano, elemento: 'corte' });
+                        }
+                        crearTextoDmg(currentScene, inv.x, inv.y - 30, '⚔️' + dano, '#ffdd66', '16px');
+                    }
+                });
+            }
+
+            if (demonlord_sprite && demonlord_sprite.active && demonlordHP > 0) {
+                const dist = Phaser.Math.Distance.Between(player.x, player.y, demonlord_sprite.x, demonlord_sprite.y);
+                if (dist <= config.radioDano + 20) {
+                    if (socket && socket.connected) {
+                        socket.emit('demonlordHit', { damageBonus: dano, esCritico: false, elemento: 'corte' });
+                    }
+                    crearTextoDmg(currentScene, demonlord_sprite.x, demonlord_sprite.y - 120, '⚔️' + dano, '#ffdd66', '20px');
+                }
+            }
+        }
+
+        if (config.aura && config.aura.active) {
+            currentScene.tweens.add({
+                targets: config.aura,
+                alpha: 0,
+                duration: 200,
+                onComplete: () => { if (config.aura && config.aura.active) config.aura.destroy(); }
+            });
+        }
+        espadasGiratoriasActivas = null;
+        return;
+    }
+}
+
+
 
 function actualizarBarrasEnemigos() {
     if (!currentScene) return;
@@ -3273,6 +3416,7 @@ function mejorarPilarUI(pilarId, stat) {
 function mostrarElegirMagia() {
     if (pClassName !== 'MAGO') return;
     if (magiaElegida) return;
+    if (window._magiaModalBucle) return; 
 
     const nivelFuego = playerStats.atqFuego || 0;
     const nivelAgua  = playerStats.atqAgua  || 0;
@@ -3313,6 +3457,12 @@ function elegirCaminoMagia(camino) {
 
     const nombreCamino = camino === 'fuego' ? 'FUEGO' : 'AGUA';
     if (!confirm('Confirmas elegir el CAMINO DEL ' + nombreCamino + '?\n\nEsta eleccion es PERMANENTE.\nDesbloqueas: ' + (camino === 'fuego' ? 'Meteoro' : 'Absoluto') + '\nY perdes acceso al otro.')) return;
+
+    // ═══ FIX: marcar como elegido ANTES de esperar al server
+    magiaElegida = camino;
+    const ui = document.getElementById('elegir-magia-ui');
+    if (ui) ui.style.display = 'none';
+    window._magiaModalBucle = true;
 
     if (socket && socket.connected) {
         socket.emit('elegirMagia', { camino: camino });
@@ -3364,6 +3514,163 @@ function cambiarTabLiga(tab) {
     if (tab === 'academia' && socket && socket.connected) socket.emit('solicitarAcademia');
 }
 
+// ═══════════════════════════════════════════════════════════════
+// ═══ NUEVO: RENDERIZADO DE SOLICITUDES Y SUBLÍDERES ═══
+// ═══════════════════════════════════════════════════════════════
+
+function renderizarSolicitudesUI(solicitudes) {
+    const lista = document.getElementById('liga-solicitudes-lista');
+    const badge = document.getElementById('liga-solicitudes-badge');
+    if (!lista) return;
+    if (!solicitudes || solicitudes.length === 0) {
+        lista.innerHTML = '<div style="color:#666;text-align:center;font-size:10px;padding:8px;">Sin solicitudes pendientes</div>';
+        if (badge) { badge.textContent = '0'; badge.style.display = 'none'; }
+        return;
+    }
+    let html = '';
+    solicitudes.forEach(sol => {
+        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;border-bottom:1px solid #333;">
+            <div><div style="color:#fff;font-size:11px;">${sol.nombre} <span style="color:#666;font-size:9px;">Nv.${sol.nivel}</span></div></div>
+            <div style="display:flex;gap:4px;">
+                <button onclick="aceptarSolicitudUI('${sol.socketId}')" style="background:#000;color:#88ff88;border:1px solid #88ff88;padding:3px 8px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:3px;">✓ ACEPTAR</button>
+                <button onclick="rechazarSolicitudUI('${sol.socketId}')" style="background:#000;color:#ff4444;border:1px solid #ff4444;padding:3px 8px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:3px;">✗ RECHAZAR</button>
+            </div>
+        </div>`;
+    });
+    lista.innerHTML = html;
+    if (badge) { badge.textContent = solicitudes.length; badge.style.display = 'inline-block'; }
+}
+
+
+// ═══ Listeners de socket para actualizar en vivo ═══
+if (socket) {
+    socket.on('nuevaSolicitudLiga', (data) => {
+        console.log('📨 Nueva solicitud:', data);
+        if (data && data.solicitante) {
+            mostrarMensaje(`📨 ${data.solicitante.nombre} quiere unirse a "${data.ligaNombre}"`, 'info');
+        }
+    });
+    socket.on('solicitudesLigaActualizadas', (data) => {
+        if (data && data.solicitudes) {
+            renderizarSolicitudesUI(data.solicitudes);
+        }
+    });
+    socket.on('listaSolicitudesLiga', (data) => {
+        if (data && data.solicitudes) {
+            renderizarSolicitudesUI(data.solicitudes);
+        }
+    });
+    socket.on('sublideresActualizados', (data) => {
+        if (data && data.sublideres) {
+            renderizarSublideresUI(data.sublideres);
+        }
+    });
+}
+// ═══════════════════════════════════════════════════════════════
+// ═══ NUEVO: RENDERIZADO DE SOLICITUDES Y SUBLÍDERES ═══
+// ═══════════════════════════════════════════════════════════════
+
+function renderizarSolicitudesUI(solicitudes) {
+    const lista = document.getElementById('liga-solicitudes-lista');
+    const badge = document.getElementById('liga-solicitudes-badge');
+    if (!lista) return;
+    if (!solicitudes || solicitudes.length === 0) {
+        lista.innerHTML = '<div style="color:#666;text-align:center;font-size:10px;padding:8px;">Sin solicitudes pendientes</div>';
+        if (badge) { badge.textContent = '0'; badge.style.display = 'none'; }
+        return;
+    }
+    let html = '';
+    solicitudes.forEach(sol => {
+        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;border-bottom:1px solid #333;">
+            <div><div style="color:#fff;font-size:11px;">${sol.nombre} <span style="color:#666;font-size:9px;">Nv.${sol.nivel}</span></div></div>
+            <div style="display:flex;gap:4px;">
+                <button onclick="aceptarSolicitudUI('${sol.socketId}')" style="background:#000;color:#88ff88;border:1px solid #88ff88;padding:3px 8px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:3px;">✓ ACEPTAR</button>
+                <button onclick="rechazarSolicitudUI('${sol.socketId}')" style="background:#000;color:#ff4444;border:1px solid #ff4444;padding:3px 8px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:3px;">✗ RECHAZAR</button>
+            </div>
+        </div>`;
+    });
+    lista.innerHTML = html;
+    if (badge) { badge.textContent = solicitudes.length; badge.style.display = 'inline-block'; }
+}
+
+function renderizarSublideresUI(sublideres) {
+    const lista = document.getElementById('liga-sublideres-lista');
+    if (!lista) return;
+    if (!sublideres || sublideres.length === 0) {
+        lista.innerHTML = '<div style="color:#666;font-size:10px;padding:4px;">Sin sublideres asignados</div>';
+        return;
+    }
+    let html = '';
+    sublideres.forEach(sub => {
+        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 6px;border-bottom:1px solid #333;">
+            <span style="color:#66ccff;font-size:11px;">⭐ ${sub.nombre}</span>
+            <button onclick="quitarSubliderUI('${sub.socketId}')" style="background:#000;color:#ff4444;border:1px solid #ff4444;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:9px;border-radius:3px;">QUITAR</button>
+        </div>`;
+    });
+    lista.innerHTML = html;
+}
+
+// ═══ Listeners de socket para actualizar en vivo ═══
+if (socket) {
+    socket.on('nuevaSolicitudLiga', (data) => {
+        console.log('📨 Nueva solicitud:', data);
+        if (data && data.solicitante) {
+            mostrarMensaje(`📨 ${data.solicitante.nombre} quiere unirse a "${data.ligaNombre}"`, 'info');
+        }
+    });
+    socket.on('solicitudesLigaActualizadas', (data) => {
+        if (data && data.solicitudes) {
+            renderizarSolicitudesUI(data.solicitudes);
+        }
+    });
+    socket.on('listaSolicitudesLiga', (data) => {
+        if (data && data.solicitudes) {
+            renderizarSolicitudesUI(data.solicitudes);
+        }
+    });
+    socket.on('sublideresActualizados', (data) => {
+        if (data && data.sublideres) {
+            renderizarSublideresUI(data.sublideres);
+        }
+    });
+}
+// ═══════════════════════════════════════════════════════════════
+// ═══ NUEVO: PUNTITO ROJO EN EL BOTÓN DE LIGA ═══
+// ═══════════════════════════════════════════════════════════════
+
+function actualizarLigaDot(mostrar) {
+    const dot = document.getElementById('liga-dot');
+    if (!dot) return;
+    dot.style.display = mostrar ? 'block' : 'none';
+}
+// Envolver toggleLiga para ocultar el dot al abrir
+if (typeof toggleLiga === 'function' && !window._toggleLigaOriginal) {
+    window._toggleLigaOriginal = window.toggleLiga;
+    window.toggleLiga = function() {
+        actualizarLigaDot(false);
+        if (typeof window._toggleLigaOriginal === 'function') {
+            window._toggleLigaOriginal.apply(this, arguments);
+        }
+    };
+}
+
+
+if (socket) {
+    if (!window._ligaDotListenersInstalados) {
+        window._ligaDotListenersInstalados = true;
+        socket.on('invitacionLigaRecibida', () => {
+            actualizarLigaDot(true);
+        });
+        socket.on('nuevaSolicitudLiga', () => {
+            actualizarLigaDot(true);
+        });
+        socket.on('solicitudesLigaActualizadas', (data) => {
+            if (data && data.solicitudes && data.solicitudes.length > 0) {
+                actualizarLigaDot(true);
+            }
+        });
+    }
+}
 function crearLigaUI() {
     const nombre = document.getElementById('liga-nombre-input').value.trim();
     if (nombre.length < 3 || nombre.length > 20) { alert('El nombre debe tener entre 3 y 20 caracteres'); return; }
@@ -3372,6 +3679,52 @@ function crearLigaUI() {
     document.getElementById('liga-nombre-input').value = '';
 }
 
+function solicitarUnirseLigaUI() {
+    const input = document.getElementById('liga-solicitar-input');
+    const nombre = input ? input.value.trim() : '';
+    if (nombre.length < 3) {
+        alert('Escribí el nombre de la liga (mínimo 3 caracteres)');
+        return;
+    }
+    if (socket && socket.connected) {
+        socket.emit('solicitarUnirseLiga', { nombreLiga: nombre });
+        if (input) input.value = '';
+    }
+}
+
+function nombrarSubliderUI() {
+    const input = document.getElementById('liga-sublider-input');
+    const nombre = input ? input.value.trim() : '';
+    if (nombre.length < 2) {
+        alert('Escribí el nombre del jugador');
+        return;
+    }
+    if (socket && socket.connected) {
+        socket.emit('nombrarSublider', { nombreJugador: nombre });
+        if (input) input.value = '';
+    }
+}
+
+function aceptarSolicitudUI(solicitanteId) {
+    if (!solicitanteId) return;
+    if (socket && socket.connected) {
+        socket.emit('aceptarSolicitudLiga', { solicitanteId: solicitanteId });
+    }
+}
+
+function rechazarSolicitudUI(solicitanteId) {
+    if (!solicitanteId) return;
+    if (socket && socket.connected) {
+        socket.emit('rechazarSolicitudLiga', { solicitanteId: solicitanteId });
+    }
+}
+
+function quitarSubliderUI(socketId) {
+    if (!socketId) return;
+    if (socket && socket.connected) {
+        socket.emit('quitarSublider', { socketId: socketId });
+    }
+}
 function invitarLigaUI() {
     const nombre = document.getElementById('liga-invitar-input').value.trim();
     if (!nombre) { alert('Escribe un nombre'); return; }
@@ -3606,7 +3959,62 @@ socket.on('infoPilar', (data) => {
     if (document.getElementById('pilares-ui').style.display === 'block') renderizarPilaresUI(); 
 });
     socket.on('ligasIniciales', (data) => { if (data && data.ligas && document.getElementById('liga-ranking-lista')) { renderizarRankingLigasUI(data.ligas); } });
-    socket.on('infoLiga', (data) => { ligaActual = data.enLiga ? data : null; const info = document.getElementById('liga-info'); const crearSec = document.getElementById('liga-crear-section'); const invitarSec = document.getElementById('liga-invitar-section'); const donarSec = document.getElementById('liga-donar-section'); if (!info) return; if (data.enLiga) { let html = `<div style="color:#ffaa00;font-size:13px;margin-bottom:5px;">🏅 ${data.nombre}</div>`; html += `<div style="color:#aaa;font-size:10px;">Líder: <span style="color:#ffaa00;">${data.liderNombre}</span></div>`; html += `<div style="color:#aaa;font-size:10px;">Miembros: ${data.miembros.length}/100 | Puntos: ${data.puntos}</div>`; html += `<div style="color:#aaa;font-size:10px;">Pilares: ${data.pilares.length}</div>`; html += `<div style="color:#aaa;font-size:10px;">Oro de la liga: <span style="color:#ffaa00;">${data.oro || 0}</span></div>`; html += `<div style="margin-top:8px;max-height:150px;overflow-y:auto;">`; data.miembros.forEach(m => { const esLider = m.id === data.lider; html += `<div class="liga-miembro ${esLider ? 'lider' : ''}"><span>${esLider ? '> ' : '- '}${m.nombre}</span></div>`; }); html += `</div>`; info.innerHTML = html; crearSec.style.display = 'none'; invitarSec.style.display = 'block'; if (donarSec) donarSec.style.display = 'block'; } else { info.innerHTML = `<div style="color:#666;text-align:center;padding:20px;">No estás en una liga</div>`; crearSec.style.display = 'block'; invitarSec.style.display = 'none'; if (donarSec) donarSec.style.display = 'none'; } });
+        socket.on('infoLiga', (data) => {
+        ligaActual = data.enLiga ? data : null;
+        const info = document.getElementById('liga-info');
+        const crearSec = document.getElementById('liga-crear-section');
+        const invitarSec = document.getElementById('liga-invitar-section');
+        const donarSec = document.getElementById('liga-donar-section');
+        const solicitarSec = document.getElementById('liga-solicitar-section');
+        const solicitudesSec = document.getElementById('liga-solicitudes-section');
+        const sublideresSec = document.getElementById('liga-sublideres-section');
+        const solicitudesBadge = document.getElementById('liga-solicitudes-badge');
+        if (!info) return;
+
+        if (data.enLiga) {
+            let html = `<div style="color:#ffaa00;font-size:13px;margin-bottom:5px;">🏅 ${data.nombre}</div>`;
+            html += `<div style="color:#aaa;font-size:10px;">Líder: <span style="color:#ffaa00;">${data.liderNombre}</span></div>`;
+            html += `<div style="color:#aaa;font-size:10px;">Miembros: ${data.miembros.length}/100 | Puntos: ${data.puntos}</div>`;
+            html += `<div style="color:#aaa;font-size:10px;">Pilares: ${data.pilares.length}</div>`;
+            html += `<div style="color:#aaa;font-size:10px;">Oro de la liga: <span style="color:#ffaa00;">${data.oro || 0}</span></div>`;
+            if (data.sublideres && data.sublideres.length > 0) {
+                html += `<div style="color:#aaa;font-size:10px;margin-top:3px;">⭐ Sublíderes: <span style="color:#66ccff;">${data.sublideres.map(s => s.nombre).join(', ')}</span></div>`;
+            }
+            html += `<div style="margin-top:8px;max-height:150px;overflow-y:auto;">`;
+            data.miembros.forEach(m => {
+                const esLider = m.id === data.lider;
+                const esSublider = data.sublideres && data.sublideres.some(s => s.socketId === m.id);
+                const marker = esLider ? '<span style="color:#ffaa00;font-weight:bold;">[L]</span> ' : (esSublider ? '<span style="color:#66ccff;font-weight:bold;">[S]</span> ' : '');
+                html += `<div class="liga-miembro ${esLider ? 'lider' : ''}"><span>${marker}${m.nombre}</span></div>`;
+            });
+            html += `</div>`;
+            info.innerHTML = html;
+
+            crearSec.style.display = 'none';
+            invitarSec.style.display = (data.esLider || data.esSublider) ? 'block' : 'none';
+            if (donarSec) donarSec.style.display = 'block';
+            if (solicitarSec) solicitarSec.style.display = 'none';
+            if (solicitudesSec) solicitudesSec.style.display = (data.esLider || data.esSublider) ? 'block' : 'none';
+            if (sublideresSec) sublideresSec.style.display = data.esLider ? 'block' : 'none';
+
+            if (solicitudesBadge) {
+                const numSolicitudes = (data.solicitudes && data.solicitudes.length) || 0;
+                solicitudesBadge.textContent = numSolicitudes;
+                solicitudesBadge.style.display = numSolicitudes > 0 ? 'inline-block' : 'none';
+            }
+            if (typeof renderizarSolicitudesUI === 'function') renderizarSolicitudesUI(data.solicitudes || []);
+            if (typeof renderizarSublideresUI === 'function') renderizarSublideresUI(data.sublideres || []);
+
+        } else {
+            info.innerHTML = `<div style="color:#666;text-align:center;padding:20px;">No estás en una liga</div>`;
+            crearSec.style.display = 'block';
+            invitarSec.style.display = 'none';
+            if (donarSec) donarSec.style.display = 'none';
+            if (solicitarSec) solicitarSec.style.display = 'block';
+            if (solicitudesSec) solicitudesSec.style.display = 'none';
+            if (sublideresSec) sublideresSec.style.display = 'none';
+        }
+    });
     socket.on('ligaActualizada', (data) => { if (socket && socket.connected) socket.emit('solicitarInfoLiga'); actualizarIndicadorBuffs(); });
     socket.on('rankingLigas', (data) => { renderizarRankingLigasUI(data.ranking); });
     socket.on('invitacionLigaRecibida', (data) => { ligaInvitacionPendiente = data; document.getElementById('liga-invitacion-texto').textContent = `${data.nombreLider} te invita a la liga "${data.nombreLiga}"`; document.getElementById('liga-invitacion-recibida').style.display = 'block'; mostrarMensaje(`📨 ${data.nombreLider} te invita a la liga "${data.nombreLiga}"`, 'info'); });
@@ -4194,6 +4602,10 @@ for (let i = 1; i <= 9; i++) {
     const num = String(i).padStart(2, '0');
     this.load.image(`meteoro_golpe_frame_${i}`, `meteoro/golpe_suelo/golpe_${num}.png`);
 }
+    // ═══ Espadas Giratorias (9 frames) ═══
+    for (let i = 1; i <= 9; i++) {
+        this.load.image(`espada_giratoria_${i}`, `espadasgiratorias/espadas (${i}).png`);
+    }
     this.load.spritesheet('mercader', 'mercader/mercader.png', { frameWidth: 256, frameHeight: 256 });
     this.load.audio('truenosound', 'truenosound.mp3');
     this.load.audio('vozskill1barbaro', 'vozskill1barbaro.mp3');
@@ -4212,6 +4624,7 @@ for (let i = 1; i <= 9; i++) {
     this.load.audio('sonido_oracion', 'oracion.mp3');
     this.load.audio('sonido_resurreccion', 'resurreccion.mp3');
     this.load.audio('sonido_cura', 'cura.mp3');
+    this.load.audio('espadas_giratorias_sound', 'espadasgiratorias.mp3');
     this.load.audio('musicaFondo', 'musica1.mp3');
     this.load.audio('cofresound', 'cofresound.mp3');
     this.load.audio('lvlup', 'lvlup.mp3');
@@ -4431,6 +4844,17 @@ const clerigoAnimsConfig = {
         this.anims.create({ key: `ns_revive_${dir}`, frames: reviveNs, frameRate: 8, repeat: 0 });
     });
     const texturaEsqueleto = this.textures.get('esqueleto'); if (texturaEsqueleto) { texturaEsqueleto.setFilter(Phaser.Textures.FilterMode.LINEAR); }
+        // ═══ Animación Espadas Giratorias ═══
+    const espadasGiratoriasFrames = [];
+    for (let i = 1; i <= 9; i++) {
+        espadasGiratoriasFrames.push({ key: `espada_giratoria_${i}` });
+    }
+    this.anims.create({
+        key: 'espadas_giratorias_anim',
+        frames: espadasGiratoriasFrames,
+        frameRate: 18,
+        repeat: 0
+    });
     this.anims.create({ key: 'mercader_idle', frames: this.anims.generateFrameNumbers('mercader', { start: 0, end: 7 }), frameRate: 8, repeat: -1 });
     this.anims.create({ key: 'mercader_forjar', frames: this.anims.generateFrameNumbers('mercader', { start: 8, end: 15 }), frameRate: 8, repeat: 0 });
     this.arbolesTransicionGroup = this.add.group();
@@ -4727,7 +5151,7 @@ setTimeout(() => {
             player.attacking = true; player.setVelocity(0, 0);
             const prefijoAtk = (pClassName === 'CLERIGO' || pClassName === 'NECROMANCER') ? 'clerigo' : pClass;
             player.play(prefijoAtk + '_atk_' + player.lastDir, true);
-            if (currentScene) { const sonidoAtq = currentScene.sound.get('sonidoAtaque'); if (sonidoAtq) reproducirSonido(sonidoAtq, window.volumenFX); else currentScene.sound.play('sonidoAtaque', { volume: window.volumenFX }); }
+            if (currentScene) { const nombreSonido = (pClassName === 'WARRIOR' || pClassName === 'CABALLERO') ? 'espadas_giratorias_sound' : 'sonidoAtaque'; const sonidoAtq = currentScene.sound.get(nombreSonido); if (sonidoAtq) reproducirSonido(sonidoAtq, window.volumenFX); else currentScene.sound.play(nombreSonido, { volume: window.volumenFX }); }
             let ataqueFisicoTotal = (classStats[pClassName].ataqueFisico || 0) + (playerStats.fuerza || 0);
             const armaItem = equipamiento.arma ? encontrarItemPorId(equipamiento.arma) : null;
             if (armaItem && armaItem.ataqueFisico) ataqueFisicoTotal += armaItem.ataqueFisico;
@@ -5025,6 +5449,10 @@ socket.on('playerHeartbeat', (info) => {
 // ===============================================================
 socket.on('magiaElegidaExito', (data) => {
     magiaElegida = data.camino;
+    // ═══ FIX: cerrar el modal apenas el server confirma la elección
+    const ui = document.getElementById('elegir-magia-ui');
+    if (ui) ui.style.display = 'none';
+    window._magiaModalBucle = true;
     if (typeof renderizarSkillsInline === 'function') renderizarSkillsInline();
     mostrarMensaje('Desbloqueaste ' + data.skillDesbloqueada + '!', 'exito');
     console.log('[PASO 19] Camino confirmado por el server:', data.camino);
@@ -6037,7 +6465,14 @@ otherPlayers.getChildren().forEach(other => {
     socket.on('invitacionRecibida', (data) => { invitacionPendienteDe = data.de; document.getElementById('team-invitacion-texto').textContent = `${data.nombre} te invita a su equipo`; document.getElementById('team-dot').style.display = 'block'; document.getElementById('team-icon').style.display = 'flex'; });
 socket.on('inventarioCompleto', (data) => { 
     if (!data || !data.items) return;
-    // 🔥 FIX: el servidor es la fuente de verdad — siempre reemplazar
+    // 🛡️ FIX ANTI-PÉRDIDA: si el server manda vacío pero el cliente tiene items, conservar local
+    const serverTieneItems = data.items.length > 0;
+    const clienteTieneItems = inventarioSlots.some(s => s !== null);
+    if (!serverTieneItems && clienteTieneItems) {
+        console.warn('⚠️ Server mandó inventario vacío — conservando el local (anti-pérdida)');
+        return;
+    }
+    // Si el server SÍ tiene items, reemplazar (fuente de verdad)
     for (let i = 0; i < inventarioSlots.length; i++) inventarioSlots[i] = null;
     for (let i = 0; i < data.items.length; i++) { 
         const item = data.items[i]; 
@@ -6798,7 +7233,7 @@ player.play(prefijoAnim + (moviendo ? '_walk_' : '_idle_') + player.lastDir, tru
     }
     if (playerY < 400) { if (this.ground) this.ground.setTint(0xddddff); } else { if (this.ground) this.ground.clearTint(); }
     actualizarBarrasEnemigos();
-    // ═══ NUEVO: actualizar barras de pilares ═══
+    actualizarEspadasGiratorias();
     actualizarBarrasPilares();
     if (enMapaNevado && nieveParticulas && nieveParticulas.active) { nieveParticulas.setPosition(player.x, player.y - 400); }
     if (player && player.isAlive) {
@@ -7150,7 +7585,7 @@ function lanzarMeteoroEnPosicion(targetX, targetY) {
     actualizarStatsUI();
 
     let ataqueMagico = (classStats['MAGO'].ataqueMagico || 0) + Math.floor(playerStats.inteligencia * 1.5);
-    ataqueMagico += (playerStats.atqFuego || 0) + bonusArmaFuego;
+    ataqueMagico += getBonusElementalCliente(playerStats.atqFuego) + bonusArmaFuego;
     const buffDanoPilar = obtenerBuffPilarJugadorCliente('daño');
     const buffAtkMagico = obtenerBuffClerigoCliente('atkMagico');
     const buffOracion = obtenerBuffClerigoCliente('oracion');
@@ -7338,6 +7773,106 @@ function clerigoCuraAuto() {
     mostrarMensaje(`✨ Curando a ${mejor.nombre}`, 'exito');
 }
 // ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// ⚔️ ESPADAS GIRATORIAS - Skill de Warrior y Caballero
+// Daño continuo por segundo a TODOS los enemigos en el área
+// ═══════════════════════════════════════════════════════════════
+let espadasGiratoriasActivas = null;
+
+function activarEspadasGiratorias() {
+    if (!player || !player.isAlive) return;
+    if (pClassName !== 'WARRIOR' && pClassName !== 'CABALLERO') {
+        mostrarMensaje('❌ Solo Warrior o Caballero', 'error');
+        return;
+    }
+    if ((playerStats.corte || 0) < 10) {
+        mostrarMensaje('❌ Requiere Corte Nv.10 (tenés ' + (playerStats.corte || 0) + ')', 'error');
+        return;
+    }
+    if (playerAguante < 10) {
+        mostrarMensaje('❌ Aguante insuficiente (10)', 'error');
+        return;
+    }
+    if (espadasGiratoriasActivas && Date.now() < espadasGiratoriasActivas.fin) {
+        const restante = Math.ceil((espadasGiratoriasActivas.fin - Date.now()) / 1000);
+        mostrarMensaje('⏳ Espadas activas (' + restante + 's)', 'error');
+        return;
+    }
+    if (player.attacking) {
+        mostrarMensaje('⏳ Esperá a terminar el ataque', 'error');
+        return;
+    }
+
+    playerAguante -= 10;
+    actualizarStatsUI();
+    if (socket && socket.connected) socket.emit('sincronizarAguante', { aguante: playerAguante });
+
+    const RADIO_DANO = 80;
+    const DURACION_MS = 500;
+
+    if (!currentScene || !currentScene.anims.exists('espadas_giratorias_anim')) {
+        mostrarMensaje('❌ Error: no se cargó la animación', 'error');
+        return;
+    }
+
+    const OFFSET_Y = 40;
+    const aura = currentScene.add.sprite(player.x, player.y + OFFSET_Y, 'espada_giratoria_1');
+    aura.setOrigin(0.5, 1);
+    aura.setScale(0.8);
+    aura.setDepth(player.y - 1);
+    aura.setTint(0xffdd66);
+    aura.play('espadas_giratorias_anim');
+
+    const dir = player.lastDir || 'Abajo';
+    const prefijoAtk = (pClassName === 'CLERIGO' || pClassName === 'NECROMANCER') ? 'clerigo' : pClass;
+    const atkKey = prefijoAtk + '_atk_' + dir;
+    const idleKey = prefijoAtk + '_idle_' + dir;
+    const atkFallback = prefijoAtk + '_atk_Abajo';
+
+    player.attacking = true;
+    player.setVelocity(0, 0);
+    player.removeAllListeners('animationcomplete');
+
+    if (currentScene.anims.exists(atkKey)) {
+        player.play(atkKey, true);
+    } else if (currentScene.anims.exists(atkFallback)) {
+        player.play(atkFallback, true);
+    }
+
+    player.once('animationcomplete', () => {
+        if (player && player.active) {
+            player.attacking = false;
+            if (currentScene.anims.exists(idleKey)) player.play(idleKey, true);
+        }
+    });
+
+    if (currentScene && currentScene.sound) {
+        const reproducirSonidoEspadas = () => {
+            const s = currentScene.sound.get('espadas_giratorias_sound');
+            if (s) {
+                if (s.isPlaying) s.stop();
+                s.setVolume(window.volumenFX);
+                s.play();
+            } else {
+                currentScene.sound.play('espadas_giratorias_sound', { volume: window.volumenFX });
+            }
+        };
+        reproducirSonidoEspadas();
+        currentScene.time.delayedCall(170, reproducirSonidoEspadas);
+        currentScene.time.delayedCall(340, reproducirSonidoEspadas);
+    }
+
+    espadasGiratoriasActivas = {
+        aura: aura,
+        fin: Date.now() + DURACION_MS,
+        radioDano: RADIO_DANO,
+        offsetY: OFFSET_Y,
+        danoAplicado: false
+    };
+
+    mostrarMensaje('⚔️ ¡ESPADAS GIRATORIAS!', 'exito');
+}
 
 function usarSkill(skillId) {
     if (!player || !player.isAlive) return;
@@ -7537,6 +8072,10 @@ function usarSkill(skillId) {
         if (socket && socket.connected) socket.emit('activarSacrificio');
         setTimeout(() => { sacrificioActivo = false; mostrarMensaje('Sacrificio terminado', 'info'); if (aroSacrificio) { aroSacrificio.setVisible(false); aroSacrificio.stop(); } if (socket && socket.connected) socket.emit('desactivarSacrificio'); }, SACRIFICIO_DURACION);
         iniciarCooldownSkill(skillId, COOLDOWNS_SKILLS[skillId]);
+    }
+    else if (skillId === 'espadas_giratorias') {
+        activarEspadasGiratorias();
+        iniciarCooldownSkill('espadas_giratorias', COOLDOWNS_SKILLS['espadas_giratorias']);
     }
     else if (skillId === 'filo_penetrante' && (pClassName === 'CABALLERO' || pClassName === 'WARRIOR')) {
         if (playerAguante < 15) { mostrarMensaje('[!] Aguante insuficiente (15)', 'error'); return; }
@@ -7882,7 +8421,7 @@ function lanzarAbsolutoEnPosicion(targetX, targetY) {
 
     // 🧮 Calcular daño (mismo criterio que Meteoro pero con Agua)
     let ataqueMagico = (classStats['MAGO'].ataqueMagico || 0) + Math.floor(playerStats.inteligencia * 1.5);
-    ataqueMagico += (playerStats.atqAgua || 0);
+    ataqueMagico += getBonusElementalCliente(playerStats.atqAgua);
     const buffDanoPilar = obtenerBuffPilarJugadorCliente('daño');
     const buffAtkMagico  = obtenerBuffClerigoCliente('atkMagico');
     const buffOracion    = obtenerBuffClerigoCliente('oracion');
@@ -8080,6 +8619,10 @@ candidatos.forEach(a => {
 
 </body>
 </html>
+
+
+
+
 
 
 

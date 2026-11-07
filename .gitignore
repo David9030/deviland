@@ -1,49 +1,68 @@
 ﻿# Dependencias
 node_modules/
-
-# Entorno
-.env
-.env.local
-
-# Logs
-*.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos de persistencia (datos de jugadores, NO subir)
+inventarios.json
+pilares.json
+ligas.json
+academia_persistencia.json
+
+# Backups locales
+*.bak
+*.bak_*
+*.bak-*
+*.bak2
+*.bak3
+*.bak4
+*.bak5
+*.bak6
+*.bak7
+*.bak8
+*.bak9
+*.bak12
+*.bak14
+*.bak16
+*.bak17
+*.bak18
+
+# Archivos de error
+error.txt
+error_real.txt
+error_utf8.txt
 
 # Sistema operativo
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Editor
+# Logs
+*.log
+
+# Variables de entorno
+.env
+.env.local
+
+# IDE
 .vscode/
 .idea/
 *.code-workspace
 
-# Backups y temporales
-*.bak
-*.bak[0-9]*
-*.bak-*
-*.tmp
-*.swp
-temp_*.txt
+# Archivos temporales
+temp_function.txt
 nueva_funcion.txt
-*_BACKUP*
-*_BACKUP_*
-index_ANTES_*
-index_BACKUP*
+# Backups viejos con nombres específicos
+index.html.backup_espadas
+index_ANTES_APUNTADO.html
+index_BACKUP.html
+index_BACKUP_*.html
+server_BACKUP_*.js
 
-# Archivos de debug
-error.txt
-error_real.txt
-error_utf8.txt
-error*.txt
-
-# Herramientas de desarrollo
+# Binarios grandes
 ngrok.exe
-ngrok-v3-stable-windows-amd64.zip
+ngrok-*.zip
 
-# Datos generados en runtime
-inventarios.json
-pilares.json
-ligas.json
-academia_persistencia.json
+# Carpetas de assets (descomentar si querés ignorar)
+# espadasgiratorias/

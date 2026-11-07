@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════
 // ═══ PARTE 1/3 — SERVIDOR: CONFIG, ESTRUCTURAS, FUNCIONES BASE ═══
 // ═══════════════════════════════════════════════════════════════
 
@@ -183,7 +183,8 @@ function emitirStatsJugador(jugadorId) {
 // ═══ NUEVO: ESTRUCTURAS DE PILARES Y LIGAS ═══
 let pilares = [];
 let ligas = {};
-let invitacionesLiga = {};       // { socketId: { de: socketIdLider, ligaId, timestamp } }
+let invitacionesLiga = {};
+let solicitudesLiga = {};
 let chatLiga = {};               // { ligaId: [ { nombre, msg, timestamp } ] }
 let chatTeam = {};               // { teamId: [ { nombre, msg, timestamp } ] }
 let penalizacionesLiga = {};     // { socketId: timestampFinPenalizacion }
@@ -230,6 +231,7 @@ try {
             while (l.miembrosNombres.length < l.miembros.length) l.miembrosNombres.push('???');
             // sincronizar largo con miembros (recortar)
             l.miembrosNombres.length = l.miembros.length;
+            if (!Array.isArray(l.sublíderes)) l.sublíderes = [];
         }
     } else {
         console.log('📂 No hay ligas previas, arrancando de cero');
@@ -271,7 +273,7 @@ for (let socketId in players) {
     if (!j || !j.name) continue;
 const _p = academiaPersistencia[j.name] || {}; academiaPersistencia[j.name] = { cristanite: Math.max(j.cristanite||0, _p.cristanite||0), academia: j.academia || _p.academia || { oro:0,hp:0,atkFis:0,atkMag:0,defFis:0,defMag:0 }, level: Math.max(j.level||1, _p.level||1), exp: j.exp||0, stats: j.stats||_p.stats||{}, magiaElegida: j.magiaElegida || _p.magiaElegida || null };
 }
-        fs.writeFileSync(INVENTARIOS_FILE, JSON.stringify(inventariosJugadores, null, 2));
+        (() => { const persistirInventariosPorNombre = {}; for (let _sid in inventariosJugadores) { const _inv = inventariosJugadores[_sid]; if (_inv && _inv._nombreJugador) persistirInventariosPorNombre[_inv._nombreJugador] = _inv; } fs.writeFileSync(INVENTARIOS_FILE, JSON.stringify(persistirInventariosPorNombre, null, 2)); })();
         fs.writeFileSync(PILARES_FILE, JSON.stringify(pilares, null, 2));
         fs.writeFileSync(LIGAS_FILE, JSON.stringify(ligas, null, 2));
         fs.writeFileSync(ACADEMIA_FILE, JSON.stringify(academiaPersistencia, null, 2));
@@ -328,12 +330,13 @@ function getValorEspecialidad(jugadorId, stat) {
         case 'critico':      return nivel * 0.0025;
         case 'legion':       return nivel * 0.0025;
 
-        // ═══ Elementales ═══
-        case 'atqFuego':     return nivel * 1;
-        case 'atqAgua':      return nivel * 1;
-        case 'atqViento':    return nivel * 1;
-        case 'atqTierra':    return nivel * 1;
-        case 'atqOscuridad': return nivel * 1;
+        // ═══ Elementales (ATAQUE) — ×5 por nivel ═══
+        case 'atqFuego':     return nivel * 5;
+        case 'atqAgua':      return nivel * 5;
+        case 'atqViento':    return nivel * 5;
+        case 'atqTierra':    return nivel * 5;
+        case 'atqOscuridad': return nivel * 5;
+        // ═══ Elementales (DEFENSA) — sin cambios ═══
         case 'defFuego':     return nivel * 1;
         case 'defAgua':      return nivel * 1;
         case 'defViento':    return nivel * 1;
@@ -556,6 +559,20 @@ function getLigaDeJugador(jugadorId) {
         if (ligas[ligaId].miembros.includes(jugadorId)) return ligas[ligaId];
     }
     return null;
+}
+
+function esLiderOSublider(socketId) {
+    const liga = getLigaDeJugador(socketId);
+    if (!liga) return false;
+    if (liga.lider === socketId) return true;
+    if (liga.sublideres && liga.sublideres.includes(socketId)) return true;
+    return false;
+}
+
+function esSublider(socketId) {
+    const liga = getLigaDeJugador(socketId);
+    if (!liga) return false;
+    return liga.sublideres && liga.sublideres.includes(socketId);
 }
 
 function getPilaresDeJugador(jugadorId) {
@@ -966,6 +983,7 @@ ligas[ligaId] = {
     liderNombre: j.name,
     miembros: [socketId],
     miembrosNombres: [j.name],
+    sublíderes: [],
     puntos: 0,
     pilares: [],
     fechaCreacion: Date.now(),
@@ -992,8 +1010,8 @@ function invitarLiga(socketId, nombreJugador) {
         io.to(socketId).emit('mensaje', '❌ No estás en una liga');
         return;
     }
-    if (liga.lider !== socketId) {
-        io.to(socketId).emit('mensaje', '❌ Solo el líder puede invitar');
+    if (!esLiderOSublider(socketId)) {
+        io.to(socketId).emit('mensaje', '❌ Solo el líder o sublíderes pueden invitar');
         return;
     }
     if (liga.miembros.length >= CONFIG.LIGAS.MAX_MIEMBROS) {
@@ -1091,6 +1109,7 @@ if (idx !== -1) {
         if (idxNombre !== -1) liga.miembrosNombres.splice(idxNombre, 1);
     }
 }
+    if (liga.sublíderes) { const idxSub = liga.sublíderes.indexOf(socketId); if (idxSub !== -1) liga.sublíderes.splice(idxSub, 1); }
     penalizacionesLiga[socketId] = Date.now() + CONFIG.LIGAS.PENALIZACION_SALIR;
     io.to(socketId).emit('mensaje', `❌ Saliste de la liga "${liga.nombre}". Penalización: 48h`);
     io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🏅 ${j.name} salió de la liga "${liga.nombre}"` });
@@ -1148,6 +1167,7 @@ function disolverLiga(socketId, ligaId) {
     io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🏅 La liga "${liga.nombre}" fue disuelta` });
     delete ligas[ligaId];
     delete chatLiga[ligaId];
+    delete solicitudesLiga[ligaId];
     io.to(socketId).emit('mensaje', '✅ Liga disuelta');
 }
 
@@ -2179,46 +2199,45 @@ io.on('connection', (socket) => {
     jugadoresEnMapa[socket.id] = 'principal';
 
     // ═══ Sincronizar nivel cliente → server ═══
-socket.on('sincronizarNivel', (data) => {
-    const j = players[socket.id];
-    if (!j) return;
+    socket.on('sincronizarNivel', (data) => {
+        const j = players[socket.id];
+        if (!j) return;
 
-    const nivelCliente = parseInt(data.level) || 1;
-    const nivelServer = parseInt(j.level) || 1;
+        const nivelCliente = parseInt(data.level) || 1;
+        const nivelServer = parseInt(j.level) || 1;
 
-    // Solo actualizar si el cliente tiene un nivel MÁS ALTO
-    if (nivelCliente > nivelServer) {
-        j.level = nivelCliente;
-        j.exp = parseInt(data.exp) || 0;
-    }
+        // Solo actualizar si el cliente tiene un nivel MÁS ALTO
+        if (nivelCliente > nivelServer) {
+            j.level = nivelCliente;
+            j.exp = parseInt(data.exp) || 0;
+        }
 
-    // ⬇️ NUEVO: sincronizar stats (puntosDisponibles, puntosEspecialidad, especialidades, academia, etc.)
-    if (data.stats && typeof data.stats === 'object') {
-        const statsRecibidos = data.stats;
-        for (let k in statsRecibidos) {
-            const val = statsRecibidos[k];
+        // Sincronizar stats (puntosDisponibles, puntosEspecialidad, especialidades, academia, etc.)
+        if (data.stats && typeof data.stats === 'object') {
+            const statsRecibidos = data.stats;
+            for (let k in statsRecibidos) {
+                const val = statsRecibidos[k];
 
-            // ─── Campos numéricos simples (puntos, especialidades, atributos) ───
-            if (typeof val === 'number' && !isNaN(val)) {
-                // Usar el MÁXIMO para no perder progreso nunca
-                j.stats[k] = Math.max(j.stats[k] || 0, val);
-            }
+                // ─── Campos numéricos simples (puntos, especialidades, atributos) ───
+                if (typeof val === 'number' && !isNaN(val)) {
+                    j.stats[k] = Math.max(j.stats[k] || 0, val);
+                }
 
-            // ─── Academia (objeto anidado) ───
-            else if (k === 'academia' && val && typeof val === 'object') {
-                if (!j.academia) j.academia = { oro: 0, hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0 };
-                for (let tech in val) {
-                    if (typeof val[tech] === 'number' && !isNaN(val[tech])) {
-                        j.academia[tech] = Math.max(j.academia[tech] || 0, val[tech]);
+                // ─── Academia (objeto anidado) ───
+                else if (k === 'academia' && val && typeof val === 'object') {
+                    if (!j.academia) j.academia = { oro: 0, hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0 };
+                    for (let tech in val) {
+                        if (typeof val[tech] === 'number' && !isNaN(val[tech])) {
+                            j.academia[tech] = Math.max(j.academia[tech] || 0, val[tech]);
+                        }
                     }
                 }
             }
         }
-    }
 
-    // Forzar refresh del ranking para todos
-    reemitirRanking();
-});
+        // Forzar refresh del ranking para todos
+        reemitirRanking();
+    });
 
     // ═══ Sincronizar especialidades cliente → server ═══
     socket.on('sincronizarEspecialidades', (data) => {
@@ -2246,7 +2265,7 @@ socket.on('sincronizarNivel', (data) => {
         });
     });
 
-    // ═══ NUEVO: sincronizar maná cliente → server ═══
+    // ═══ Sincronizar maná cliente → server ═══
     socket.on('sincronizarMana', (data) => {
         const j = players[socket.id];
         if (!j || !j.isAlive) return;
@@ -2255,6 +2274,38 @@ socket.on('sincronizarNivel', (data) => {
         // El cliente es la fuente de verdad del GASTO de maná (skills que se pagan locales)
         j.mana = Math.max(0, Math.min(j.maxMana || 100, manaCliente));
     });
+
+    // ═══ Sincronizar aguante (skills que lo consumen en el cliente) ═══
+    socket.on('sincronizarAguante', (data) => {
+        const j = players[socket.id];
+        if (!j || !j.isAlive) return;
+        const aguanteCliente = parseInt(data.aguante);
+        if (!isNaN(aguanteCliente)) {
+            j.aguante = Math.max(0, Math.min(j.maxAguante || 100, aguanteCliente));
+        }
+    });
+
+    // ═══ BUFFS: pedir buffs activos ═══
+    socket.on('solicitarBuffsActivos', () => {
+        const j = players[socket.id];
+        if (!j || !j.buffs) { socket.emit('buffsActivos', {}); return; }
+        const ahora = Date.now();
+        const activos = {};
+        for (let nombre in j.buffs) {
+            const b = j.buffs[nombre];
+            if (b && b.fin && ahora < b.fin) {
+                activos[nombre] = {
+                    valor: b.valor || b.danoBonus || 0,
+                    defBonus: b.defBonus || 0,
+                    restante: b.fin - ahora
+                };
+            }
+        }
+        console.log(`📤 Buffs activos de ${j.name}:`, JSON.stringify(activos));
+        socket.emit('buffsActivos', activos);
+    });
+
+    // ═══ EMISIONES INICIALES ═══
 
     // ═══ BUFFS: pedir buffs activos ═══
     socket.on('solicitarBuffsActivos', () => {
@@ -2362,14 +2413,33 @@ angelUltimoUso: 0,
 };
     jugadoresEnMapa[socket.id] = 'principal';
 
-    // ═══ FIX: inicializar inventario CON materiales ═══
+    // ═══ FIX INVENTARIO: migrar inventario huérfano por nombre ═══
+    let inventarioMigrado = null;
     if (!inventariosJugadores[socket.id]) {
-        inventariosJugadores[socket.id] = { items: [], equipamiento: {}, materiales: {} };
+        for (let viejoId in inventariosJugadores) {
+            const inv = inventariosJugadores[viejoId];
+            if (!inv || !inv.items) continue;
+            if (players[viejoId]) continue;
+            if (inv._nombreJugador && inv._nombreJugador.toLowerCase() === d.name.toLowerCase()) {
+                inventarioMigrado = inv;
+                delete inventariosJugadores[viejoId];
+                console.log(`Inventario migrado de ${viejoId} a ${socket.id} (${d.name})`);
+                break;
+            }
+        }
+    }
+    if (inventarioMigrado) {
+        inventariosJugadores[socket.id] = inventarioMigrado;
+        inventariosJugadores[socket.id]._nombreJugador = d.name;
+    } else if (!inventariosJugadores[socket.id]) {
+        inventariosJugadores[socket.id] = { items: [], equipamiento: {}, materiales: {}, _nombreJugador: d.name };
+        inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Pocion de Vida', icono: 'pocion_img', cantidad: 2, slot: 0 });
+    } else {
+        inventariosJugadores[socket.id]._nombreJugador = d.name;
     }
     if (!inventariosJugadores[socket.id].materiales) {
         inventariosJugadores[socket.id].materiales = {};
     }
-    inventariosJugadores[socket.id].items.push({ id: 'pocion_1', tipo: 'pocion', nombre: 'Pocion de Vida', icono: 'pocion_img', cantidad: 2, slot: 0 });
     socket.emit('inventarioCompleto', inventariosJugadores[socket.id]);
 
     // ═══ FIX: emitir newPlayer UNA sola vez ═══
@@ -2512,6 +2582,7 @@ socket.on('actualizarInventario', (data) => {
             if (data.inventarioSlots[i]) inventariosJugadores[socket.id].items.push({ ...data.inventarioSlots[i], slot: i });
         }
         console.log(`🔄 [actualizarInventario] Materiales conservados:`, JSON.stringify(inventariosJugadores[socket.id].materiales || {}));
+        inventariosJugadores[socket.id]._nombreJugador = j.name;
     }
     if (data.equipamiento) inventariosJugadores[socket.id].equipamiento = data.equipamiento;
     if (data.equipamiento) j.equipamiento = data.equipamiento;
@@ -2906,6 +2977,43 @@ socket.on('playerMurio', (data) => {
         crearLiga(socket.id, data.nombre);
     });
 
+    socket.on('solicitarUnirseLiga', (data) => {
+        if (!data || !data.nombreLiga) return;
+        solicitarUnirseLiga(socket.id, data.nombreLiga);
+    });
+
+    socket.on('solicitarUnirseLigaPorId', (data) => {
+        if (!data || !data.ligaId) return;
+        solicitarUnirseLigaPorId(socket.id, data.ligaId);
+    });
+
+    socket.on('aceptarSolicitudLiga', (data) => {
+        if (!data || !data.solicitanteId) return;
+        aceptarSolicitudLiga(socket.id, data.solicitanteId);
+    });
+
+    socket.on('rechazarSolicitudLiga', (data) => {
+        if (!data || !data.solicitanteId) return;
+        rechazarSolicitudLiga(socket.id, data.solicitanteId);
+    });
+
+    socket.on('solicitarListaSolicitudes', () => {
+        const liga = getLigaDeJugador(socket.id);
+        if (!liga) return;
+        if (!esLiderOSublider(socket.id)) return;
+        socket.emit('listaSolicitudesLiga', { solicitudes: solicitudesLiga[liga.id] || [] });
+    });
+
+    socket.on('nombrarSublider', (data) => {
+        if (!data || !data.nombreJugador) return;
+        nombrarSublider(socket.id, data.nombreJugador);
+    });
+
+    socket.on('quitarSublider', (data) => {
+        if (!data || !data.socketId) return;
+        quitarSublider(socket.id, data.socketId);
+    });
+
     socket.on('invitarLiga', (data) => {
         if (!data.nombre) return;
         invitarLiga(socket.id, data.nombre);
@@ -2964,7 +3072,8 @@ socket.on('donarOroLiga', (data) => {
     }
     
     // Sumar a la liga
-    liga.oro = (liga.oro || 0) + cantidad;
+    liga.boveda = (liga.boveda || 0) + cantidad;
+    liga.oro = liga.boveda;
     
     // Avisar a todos los miembros
     liga.miembros.forEach(m => {
@@ -3021,9 +3130,13 @@ socket.on('solicitarInfoLiga', () => {
         id: liga.id, nombre: liga.nombre, lider: liga.lider,
         liderNombre: players[liga.lider]?.name || '???',
         miembros: liga.miembros.map(id => ({ id: id, nombre: players[id]?.name || '???' })),
-        puntos: liga.puntos,
-        oro: liga.oro || 0,
-        pilares: pilares.filter(p => p.dueñoLigaId === liga.id).map(p => ({ id: p.id, color: p.color }))
+    puntos: liga.puntos,
+    oro: liga.boveda || 0,
+    pilares: pilares.filter(p => p.dueñoLigaId === liga.id).map(p => ({ id: p.id, color: p.color })),
+        esLider: liga.lider === socket.id,
+        esSublider: liga.sublideres && liga.sublideres.includes(socket.id),
+        sublíderes: (liga.sublideres || []).map(id => ({ socketId: id, nombre: players[id]?.name || '???' })),
+        solicitudes: (esLiderOSublider(socket.id) ? (solicitudesLiga[liga.id] || []) : [])
     });
 });
 
@@ -4094,12 +4207,15 @@ socket.on('solicitarJugadoresActuales', () => {
 
     // ═══ DESCONEXIÓN ═══
 socket.on('disconnect', () => {
-    try { fs.writeFileSync(INVENTARIOS_FILE, JSON.stringify(inventariosJugadores, null, 2)); } catch(e) {}
+    try { (() => { const persistirInventariosPorNombre = {}; for (let _sid in inventariosJugadores) { const _inv = inventariosJugadores[_sid]; if (_inv && _inv._nombreJugador) persistirInventariosPorNombre[_inv._nombreJugador] = _inv; } fs.writeFileSync(INVENTARIOS_FILE, JSON.stringify(persistirInventariosPorNombre, null, 2)); })(); } catch(e) {}
     try { fs.writeFileSync(PILARES_FILE, JSON.stringify(pilares, null, 2)); } catch(e) {}
     try { fs.writeFileSync(LIGAS_FILE, JSON.stringify(ligas, null, 2)); } catch(e) {}
 
     // ═══ NUEVO: guardar cristanite y academia del jugador que se desconecta ═══
 const jugadorDesconectado = players[socket.id];
+if (jugadorDesconectado && inventariosJugadores[socket.id]) {
+    inventariosJugadores[socket.id]._nombreJugador = jugadorDesconectado.name;
+}
 if (jugadorDesconectado && jugadorDesconectado.name) {
 academiaPersistencia[jugadorDesconectado.name] = {
     cristanite: jugadorDesconectado.cristanite || 0,
@@ -4186,7 +4302,7 @@ setInterval(() => {
 process.on('SIGINT', () => {
     console.log('💾 Guardando antes de salir...');
     try {
-        fs.writeFileSync(INVENTARIOS_FILE, JSON.stringify(inventariosJugadores, null, 2));
+        (() => { const persistirInventariosPorNombre = {}; for (let _sid in inventariosJugadores) { const _inv = inventariosJugadores[_sid]; if (_inv && _inv._nombreJugador) persistirInventariosPorNombre[_inv._nombreJugador] = _inv; } fs.writeFileSync(INVENTARIOS_FILE, JSON.stringify(persistirInventariosPorNombre, null, 2)); })();
         fs.writeFileSync(PILARES_FILE, JSON.stringify(pilares, null, 2));
         fs.writeFileSync(LIGAS_FILE, JSON.stringify(ligas, null, 2));
         console.log('✅ Guardado exitoso. Saliendo...');
@@ -4227,9 +4343,219 @@ setTimeout(() => {
     });
 }, 1000);
 
-const PORT = process.env.PORT || 10000;
-http.listen(PORT, '0.0.0.0', () => console.log(`DEVILAND - Puerto ${PORT}`));
+// ═══ FIX: migrar oro viejo → bóveda para ligas existentes ═══
+Object.values(ligas).forEach(liga => {
+    if ((!liga.boveda || liga.boveda === 0) && liga.oro && liga.oro > 0) {
+        liga.boveda = liga.oro;
+        console.log(`🔧 Liga "${liga.nombre}": migrado ${liga.oro} oro a boveda`);
+    }
+    if (!liga.boveda) liga.boveda = 0;
+    if (!liga.oro) liga.oro = liga.boveda;
+});
 
 // ═══════════════════════════════════════════════════════════════
-// ═══ FIN PARTE 3/3 — SERVIDOR ═══
+// ═══ SISTEMA DE SOLICITUDES DE LIGA (estilo Wartune) ═══
 // ═══════════════════════════════════════════════════════════════
+
+function solicitarUnirseLiga(socketId, nombreLiga) {
+    const j = players[socketId];
+    if (!j) return;
+    if (getLigaDeJugador(socketId)) {
+        io.to(socketId).emit('mensaje', '❌ Ya estás en una liga');
+        return;
+    }
+    if (penalizacionesLiga[socketId] && Date.now() < penalizacionesLiga[socketId]) {
+        const restante = Math.ceil((penalizacionesLiga[socketId] - Date.now()) / 3600000);
+        io.to(socketId).emit('mensaje', `❌ Estás penalizado por ${restante}h más`);
+        return;
+    }
+    let ligaEncontrada = null;
+    for (let ligaId in ligas) {
+        if (ligas[ligaId].nombre.toLowerCase() === nombreLiga.toLowerCase()) {
+            ligaEncontrada = ligas[ligaId];
+            break;
+        }
+    }
+    if (!ligaEncontrada) {
+        io.to(socketId).emit('mensaje', '❌ No existe una liga con ese nombre');
+        return;
+    }
+    _procesarSolicitud(socketId, ligaEncontrada, j);
+}
+
+function solicitarUnirseLigaPorId(socketId, ligaId) {
+    const j = players[socketId];
+    if (!j) return;
+    if (getLigaDeJugador(socketId)) {
+        io.to(socketId).emit('mensaje', '❌ Ya estás en una liga');
+        return;
+    }
+    if (penalizacionesLiga[socketId] && Date.now() < penalizacionesLiga[socketId]) {
+        const restante = Math.ceil((penalizacionesLiga[socketId] - Date.now()) / 3600000);
+        io.to(socketId).emit('mensaje', `❌ Estás penalizado por ${restante}h más`);
+        return;
+    }
+    const liga = ligas[ligaId];
+    if (!liga) {
+        io.to(socketId).emit('mensaje', '❌ Esa liga ya no existe');
+        return;
+    }
+    _procesarSolicitud(socketId, liga, j);
+}
+
+function _procesarSolicitud(socketId, liga, jugador) {
+    if (liga.miembros.length >= CONFIG.LIGAS.MAX_MIEMBROS) {
+        io.to(socketId).emit('mensaje', '❌ La liga está llena');
+        return;
+    }
+    if (liga.miembros.includes(socketId)) {
+        io.to(socketId).emit('mensaje', '❌ Ya estás en esa liga');
+        return;
+    }
+    if (!solicitudesLiga[liga.id]) solicitudesLiga[liga.id] = [];
+    const yaExiste = solicitudesLiga[liga.id].find(s => s.socketId === socketId);
+    if (yaExiste) {
+        io.to(socketId).emit('mensaje', '⏳ Ya enviaste una solicitud a esa liga');
+        return;
+    }
+    solicitudesLiga[liga.id].push({
+        socketId: socketId,
+        nombre: jugador.name,
+        nivel: jugador.level || 1,
+        timestamp: Date.now()
+    });
+    io.to(socketId).emit('mensaje', `📨 Solicitud enviada a la liga "${liga.nombre}". Esperá a que el líder o sublíder la acepte.`);
+    const destinatarios = [liga.lider, ...(liga.sublíderes || [])];
+    destinatarios.forEach(destId => {
+        io.to(destId).emit('nuevaSolicitudLiga', {
+            ligaId: liga.id,
+            ligaNombre: liga.nombre,
+            solicitante: { socketId, nombre: jugador.name, nivel: jugador.level || 1 }
+        });
+        io.to(destId).emit('mensaje', `📨 ${jugador.name} quiere unirse a tu liga "${liga.nombre}"`);
+    });
+}
+
+function aceptarSolicitudLiga(socketId, solicitanteId) {
+    const liga = getLigaDeJugador(socketId);
+    if (!liga) { io.to(socketId).emit('mensaje', '❌ No estás en una liga'); return; }
+    if (!esLiderOSublider(socketId)) {
+        io.to(socketId).emit('mensaje', '❌ Solo el líder o sublíderes pueden aceptar');
+        return;
+    }
+    if (!solicitudesLiga[liga.id]) solicitudesLiga[liga.id] = [];
+    const idx = solicitudesLiga[liga.id].findIndex(s => s.socketId === solicitanteId);
+    if (idx === -1) { io.to(socketId).emit('mensaje', '❌ Esa solicitud ya no existe'); return; }
+    const sol = solicitudesLiga[liga.id][idx];
+    const jugador = players[solicitanteId];
+    if (!jugador || !jugador.isAlive) {
+        solicitudesLiga[liga.id].splice(idx, 1);
+        io.to(socketId).emit('mensaje', '❌ El jugador ya no está conectado');
+        return;
+    }
+    if (getLigaDeJugador(solicitanteId)) {
+        solicitudesLiga[liga.id].splice(idx, 1);
+        io.to(socketId).emit('mensaje', '❌ El jugador ya está en otra liga');
+        return;
+    }
+    if (liga.miembros.length >= CONFIG.LIGAS.MAX_MIEMBROS) {
+        io.to(socketId).emit('mensaje', '❌ Liga llena');
+        return;
+    }
+    liga.miembros.push(solicitanteId);
+    if (!liga.miembrosNombres) liga.miembrosNombres = [];
+    liga.miembrosNombres.push(jugador.name);
+    solicitudesLiga[liga.id].splice(idx, 1);
+    io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🏅 ${jugador.name} se unió a la liga "${liga.nombre}"` });
+    io.to(solicitanteId).emit('mensaje', `✅ ¡Fuiste aceptado en la liga "${liga.nombre}"!`);
+    io.to(socketId).emit('mensaje', `✅ Aceptaste a ${jugador.name}`);
+    liga.miembros.forEach(m => {
+        io.to(m).emit('ligaActualizada', {
+            liga: {
+                id: liga.id,
+                nombre: liga.nombre,
+                lider: liga.lider,
+                miembros: liga.miembros.map(id => players[id]?.name || '???'),
+                puntos: liga.puntos
+            }
+        });
+    });
+    _emitirSolicitudesActualizadas(liga);
+}
+
+function rechazarSolicitudLiga(socketId, solicitanteId) {
+    const liga = getLigaDeJugador(socketId);
+    if (!liga) return;
+    if (!esLiderOSublider(socketId)) return;
+    if (!solicitudesLiga[liga.id]) return;
+    const idx = solicitudesLiga[liga.id].findIndex(s => s.socketId === solicitanteId);
+    if (idx === -1) return;
+    const sol = solicitudesLiga[liga.id][idx];
+    solicitudesLiga[liga.id].splice(idx, 1);
+    io.to(socketId).emit('mensaje', `❌ Rechazaste a ${sol.nombre}`);
+    io.to(solicitanteId).emit('mensaje', `❌ Tu solicitud a la liga "${liga.nombre}" fue rechazada`);
+    _emitirSolicitudesActualizadas(liga);
+}
+
+function _emitirSolicitudesActualizadas(liga) {
+    const destinatarios = [liga.lider, ...(liga.sublíderes || [])];
+    destinatarios.forEach(destId => {
+        io.to(destId).emit('solicitudesLigaActualizadas', {
+            ligaId: liga.id,
+            solicitudes: solicitudesLiga[liga.id] || []
+        });
+    });
+}
+
+function nombrarSublider(socketId, nombreJugador) {
+    const liga = getLigaDeJugador(socketId);
+    if (!liga) return;
+    if (liga.lider !== socketId) {
+        io.to(socketId).emit('mensaje', '❌ Solo el líder puede nombrar sublíderes');
+        return;
+    }
+    if (!liga.sublíderes) liga.sublíderes = [];
+    if (liga.sublíderes.length >= 3) {
+        io.to(socketId).emit('mensaje', '❌ Ya tenés 3 sublíderes (máximo)');
+        return;
+    }
+    let targetId = null;
+    for (let id in players) {
+        if (players[id].name.toLowerCase() === nombreJugador.toLowerCase()) {
+            targetId = id;
+            break;
+        }
+    }
+    if (!targetId) { io.to(socketId).emit('mensaje', '❌ Jugador no encontrado'); return; }
+    if (!liga.miembros.includes(targetId)) {
+        io.to(socketId).emit('mensaje', '❌ Ese jugador no está en tu liga');
+        return;
+    }
+    if (liga.sublíderes.includes(targetId)) {
+        io.to(socketId).emit('mensaje', '❌ Ya es sublíder');
+        return;
+    }
+    liga.sublíderes.push(targetId);
+    io.to(socketId).emit('mensaje', `✅ ${players[targetId].name} es ahora sublíder`);
+    io.to(targetId).emit('mensaje', `⭐ ¡El líder te nombró sublíder de "${liga.nombre}"!`);
+    io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `⭐ ${players[targetId].name} es ahora sublíder de "${liga.nombre}"` });
+    io.to(socketId).emit('sublideresActualizados', { sublíderes: liga.sublíderes.map(id => ({ socketId: id, nombre: players[id]?.name || '???' })) });
+}
+
+function quitarSublider(socketId, targetSocketId) {
+    const liga = getLigaDeJugador(socketId);
+    if (!liga) return;
+    if (liga.lider !== socketId) {
+        io.to(socketId).emit('mensaje', '❌ Solo el líder puede quitar sublíderes');
+        return;
+    }
+    if (!liga.sublíderes) return;
+    const idx = liga.sublíderes.indexOf(targetSocketId);
+    if (idx === -1) return;
+    liga.sublíderes.splice(idx, 1);
+    io.to(socketId).emit('mensaje', `✅ Sublíder removido`);
+    io.to(targetSocketId).emit('mensaje', `❌ Ya no sos sublíder de "${liga.nombre}"`);
+    io.to(socketId).emit('sublideresActualizados', { sublíderes: liga.sublíderes.map(id => ({ socketId: id, nombre: players[id]?.name || '???' })) });
+}
+const PORT = process.env.PORT || 10000;
+http.listen(PORT, '0.0.0.0', () => console.log(`DEVILAND - Puerto ${PORT}`));
