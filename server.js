@@ -2359,7 +2359,7 @@ Object.keys(players).forEach(id => {
     // (los pilares se envían dentro de newPlayer, después de crear el jugador)
     socket.emit('ligasIniciales', { ligas: obtenerRankingLigas() });
 
-    socket.on('newPlayer', (d) => {
+    socket.on('newPlayer', (d) => { console.log('📥 [SERVER newPlayer] esPartidaNueva =', d.esPartidaNueva, '| nombre =', d.name);
     const bs = CONFIG.PLAYER.BASE_STATS[d.class] || CONFIG.PLAYER.BASE_STATS.warrior;
     let atq = 15, hpInicial = 500;
     if (d.className === 'BARBARO') { atq = 80; hpInicial = 800; }
@@ -2369,8 +2369,8 @@ Object.keys(players).forEach(id => {
     else if (d.className === 'NECROMANCER') { atq = 15; hpInicial = 300; }
     else if (d.className === 'CLERIGO') { atq = 40; hpInicial = 500; }
 
-    // ✅ FIX: sumar bonus de academia al HP inicial
-    if (academiaPersistencia[d.name] && academiaPersistencia[d.name].academia) {
+    // ✅ FIX: sumar bonus de academia al HP inicial (SOLO si NO es partida nueva)
+    if (!d.esPartidaNueva && academiaPersistencia[d.name] && academiaPersistencia[d.name].academia) {
         const ac = academiaPersistencia[d.name].academia;
         hpInicial += (ac.hp || 0) * ACADEMIA_BONUS.hp;
     }
@@ -2415,7 +2415,7 @@ angelUltimoUso: 0,
 
     // ═══ FIX INVENTARIO: migrar inventario huérfano por nombre ═══
     let inventarioMigrado = null;
-    if (!inventariosJugadores[socket.id]) {
+    if (!d.esPartidaNueva && !inventariosJugadores[socket.id]) {
         for (let viejoId in inventariosJugadores) {
             const inv = inventariosJugadores[viejoId];
             if (!inv || !inv.items) continue;
@@ -2478,8 +2478,8 @@ angelUltimoUso: 0,
         dueñoNombre: p.dueñoNombre || (p.dueñoId && players[p.dueñoId] ? players[p.dueñoId].name : null)
     })));
 
-    // ═══ FIX: migrar pilares y ligas DESPUÉS de crear el jugador ═══
-    setTimeout(() => {
+    // ═══ FIX: migrar pilares y ligas DESPUÉS de crear el jugador (SOLO si NO es partida nueva) ═══
+    if (!d.esPartidaNueva) setTimeout(() => {
         const migrados = migrarPilaresAlReconectar(socket.id);
         if (migrados > 0) {
             // Reenviar pilares actualizados a TODOS
@@ -2495,7 +2495,7 @@ angelUltimoUso: 0,
         }
     }, 1200);
 // ═══ NUEVO: restaurar cristanite, academia, level, exp y stats desde disco ═══
-if (academiaPersistencia[d.name]) {
+if (!d.esPartidaNueva && academiaPersistencia[d.name]) {
     const guardado = academiaPersistencia[d.name];
     players[socket.id].cristanite = guardado.cristanite || 0;
     players[socket.id].academia = guardado.academia || { oro: 0, hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0 };
@@ -4249,6 +4249,116 @@ academiaPersistencia[jugadorDesconectado.name] = {
         });
  io.emit('playerDisconnected', socket.id);
     });      // ← cierra socket.on('disconnect')
+
+    // ═══════════════════════════════════════════════════════════════
+    // 🗑️ BORRAR PERSISTENCIA POR NOMBRE (para "Nuevo Juego")
+    // ═══════════════════════════════════════════════════════════════
+    socket.on('borrarPersistenciaNombre', (data, callback) => { console.log('📥 [SERVER borrarPersistenciaNombre] nombre =', data?.nombre);
+        if (!data || !data.nombre) return;
+        const nombre = String(data.nombre).trim();
+        if (nombre.length < 2) return;
+        console.log(`🗑️ [BORRAR PERSISTENCIA] Solicitado para: "${nombre}"`);
+
+        const nombreLower = nombre.toLowerCase();
+        let hubo = false;
+
+        for (let key in academiaPersistencia) {
+            if (key.toLowerCase() === nombreLower) {
+                delete academiaPersistencia[key];
+                console.log(`   ✅ academiaPersistencia["${key}"] borrada`);
+                hubo = true;
+            }
+        }
+
+        for (let sid in inventariosJugadores) {
+            const inv = inventariosJugadores[sid];
+            if (inv && inv._nombreJugador && inv._nombreJugador.toLowerCase() === nombreLower) {
+                delete inventariosJugadores[sid];
+                console.log(`   ✅ inventario de "${nombre}" borrado`);
+                hubo = true;
+            }
+        }
+
+        for (let lid in ligas) {
+            const liga = ligas[lid];
+            if (!liga || !Array.isArray(liga.miembrosNombres)) continue;
+            const idx = liga.miembrosNombres.findIndex(n => n && n.toLowerCase() === nombreLower);
+            if (idx !== -1) {
+                const eraLider = liga.liderNombre && liga.liderNombre.toLowerCase() === nombreLower;
+                if (eraLider) {
+                    delete ligas[lid];
+                    console.log(`   ✅ liga "${liga.nombre}" disuelta (era líder "${nombre}")`);
+                } else {
+                    liga.miembros.splice(idx, 1);
+                    liga.miembrosNombres.splice(idx, 1);
+                    console.log(`   ✅ "${nombre}" removido de liga "${liga.nombre}"`);
+                }
+                hubo = true;
+            }
+        }
+
+        pilares.forEach(p => {
+            if (p.dueñoNombre && p.dueñoNombre.toLowerCase() === nombreLower) {
+                p.dueñoId = null;
+                p.dueñoNombre = null;
+                p.dueñoLigaId = null;
+                p.hp = p.maxHp;
+                p.ventanaRecuperacion = null;
+                p.dueñoOriginalId = null;
+                p.dueñoOriginalNombre = null;
+                console.log(`   ✅ pilar ${p.color} liberado (era de "${nombre}")`);
+                hubo = true;
+            } else if (p.dueñoOriginalNombre && p.dueñoOriginalNombre.toLowerCase() === nombreLower) {
+                p.dueñoOriginalId = null;
+                p.dueñoOriginalNombre = null;
+            }
+        });
+
+        try {
+            fs.writeFileSync(ACADEMIA_FILE, JSON.stringify(academiaPersistencia, null, 2));
+            (() => { const persistirInventariosPorNombre = {}; for (let _sid in inventariosJugadores) { const _inv = inventariosJugadores[_sid]; if (_inv && _inv._nombreJugador) persistirInventariosPorNombre[_inv._nombreJugador] = _inv; } fs.writeFileSync(INVENTARIOS_FILE, JSON.stringify(persistirInventariosPorNombre, null, 2)); })();
+            fs.writeFileSync(LIGAS_FILE, JSON.stringify(ligas, null, 2));
+            fs.writeFileSync(PILARES_FILE, JSON.stringify(pilares, null, 2));
+            console.log(`   💾 Persistencia guardada a disco`);
+        } catch(e) {
+            console.log(`   ⚠️ Error al guardar: ${e.message}`);
+        }
+
+        // 🔥 FIX FINAL: reemitir pilares a TODOS los clientes
+        const pilaresSnapshotPostBorrado = pilares.map(p => ({
+            id: p.id, color: p.color, x: p.x, y: p.y,
+            hp: p.hp, maxHp: p.maxHp,
+            nivelVida: p.nivelVida, nivelDefFisica: p.nivelDefFisica,
+            nivelDefMagica: p.nivelDefMagica, nivelBuff: p.nivelBuff,
+            dueñoId: p.dueñoId, dueñoLigaId: p.dueñoLigaId,
+            dueño: p.dueñoId, dueñoLiga: p.dueñoLigaId,
+            dueñoNombre: p.dueñoNombre || (p.dueñoId && players[p.dueñoId] ? players[p.dueñoId].name : null)
+        }));
+        io.emit('pilaresIniciales', pilaresSnapshotPostBorrado2);
+        console.log('🔄 [PILARES] Reemitidos a todos los clientes después del borrado');
+
+        if (!hubo) console.log(`   ℹ️ No había persistencia para "${nombre}" (nombre nuevo, todo OK)`);
+        socket.emit('persistenciaBorrada', { nombre });
+
+        // 🔥 FIX: reemitir pilares actualizados a TODOS los clientes
+        //    (si no, el cliente que hizo "Nuevo Juego" sigue viendo el pilar viejo)
+        const pilaresSnapshotPostBorrado2 = pilares.map(p => ({
+            id: p.id, color: p.color, x: p.x, y: p.y,
+            hp: p.hp, maxHp: p.maxHp,
+            nivelVida: p.nivelVida, nivelDefFisica: p.nivelDefFisica,
+            nivelDefMagica: p.nivelDefMagica, nivelBuff: p.nivelBuff,
+            dueñoId: p.dueñoId, dueñoLigaId: p.dueñoLigaId,
+            dueño: p.dueñoId, dueñoLiga: p.dueñoLigaId,
+            dueñoNombre: p.dueñoNombre || (p.dueñoId && players[p.dueñoId] ? players[p.dueñoId].name : null)
+        }));
+        io.emit('pilaresIniciales', pilaresSnapshotPostBorrado2);
+        console.log('🔄 [PILARES] Reemitidos a todos los clientes después del borrado');
+        if (typeof callback === 'function') callback({ ok: true, nombre });
+
+        // 🔥 FIX: reemitir pilares actualizados a TODOS los clientes
+        //    (si no, el cliente que hizo "Nuevo Juego" sigue viendo su pilar viejo)
+                io.emit('pilaresIniciales', pilaresSnapshotPostBorrado);
+    });
 
 });          
 // ═══════════════════════════════════════════════════════════════

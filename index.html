@@ -234,11 +234,11 @@ body.modo-movil #btn-fullscreen-movil { font-size: 20px !important; }
         .pilar-mejora-btn:hover { background: #88ff88; color: #000; }
         .pilar-mejora-btn:disabled { color: #555; border-color: #555; cursor: not-allowed; background: #000; }
         .liga-miembro { display: flex; justify-content: space-between; padding: 4px 8px; border-bottom: 1px solid #333; color: #ccc; font-size: 11px; }
-        .liga-miembro.lider { color: #ffaa00; font-weight: bold; }
+        .liga-miembro.lider { color: #fff; font-weight: bold; }
         .liga-ranking-row { display: flex; justify-content: space-between; padding: 4px 8px; border-bottom: 1px solid #333; color: #ccc; font-size: 11px; }
-        .liga-ranking-row.top1 { color: #ffdd00; font-weight: bold; }
+        .liga-ranking-row.top1 { color: #fff; font-weight: bold; }
         .liga-ranking-row.top2 { color: #cccccc; }
-        .liga-ranking-row.top3 { color: #cc8833; }
+        .liga-ranking-row.top3 { color: #ccc; }
 #alerta-pilar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 2147483647; border: 6px solid #ff0000; box-shadow: inset 0 0 60px rgba(255,0,0,0.5); animation: parpadeoAlerta 1s infinite; }
         #alerta-pilar-overlay.visible { display: block; }
         @keyframes parpadeoAlerta { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
@@ -427,13 +427,13 @@ body.modo-movil #btn-fullscreen-movil { font-size: 20px !important; }
     <button onclick="cerrarElegirMagia()" style="width:100%; padding:8px; background:#000; color:#888; border:1px solid #444; cursor:pointer; font-family:monospace; font-size:11px;">MAS TARDE</button>
 </div>
 
-<div id="liga-ui" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#000; border:3px solid #ffaa00; padding:15px; z-index:2147483647; width:480px; max-height:90vh; overflow-y:auto;">
-    <h3 style="color:#ffaa00;text-align:center;margin:0 0 10px 0;border-bottom:1px solid #ffaa00;padding-bottom:8px;">🏅 LIGA</h3>
+<div id="liga-ui" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#000; border:3px solid #fff; padding:15px; z-index:2147483647; width:480px; max-height:90vh; overflow-y:auto;">
+    <h3 style="color:#fff;text-align:center;margin:0 0 10px 0;border-bottom:1px solid #fff;padding-bottom:8px;">LIGA</h3>
 <div style="display:flex;margin-bottom:8px;">
     <div class="liga-tab active" data-liga-tab="info" onclick="cambiarTabLiga('info')" style="flex:1;padding:6px;background:#222;color:#aaa;text-align:center;cursor:pointer;border:1px solid #444;font-size:9px;">MI LIGA</div>
     <div class="liga-tab" data-liga-tab="ranking" onclick="cambiarTabLiga('ranking')" style="flex:1;padding:6px;background:#222;color:#aaa;text-align:center;cursor:pointer;border:1px solid #444;font-size:9px;">RANKING</div>
     <div class="liga-tab" data-liga-tab="chat" onclick="cambiarTabLiga('chat')" style="flex:1;padding:6px;background:#222;color:#aaa;text-align:center;cursor:pointer;border:1px solid #444;font-size:9px;">CHAT</div>
-    <div class="liga-tab" data-liga-tab="academia" onclick="cambiarTabLiga('academia')" style="flex:1;padding:6px;background:#222;color:#ffaa00;text-align:center;cursor:pointer;border:1px solid #ffaa00;font-size:9px;">ACADEMIA</div>
+    <div class="liga-tab" data-liga-tab="academia" onclick="cambiarTabLiga('academia')" style="flex:1;padding:6px;background:#222;color:#aaa;text-align:center;cursor:pointer;border:1px solid #444;font-size:9px;">ACADEMIA</div>
 </div>
      <div id="liga-panel-info" style="display:block;">
         <div id="liga-info"></div>
@@ -444,7 +444,7 @@ body.modo-movil #btn-fullscreen-movil { font-size: 20px !important; }
         <div id="liga-crear-section" style="display:none;margin-top:10px;">
             <div style="color:#aaa;font-size:10px;text-align:center;margin-bottom:5px;">Crear liga cuesta 5.000.000 de oro</div>
             <input type="text" id="liga-nombre-input" placeholder="Nombre de la liga (3-20 caracteres)" style="width:100%;padding:6px;background:#000;border:1px solid #fff;color:#fff;text-align:center;font-family:monospace;font-size:11px;box-sizing:border-box;">
-            <button onclick="crearLigaUI()" style="width:100%;padding:8px;margin-top:6px;background:#000;color:#ffaa00;border:1px solid #ffaa00;cursor:pointer;font-family:monospace;font-size:12px;">CREAR LIGA</button>
+            <button onclick="crearLigaUI()" style="width:100%;padding:8px;margin-top:6px;background:#000;color:#88ff88;border:1px solid #88ff88;cursor:pointer;font-family:monospace;font-size:12px;">CREAR LIGA</button>
         </div>
         <!-- ═══ NUEVO: SOLICITAR UNIRME (cuando NO estás en liga) ═══ -->
         <div id="liga-solicitar-section" style="display:none;margin-top:10px;padding:8px;background:#111;border:1px solid #444;border-radius:4px;">
@@ -454,17 +454,17 @@ body.modo-movil #btn-fullscreen-movil { font-size: 20px !important; }
         </div>
 
         <!-- ═══ NUEVO: PANEL DE SOLICITUDES (solo líder/sublíder) ═══ -->
-        <div id="liga-solicitudes-section" style="display:none;margin-top:10px;padding:8px;background:#111;border:1px solid #ffaa00;border-radius:4px;">
-            <div style="color:#ffaa00;font-size:11px;font-weight:bold;margin-bottom:5px;">📨 SOLICITUDES PENDIENTES <span id="liga-solicitudes-badge" style="background:#ff4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px;">0</span></div>
+        <div id="liga-solicitudes-section" style="display:none;margin-top:10px;padding:8px;background:#111;border:1px solid #444;border-radius:4px;">
+            <div style="color:#fff;font-size:11px;font-weight:bold;margin-bottom:5px;">SOLICITUDES PENDIENTES <span id="liga-solicitudes-badge" style="background:#ff4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px;">0</span></div>
             <div id="liga-solicitudes-lista" style="max-height:200px;overflow-y:auto;color:#fff;font-size:11px;"></div>
         </div>
 
         <!-- ═══ NUEVO: SUBLÍDERES (solo líder) ═══ -->
-        <div id="liga-sublideres-section" style="display:none;margin-top:10px;padding:8px;background:#111;border:1px solid #66ccff;border-radius:4px;">
-            <div style="color:#66ccff;font-size:11px;font-weight:bold;margin-bottom:5px;">⭐ SUBLÍDERES (máx 3)</div>
+        <div id="liga-sublideres-section" style="display:none;margin-top:10px;padding:8px;background:#111;border:1px solid #444;border-radius:4px;">
+            <div style="color:#fff;font-size:11px;font-weight:bold;margin-bottom:5px;">SUBLÍDERES (máx 3)</div>
             <div id="liga-sublideres-lista" style="color:#fff;font-size:11px;margin-bottom:5px;"></div>
-            <input type="text" id="liga-sublider-input" placeholder="Nombre del jugador a nombrar sublíder" style="width:100%;padding:5px;background:#000;border:1px solid #66ccff;color:#fff;text-align:center;font-family:monospace;font-size:10px;box-sizing:border-box;">
-            <button onclick="nombrarSubliderUI()" style="width:100%;padding:6px;margin-top:4px;background:#000;color:#66ccff;border:1px solid #66ccff;cursor:pointer;font-family:monospace;font-size:10px;">⭐ NOMBRAR SUBLÍDER</button>
+            <input type="text" id="liga-sublider-input" placeholder="Nombre del jugador a nombrar sublíder" style="width:100%;padding:5px;background:#000;border:1px solid #fff;color:#fff;text-align:center;font-family:monospace;font-size:10px;box-sizing:border-box;">
+            <button onclick="nombrarSubliderUI()" style="width:100%;padding:6px;margin-top:4px;background:#000;color:#88ff88;border:1px solid #88ff88;cursor:pointer;font-family:monospace;font-size:10px;">NOMBRAR SUBLÍDER</button>
         </div>
         <div id="liga-invitar-section" style="display:none;margin-top:10px;">
             <input type="text" id="liga-invitar-input" placeholder="Nombre del jugador" style="width:100%;padding:6px;background:#000;border:1px solid #fff;color:#fff;text-align:center;font-family:monospace;font-size:11px;box-sizing:border-box;">
@@ -475,8 +475,8 @@ body.modo-movil #btn-fullscreen-movil { font-size: 20px !important; }
     <input type="number" id="liga-donar-input" placeholder="Cantidad de oro" style="width:100%;padding:6px;background:#000;border:1px solid #fff;color:#fff;text-align:center;font-family:monospace;font-size:11px;box-sizing:border-box;">
     <button onclick="donarOroLigaUI()" style="width:100%;padding:8px;margin-top:6px;background:#000;color:#fff;border:1px solid #fff;cursor:pointer;font-family:monospace;font-size:12px;">DONAR ORO</button>
 </div>
-        <div id="liga-invitacion-recibida" style="display:none;margin-top:10px;text-align:center;border:1px solid #ffaa00;padding:10px;">
-            <div id="liga-invitacion-texto" style="color:#ffaa00;font-size:12px;margin-bottom:8px;"></div>
+        <div id="liga-invitacion-recibida" style="display:none;margin-top:10px;text-align:center;border:1px solid #444;padding:10px;">
+            <div id="liga-invitacion-texto" style="color:#fff;font-size:12px;margin-bottom:8px;"></div>
             <button onclick="aceptarInvitacionLigaUI()" style="padding:5px 15px;background:#000;color:#88ff88;border:1px solid #88ff88;cursor:pointer;font-family:monospace;margin-right:5px;">ACEPTAR</button>
             <button onclick="rechazarInvitacionLigaUI()" style="padding:5px 15px;background:#000;color:#ff4444;border:1px solid #ff4444;cursor:pointer;font-family:monospace;">RECHAZAR</button>
         </div>
@@ -500,12 +500,12 @@ body.modo-movil #btn-fullscreen-movil { font-size: 20px !important; }
         <!-- Stats principales -->
         <div style="display:flex;gap:10px;margin-bottom:10px;padding:8px;background:#111;border:1px solid #444;border-radius:4px;">
             <div style="flex:1;text-align:center;">
-                <div style="color:#ffaa00;font-size:10px;">NIVEL ACADEMIA</div>
+                <div style="color:#fff;font-size:10px;">NIVEL ACADEMIA</div>
                 <div id="academia-nivel-actual" style="color:#fff;font-size:24px;font-weight:bold;">1</div>
             </div>
             <div style="flex:1;text-align:center;">
-                <div style="color:#ffaa00;font-size:10px;">ORO EN BOVEDA</div>
-                <div id="academia-boveda" style="color:#ffdd00;font-size:18px;font-weight:bold;">0</div>
+                <div style="color:#fff;font-size:10px;">ORO EN BOVEDA</div>
+                <div id="academia-boveda" style="color:#fff;font-size:18px;font-weight:bold;">0</div>
             </div>
             <div style="flex:1;text-align:center;">
                 <div style="color:#66ccff;font-size:10px;">CRISTANITE</div>
@@ -515,7 +515,7 @@ body.modo-movil #btn-fullscreen-movil { font-size: 20px !important; }
         
         <!-- Botón subir academia (solo líder) -->
         <div id="academia-subir-section" style="display:none;margin-bottom:10px;">
-            <button onclick="subirAcademiaUI()" style="width:100%;padding:8px;background:#000;color:#ffaa00;border:1px solid #ffaa00;cursor:pointer;font-family:monospace;font-size:11px;">SUBIR ACADEMIA (<span id="academia-costo-subir">50,000</span> oro de boveda)</button>
+            <button onclick="subirAcademiaUI()" style="width:100%;padding:8px;background:#000;color:#88ff88;border:1px solid #88ff88;cursor:pointer;font-family:monospace;font-size:11px;">SUBIR ACADEMIA (<span id="academia-costo-subir">50,000</span> oro de boveda)</button>
         </div>
         
         <!-- Lista de tecnologías -->
@@ -523,18 +523,18 @@ body.modo-movil #btn-fullscreen-movil { font-size: 20px !important; }
         
         <!-- Conversión de oro a Cristanite -->
         <div style="margin-top:10px;padding:8px;background:#111;border:1px solid #444;border-radius:4px;">
-            <div style="color:#ffaa00;font-size:11px;margin-bottom:5px;">CONVERTIR ORO EN CRISTANITE</div>
+            <div style="color:#fff;font-size:11px;margin-bottom:5px;">CONVERTIR ORO EN CRISTANITE</div>
             <div style="color:#aaa;font-size:10px;margin-bottom:5px;">100 oro = 10 Cristanite</div>
             <div style="display:flex;gap:5px;">
                 <input type="number" id="academia-convertir-input" placeholder="Cantidad de oro" style="flex:1;padding:6px;background:#000;border:1px solid #fff;color:#fff;font-family:monospace;font-size:11px;">
-                <button onclick="convertirOroCristaniteUI()" style="padding:6px 15px;background:#000;color:#66ccff;border:1px solid #66ccff;cursor:pointer;font-family:monospace;font-size:11px;">CONVERTIR</button>
+                <button onclick="convertirOroCristaniteUI()" style="padding:6px 15px;background:#000;color:#88ff88;border:1px solid #88ff88;cursor:pointer;font-family:monospace;font-size:11px;">CONVERTIR</button>
             </div>
         </div>
         
-        <div id="academia-info-msg" style="color:#ffaa00;font-size:10px;text-align:center;margin-top:8px;min-height:16px;"></div>
+        <div id="academia-info-msg" style="color:#aaa;font-size:10px;text-align:center;margin-top:8px;min-height:16px;"></div>
     </div>
     
-    <div id="academia-info-msg" style="color:#ffaa00;font-size:10px;text-align:center;margin-top:8px;min-height:16px;"></div>
+    <div id="academia-info-msg" style="color:#aaa;font-size:10px;text-align:center;margin-top:8px;min-height:16px;"></div>
 
     <button onclick="cerrarLigaUI()" style="display:block;width:100%;padding:8px;margin-top:10px;background:#000;color:#fff;border:1px solid #fff;cursor:pointer;font-family:monospace;font-size:12px;">CERRAR</button>
 </div>
@@ -1524,11 +1524,13 @@ function ocultarPantallaCarga() { document.getElementById('loading-ui').style.di
 // FUNCIONES DE INICIO DE JUEGO (GLOBALES)
 // ============================================
 window.nuevoJuego = function() {
+    window._esPartidaNueva = true;
+    window._esPartidaNuevaParaNewPlayer = true;
     const guardado = localStorage.getItem(SAVE_KEY);
     if (guardado) { if (!confirm('¿Quieres borrar tu progreso y comenzar una nueva partida?')) return; }
     borrarPartida();
     equipamiento = { arma: null, escudo: null, armadura: null };
-    playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0, defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0, legion: 0, juicio: 0, templanza: 0, fe: 0, angel: 0, plegarias: 0 }; playerAguante = 100; playerMaxAguante = 100;
+    playerStats = { level: 1, exp: 0, expNeeded: 100, puntos: 0, fuerza: 0, inteligencia: 0, agilidad: 0, vitalidad: 0, sabiduria: 0, defFuego: 0, defAgua: 0, defViento: 0, defRayo: 0, defLuz: 0, defOscuridad: 0, legion: 0, juicio: 0, templanza: 0, fe: 0, angel: 0, plegarias: 0 , academia: { oro: 0, hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0 }, cristanite: 0 }; playerAguante = 100; playerMaxAguante = 100;
     skillsEquipadas = [];
     inventarioSlots = [];
     for (let i = 0; i < 36; i++) inventarioSlots.push(null);
@@ -1567,7 +1569,7 @@ setTimeout(() => { actualizarSlotsPocionesUI(); }, 1500);
 };
 
 function seleccionarClase(sprite, nombreClase) {
-    const n = document.getElementById('nombre-input').value.trim();
+const n = document.getElementById('nombre-input').value.trim();
     if (n === "") { alert("Ingresa un nombre"); return; }
     pName = n; pClass = sprite; pClassName = nombreClase;
     attackSpeedModifier = classStats[nombreClase]?.attackSpeed || 1.0;
@@ -3603,7 +3605,7 @@ function renderizarSublideresUI(sublideres) {
     let html = '';
     sublideres.forEach(sub => {
         html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 6px;border-bottom:1px solid #333;">
-            <span style="color:#66ccff;font-size:11px;">⭐ ${sub.nombre}</span>
+            <span style="color:#ccc;font-size:11px;">${sub.nombre}</span>
             <button onclick="quitarSubliderUI('${sub.socketId}')" style="background:#000;color:#ff4444;border:1px solid #ff4444;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:9px;border-radius:3px;">QUITAR</button>
         </div>`;
     });
@@ -3873,7 +3875,7 @@ function renderizarAcademiaUI(data) {
         row.innerHTML = `
             <div style="display:flex;justify-content:space-between;align-items:center;color:#fff;font-size:11px;">
                 <span>${ACADEMIA_NOMBRES_CLIENTE[tech]}</span>
-                <span style="color:#ffaa00;font-weight:bold;">Nv.${nivelTech}/${maxTech}</span>
+                <span style="color:#fff;font-weight:bold;">Nv.${nivelTech}/${maxTech}</span>
             </div>
             <div style="color:#aaa;font-size:9px;margin-top:3px;">
                 Bonus actual: <span style="color:#88ff88;">+${bonusTotal}${tech === 'oro' ? ' oro/30s' : (tech === 'hp' ? ' HP' : '')}</span>
@@ -3882,7 +3884,7 @@ function renderizarAcademiaUI(data) {
                 <span style="color:#66ccff;font-size:9px;">Costo: ${siguienteCosto !== null ? siguienteCosto + ' 💎' : 'MÁXIMO'}</span>
                 <button class="btn-tech-academia" data-tech="${tech}"
                     ${siguienteCosto === null ? 'disabled' : ''}
-                    style="background:#000;color:${siguienteCosto === null ? '#555' : '#66ccff'};border:1px solid ${siguienteCosto === null ? '#555' : '#66ccff'};padding:3px 10px;cursor:${siguienteCosto === null ? 'not-allowed' : 'pointer'};font-family:monospace;font-size:10px;border-radius:3px;">
+                    style="background:#000;color:${siguienteCosto === null ? '#555' : '#88ff88'};border:1px solid ${siguienteCosto === null ? '#555' : '#88ff88'};padding:3px 10px;cursor:${siguienteCosto === null ? 'not-allowed' : 'pointer'};font-family:monospace;font-size:10px;border-radius:3px;">
                     ${siguienteCosto === null ? '✔ MÁX' : 'MEJORAR'}
                 </button>
             </div>
@@ -3972,19 +3974,19 @@ socket.on('infoPilar', (data) => {
         if (!info) return;
 
         if (data.enLiga) {
-            let html = `<div style="color:#ffaa00;font-size:13px;margin-bottom:5px;">🏅 ${data.nombre}</div>`;
-            html += `<div style="color:#aaa;font-size:10px;">Líder: <span style="color:#ffaa00;">${data.liderNombre}</span></div>`;
+            let html = `<div style="color:#fff;font-size:13px;margin-bottom:5px;">${data.nombre}</div>`;
+            html += `<div style="color:#aaa;font-size:10px;">Líder: <span style="color:#fff;">${data.liderNombre}</span></div>`;
             html += `<div style="color:#aaa;font-size:10px;">Miembros: ${data.miembros.length}/100 | Puntos: ${data.puntos}</div>`;
             html += `<div style="color:#aaa;font-size:10px;">Pilares: ${data.pilares.length}</div>`;
-            html += `<div style="color:#aaa;font-size:10px;">Oro de la liga: <span style="color:#ffaa00;">${data.oro || 0}</span></div>`;
+            html += `<div style="color:#aaa;font-size:10px;">Oro de la liga: <span style="color:#fff;">${data.oro || 0}</span></div>`;
             if (data.sublideres && data.sublideres.length > 0) {
-                html += `<div style="color:#aaa;font-size:10px;margin-top:3px;">⭐ Sublíderes: <span style="color:#66ccff;">${data.sublideres.map(s => s.nombre).join(', ')}</span></div>`;
+                html += `<div style="color:#aaa;font-size:10px;margin-top:3px;">⭐ Sublíderes: <span style="color:#ccc;">${data.sublideres.map(s => s.nombre).join(', ')}</span></div>`;
             }
             html += `<div style="margin-top:8px;max-height:150px;overflow-y:auto;">`;
             data.miembros.forEach(m => {
                 const esLider = m.id === data.lider;
                 const esSublider = data.sublideres && data.sublideres.some(s => s.socketId === m.id);
-                const marker = esLider ? '<span style="color:#ffaa00;font-weight:bold;">[L]</span> ' : (esSublider ? '<span style="color:#66ccff;font-weight:bold;">[S]</span> ' : '');
+                const marker = esLider ? '<span style="color:#fff;font-weight:bold;">[L]</span> ' : (esSublider ? '<span style="color:#ccc;font-weight:bold;">[S]</span> ' : '');
                 html += `<div class="liga-miembro ${esLider ? 'lider' : ''}"><span>${marker}${m.nombre}</span></div>`;
             });
             html += `</div>`;
@@ -4075,7 +4077,7 @@ socket.on('oroPilarGenerado', (data) => {
             <div class="exp-bar" style="margin-top:4px;background:#333;height:6px;border-radius:3px;overflow:hidden;">
                 <div id="mision-progreso-fill" style="width:${pct}%;height:100%;background:#88ff88;transition:width 0.3s;"></div>
             </div>
-            <div style="color:#ffaa00;font-size:9px;margin-top:3px;">Recompensa: +${data.exp} EXP liga | +${data.oro} oro liga</div>
+            <div style="color:#aaa;font-size:9px;margin-top:3px;">Recompensa: +${data.exp} EXP liga | +${data.oro} oro liga</div>
         `;
     });
 
@@ -5112,8 +5114,22 @@ estatuaRanking.on('pointerdown', () => {
         setTimeout(() => { const pocionHP = inventarioSlots.find(s => s && s.tipo === 'pocion'); const pocionMana = inventarioSlots.find(s => s && s.tipo === 'pocion_mana'); if (pocionHP) equiparPocionASlot(pocionHP, 'hp'); if (pocionMana) equiparPocionASlot(pocionMana, 'mana'); }, 1000);
     }
     actualizarStatsUI();
-socket.emit('newPlayer', { class: pClass, name: pName, className: pClassName });
-socket.emit('solicitarInventarioCompleto');
+// 🔥 FIX: si es partida nueva, borrar persistencia ANTES de newPlayer
+if (window._esPartidaNuevaParaNewPlayer && pName && socket && socket.connected) {
+        // 🔥 FIX: esperar confirmación del server ANTES de newPlayer (evita race condition)
+        console.log('🗑️ [Nuevo Juego] Solicitando borrado de persistencia al server...');
+        console.log('📤 [TEST] EMITIENDO borrarPersistenciaNombre para:', pName);
+        socket.emit('borrarPersistenciaNombre', { nombre: pName }, (ack) => {
+            console.log('📥 [TEST] persistenciaBorrada CONFIRMADA:', ack);
+            console.log('🗑️ [Nuevo Juego] Server confirmó borrado:', ack);
+            console.log('📤 [TEST] EMITIENDO newPlayer | esPartidaNueva =', !!window._esPartidaNuevaParaNewPlayer);
+            socket.emit('newPlayer', { class: pClass, name: pName, className: pClassName, esPartidaNueva: !!window._esPartidaNuevaParaNewPlayer });
+        });
+    } else {
+        console.log('📤 [TEST] EMITIENDO newPlayer | esPartidaNueva =', !!window._esPartidaNuevaParaNewPlayer);
+            socket.emit('newPlayer', { class: pClass, name: pName, className: pClassName, esPartidaNueva: !!window._esPartidaNuevaParaNewPlayer });
+    }
+    socket.emit('solicitarInventarioCompleto');
 cargarSkillsPorClase(); renderizarBarraSkills(); renderizarEspecialidades();
 
 // 🔥 NUEVO: sincronizar nivel y stats al reconectar (para que el server sepa quién sos)
@@ -5515,30 +5531,41 @@ socket.on('playerStatsCompletos', (data) => {
     }
 
     // ─── Aplicar stats (fuerza, vitalidad, agilidad, etc.) ───
-    if (data.stats) {
-        Object.assign(playerStats, data.stats);
+    // ─── Aplicar stats (fuerza, vitalidad, agilidad, etc.) ───
+    if (window._esPartidaNueva) {
+        // 🆕 Partida nueva: IGNORAR todo lo del server (nivel, puntos, hp, mana, etc.)
+        //    El server puede tener datos viejos de este nombre hasta que procese el borrado.
+        window._esPartidaNueva = false;
+        console.log('🆕 [Partida Nueva] Ignorando stats del server. Empezando de 0.');
+        let statsBaseNuevo = classStats[pClassName] || classStats['WARRIOR'];
+        playerHP = statsBaseNuevo.hp;
+        playerMana = statsBaseNuevo.mana;
+        playerMaxHP = statsBaseNuevo.hp;
+        playerMaxMana = statsBaseNuevo.mana;
+        playerAguante = statsBaseNuevo.aguante;
+        playerStats.level = 1;
+        playerStats.exp = 0;
+        playerStats.expNeeded = 100;
+        playerStats.puntos = 0;
+        playerStats.puntosEspecialidad = 0;
+        actualizarStatsUI();
+        guardarPartida();
+    } else {
+        // ─── Partida continuada: aplicar todo (recuperar) ───
+        if (data.stats) {
+            Object.assign(playerStats, data.stats);
+        }
+        if (data.level) playerStats.level = data.level;
+        if (data.exp !== undefined) playerStats.exp = data.exp;
+        if (data.academia) playerStats.academia = data.academia;
+        if (data.cristanite !== undefined) playerStats.cristanite = data.cristanite;
+        if (data.maxHp) playerMaxHP = data.maxHp;
+        if (data.maxMana) playerMaxMana = data.maxMana;
+        if (data.hp !== undefined) playerHP = data.hp;
+        if (data.mana !== undefined) playerMana = data.mana;
+        actualizarStatsUI();
+        guardarPartida();
     }
-
-    // ─── Aplicar nivel y exp ───
-    if (data.level) playerStats.level = data.level;
-    if (data.exp !== undefined) playerStats.exp = data.exp;
-    // ⚠️ NO pisar expNeeded (el cliente lo calcula con ×1.2)
-
-    // ─── Aplicar academia (techs) ───
-    if (data.academia) {
-        playerStats.academia = data.academia;
-    }
-
-    // ─── Aplicar cristanite ───
-    if (data.cristanite !== undefined) {
-        playerStats.cristanite = data.cristanite;
-    }
-
-    // ─── Aplicar HP / Mana máximos ───
-    if (data.maxHp) playerMaxHP = data.maxHp;
-    if (data.maxMana) playerMaxMana = data.maxMana;
-    if (data.hp !== undefined) playerHP = data.hp;
-    if (data.mana !== undefined) playerMana = data.mana;
 
     // ─── Refrescar UI y guardar ───
     actualizarStatsUI();
@@ -6463,14 +6490,39 @@ otherPlayers.getChildren().forEach(other => {
     socket.on('mensaje', (msg) => { mostrarMensaje(msg, 'info'); });
     socket.on('mostrarTextoCuracion', (data) => { if (currentScene && player && player.isAlive) { crearTextoDmg(currentScene, data.x, data.y, data.texto, data.color, data.size); } });
     socket.on('invitacionRecibida', (data) => { invitacionPendienteDe = data.de; document.getElementById('team-invitacion-texto').textContent = `${data.nombre} te invita a su equipo`; document.getElementById('team-dot').style.display = 'block'; document.getElementById('team-icon').style.display = 'flex'; });
+// ═══ NUEVO: cuando el server confirma que borró la persistencia, limpiar todo local ═══
+socket.on('persistenciaBorrada', (data) => {
+    // 🔥 FIX: forzar refresco de pilares al confirmar borrado
+    if (socket && socket.connected) socket.emit('solicitarPilares');
+    console.log('🗑️ Persistencia borrada en el server para:', data.nombre);
+    // Limpiar inventario local
+    inventarioSlots = [];
+    for (let i = 0; i < 36; i++) inventarioSlots.push(null);
+    equipamiento = { arma: null, escudo: null, armadura: null };
+    materialesInventario = { hierro: 0, acero: 0, mithril: 0, titanio: 0, adamantium: 0, bronce: 0, cobre: 0, oro_material: 0, plata: 0 };
+    pocionesEquipadas = [null, null];
+    playerStats.academia = { oro: 0, hp: 0, atkFis: 0, atkMag: 0, defFis: 0, defMag: 0 };
+    playerStats.cristanite = 0;
+    // Refrescar UI
+    renderizarInventario();
+    actualizarMaterialesUI();
+    actualizarSlotsPocionesUI();
+    actualizarStatsUI();
+    guardarPartida();
+    console.log('🗑️ Inventario local limpiado');
+});
 socket.on('inventarioCompleto', (data) => { 
     if (!data || !data.items) return;
     // 🛡️ FIX ANTI-PÉRDIDA: si el server manda vacío pero el cliente tiene items, conservar local
     const serverTieneItems = data.items.length > 0;
     const clienteTieneItems = inventarioSlots.some(s => s !== null);
-    if (!serverTieneItems && clienteTieneItems) {
+    // 🔥 FIX: en partida nueva, SIEMPRE reemplazar (aunque el server mande vacío)
+    if (!window._esPartidaNueva && !serverTieneItems && clienteTieneItems) {
         console.warn('⚠️ Server mandó inventario vacío — conservando el local (anti-pérdida)');
         return;
+    }
+    if (window._esPartidaNueva) {
+        console.log('🆕 [Partida Nueva] Reemplazando inventario local con el del server (aunque esté vacío)');
     }
     // Si el server SÍ tiene items, reemplazar (fuente de verdad)
     for (let i = 0; i < inventarioSlots.length; i++) inventarioSlots[i] = null;
@@ -7148,7 +7200,28 @@ if (esClerigo || esNecromancer) {
 }
 function update() {
     if (!player || !player.isAlive) return;
-   // ═══ NUEVO: Cancelar casteo si el jugador se mueve ═══
+
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX: Actualizaciones VISUALES siempre primero (aunque castees)
+    //    Barras de enemigos, pilares, espadas, etc. deben seguir
+    //    redibujándose mientras el jugador está casteando.
+    // ═══════════════════════════════════════════════════════════
+    crearAroJugador();
+    actualizarBarrasEnemigos();
+    actualizarEspadasGiratorias();
+    actualizarBarrasPilares();
+
+    // 🎬 Reposicionar barra de casteo si está activa
+    if (castBarraUI && castBarraUI.progreso !== undefined) {
+        dibujarBarraCasteo(castBarraUI.progreso);
+    }
+
+    // 🎯 Seguir al target con la flecha ▼ del modo apuntar
+    if (modoApuntarActivo) {
+        actualizarPosicionesFlechas();
+    }
+
+    // ═══ Cancelar casteo si el jugador se mueve ═══
     if (casteandoActivo) {
         const teclasMovimiento = this.teclaW.isDown || this.teclaA.isDown || this.teclaS.isDown || this.teclaD.isDown;
         const joystickMoviendo = esTactil && joystickActivo && (Math.abs(joystickVector.x) > 0.3 || Math.abs(joystickVector.y) > 0.3);
@@ -7156,20 +7229,10 @@ function update() {
             cancelarCasteoClClerigo('te moviste');
         } else {
             player.setVelocity(0, 0);
-            return;
+            return;   // ⬅️ Ahora sí: las barras YA se actualizaron arriba
         }
     }
-// 🎬 Reposicionar barra de casteo si está activa
-if (castBarraUI && castBarraUI.progreso !== undefined) {
-    dibujarBarraCasteo(castBarraUI.progreso);
-}
 
-// 🎯 Seguir al target con la flecha ▼ del modo apuntar
-if (modoApuntarActivo) {
-    actualizarPosicionesFlechas();
-}
-
-    crearAroJugador();
     if (player.attacking) return;
     let velocidadActual = getVelocidadActual();
     let spd = this.input.keyboard.checkDown(Phaser.Input.Keyboard.KeyCodes.SHIFT) ? velocidadActual * 1.8 : velocidadActual;
@@ -7232,9 +7295,6 @@ player.play(prefijoAnim + (moviendo ? '_walk_' : '_idle_') + player.lastDir, tru
         }
     }
     if (playerY < 400) { if (this.ground) this.ground.setTint(0xddddff); } else { if (this.ground) this.ground.clearTint(); }
-    actualizarBarrasEnemigos();
-    actualizarEspadasGiratorias();
-    actualizarBarrasPilares();
     if (enMapaNevado && nieveParticulas && nieveParticulas.active) { nieveParticulas.setPosition(player.x, player.y - 400); }
     if (player && player.isAlive) {
         for (let i = monedasSuelo.length - 1; i >= 0; i--) {
@@ -7399,7 +7459,7 @@ function activarModoApuntar(skillId, soloMuertos = false) {
     if (targetInicial && currentScene) {
         flechaApuntarSprite = currentScene.add.text(targetInicial.x, targetInicial.y - 80, '▼', {
             fontSize: '36px',
-            fill: '#ffdd00',
+            fill: '#fff',
             fontFamily: 'monospace',
             stroke: '#000',
             strokeThickness: 5

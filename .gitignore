@@ -1,68 +1,18 @@
-﻿# Dependencias
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Archivos de persistencia (datos de jugadores, NO subir)
+﻿node_modules/
+*.log
+.env
 inventarios.json
 pilares.json
 ligas.json
 academia_persistencia.json
-
-# Backups locales
+index.html.bak*
+server.js.bak*
 *.bak
-*.bak_*
-*.bak-*
 *.bak2
 *.bak3
 *.bak4
 *.bak5
 *.bak6
-*.bak7
-*.bak8
-*.bak9
-*.bak12
-*.bak14
-*.bak16
-*.bak17
-*.bak18
 
-# Archivos de error
-error.txt
-error_real.txt
-error_utf8.txt
-
-# Sistema operativo
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Logs
-*.log
-
-# Variables de entorno
-.env
-.env.local
-
-# IDE
-.vscode/
-.idea/
-*.code-workspace
-
-# Archivos temporales
-temp_function.txt
-nueva_funcion.txt
-# Backups viejos con nombres específicos
-index.html.backup_espadas
-index_ANTES_APUNTADO.html
-index_BACKUP.html
-index_BACKUP_*.html
-server_BACKUP_*.js
-
-# Binarios grandes
-ngrok.exe
-ngrok-*.zip
-
-# Carpetas de assets (descomentar si querés ignorar)
-# espadasgiratorias/
+_backup_*/
+*.txt
