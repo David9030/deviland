@@ -159,6 +159,24 @@ app.use('/ui', express.static(path.join(__dirname, 'ui')));
 app.use('/skills', express.static(path.join(__dirname, 'skills')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
+// 🏛️ ZONA SEGURA (server) — invisible
+const SAFE_ZONE = { x: 851, y: 1057, radio: 220, activa: true };
+
+function estaEnZonaSegura(x, y) {
+    if (!SAFE_ZONE.activa) return false;
+    const dx = x - SAFE_ZONE.x;
+    const dy = y - SAFE_ZONE.y;
+    return Math.sqrt(dx*dx + dy*dy) <= SAFE_ZONE.radio;
+}
+
+function teletransportarFueraDeZona(x, y) {
+    const dx = x - SAFE_ZONE.x;
+    const dy = y - SAFE_ZONE.y;
+    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+    const factor = (SAFE_ZONE.radio + 30) / dist;
+    return { x: SAFE_ZONE.x + dx * factor, y: SAFE_ZONE.y + dy * factor };
+}
+
 let players = {};
 let ultimoAtaque = new Map();
 let demonlord = { id: 'demonlord', x: 1500, y: 1500, hp: CONFIG.DEMONLORD.MAX_HP, maxHp: CONFIG.DEMONLORD.MAX_HP, isAlive: true, dir: 'Abajo', attackCooldown: 0, attackers: [], isAttacking: false, currentTarget: null, aturdido: false, mapa: 'principal' };
@@ -1504,10 +1522,10 @@ function revivirJugador(socketId) {
     j.mana = j.maxMana || (CONFIG.PLAYER.BASE_STATS[j.class]?.mana || 100);
     if (j.aguante !== undefined) j.aguante = j.maxAguante || 100;
 
-    j.x = 512;
-    j.y = 470;
+    j.x = 857;
+    j.y = 1197;
     jugadoresEnMapa[socketId] = 'principal';
-    io.emit('playerRespawn', { id: socketId, x: 512, y: 512 });
+    io.emit('playerRespawn', { id: socketId, x: 857, y: 1197 });
     emitirStatsJugador(socketId);
 }
 
@@ -1585,7 +1603,7 @@ function generarMinas() { minas = []; for (let i = 0; i < CONFIG.MINAS.CANTIDAD_
 function generarEsqueletosIniciales() { esqueletos = []; for (let i = 0; i < 100; i++) { esqueletos.push({ id: 'esqueleto_' + (nextSkeletonId++), x: Math.random() * 2800 + 100, y: Math.random() * 2800 + 100, hp: CONFIG.SKELETON.MAX_HP, maxHp: CONFIG.SKELETON.MAX_HP, isAlive: true, isAlly: false, ownerId: null, targetId: null, targetType: null, dir: 'Abajo', attackCooldown: 0, damageBonus: 0, baseDamage: CONFIG.SKELETON.ATTACK_DAMAGE, attackers: [], aturdido: false, mapa: 'principal' }); } return esqueletos; }
 function generarInvocadores() { invocadores = []; for (let i = 0; i < CONFIG.INVOCADOR.CANTIDAD; i++) { invocadores.push({ id: 'invocador_' + (nextInvocadorId++), x: Math.random() * 2800 + 100, y: Math.random() * 2800 + 100, hp: CONFIG.INVOCADOR.MAX_HP, maxHp: CONFIG.INVOCADOR.MAX_HP, isAlive: true, dir: 'Abajo', estado: 'idle', attackCooldown: 0, furiaCooldown: 0, furiaActiva: false, furiaFin: 0, golpesRecibidos: [], escapeInicio: 0, teleportDestino: null, mapa: 'principal', esInvocador: true, velActual: CONFIG.INVOCADOR.SPEED, atacandoMelee: false, ultimoAtaqueMelee: 0 }); } console.log(`✅ ${invocadores.length} invocadores generados`); }
 
-function buscarObjetivo(e) { const ahora = Date.now(); if (e.ultimoAtacante && e.ultimoAtacanteId && ahora - e.ultimoAtacante < 3000) { let atacante = players[e.ultimoAtacanteId] || esqueletos.find(s => s.id === e.ultimoAtacanteId) || (demonlord.id === e.ultimoAtacanteId ? demonlord : null) || invocadores.find(i => i.id === e.ultimoAtacanteId); if (atacante && atacante.isAlive !== false) { return { closest: atacante, closestDist: getDistance(e.x, e.y, atacante.x, atacante.y), closestType: 'aggro' }; } } let closest = null, closestDist = Infinity, closestType = null; for (let id in players) { let p = players[id]; if (p && p.isAlive && (jugadoresEnMapa[id] || 'principal') === 'principal') { let d = getDistance(e.x, e.y, p.x, p.y); if (d < closestDist && d < CONFIG.SKELETON.VISION_RANGE) { closestDist = d; closest = p; closestType = 'player'; } } } for (let oe of esqueletos) { if (oe.isAlive && oe.isAlly && oe.id !== e.id) { let d = getDistance(e.x, e.y, oe.x, oe.y); if (d < closestDist && d < CONFIG.SKELETON.VISION_RANGE) { closestDist = d; closest = oe; closestType = 'ally_skeleton'; } } } if (demonlord && demonlord.isAlive) { let d = getDistance(e.x, e.y, demonlord.x, demonlord.y); if (d < closestDist && d < CONFIG.SKELETON.VISION_RANGE) { closestDist = d; closest = demonlord; closestType = 'demonlord'; } } return { closest, closestDist, closestType }; }
+function buscarObjetivo(e) { const ahora = Date.now(); if (e.ultimoAtacante && e.ultimoAtacanteId && ahora - e.ultimoAtacante < 3000) { let atacante = players[e.ultimoAtacanteId] || esqueletos.find(s => s.id === e.ultimoAtacanteId) || (demonlord.id === e.ultimoAtacanteId ? demonlord : null) || invocadores.find(i => i.id === e.ultimoAtacanteId); if (atacante && atacante.isAlive !== false) { return { closest: atacante, closestDist: getDistance(e.x, e.y, atacante.x, atacante.y), closestType: 'aggro' }; } } let closest = null, closestDist = Infinity, closestType = null; for (let id in players) { let p = players[id]; if (p && p.isAlive && !estaEnZonaSegura(p.x, p.y) && (jugadoresEnMapa[id] || 'principal') === 'principal') { let d = getDistance(e.x, e.y, p.x, p.y); if (d < closestDist && d < CONFIG.SKELETON.VISION_RANGE) { closestDist = d; closest = p; closestType = 'player'; } } } for (let oe of esqueletos) { if (oe.isAlive && oe.isAlly && oe.id !== e.id) { let d = getDistance(e.x, e.y, oe.x, oe.y); if (d < closestDist && d < CONFIG.SKELETON.VISION_RANGE) { closestDist = d; closest = oe; closestType = 'ally_skeleton'; } } } if (demonlord && demonlord.isAlive) { let d = getDistance(e.x, e.y, demonlord.x, demonlord.y); if (d < closestDist && d < CONFIG.SKELETON.VISION_RANGE) { closestDist = d; closest = demonlord; closestType = 'demonlord'; } } return { closest, closestDist, closestType }; }
 
 function buscarObjetivoAliado(e) { const ahora = Date.now(); if (e.ultimoAtacante && e.ultimoAtacanteId && ahora - e.ultimoAtacante < 3000) { let atacante = esqueletos.find(s => s.id === e.ultimoAtacanteId && !s.isAlly) || (demonlord.id === e.ultimoAtacanteId ? demonlord : null) || invocadores.find(i => i.id === e.ultimoAtacanteId); if (atacante && atacante.isAlive !== false) { return { closest: atacante, closestDist: getDistance(e.x, e.y, atacante.x, atacante.y) }; } } let closest = null, closestDist = Infinity; for (let oe of esqueletos) { if (oe.isAlive && !oe.isAlly && oe.id !== e.id) { let d = getDistance(e.x, e.y, oe.x, oe.y); if (d < closestDist && d < CONFIG.SKELETON.VISION_RANGE) { closestDist = d; closest = oe; } } } if (demonlord && demonlord.isAlive) { let d = getDistance(e.x, e.y, demonlord.x, demonlord.y); if (d < closestDist && d < CONFIG.SKELETON.VISION_RANGE) { closestDist = d; closest = demonlord; } } for (let inv of invocadores) { if (inv.isAlive) { let d = getDistance(e.x, e.y, inv.x, inv.y); if (d < closestDist && d < CONFIG.SKELETON.VISION_RANGE) { closestDist = d; closest = inv; } } } return { closest, closestDist }; }
 
@@ -1648,7 +1666,7 @@ function colisionaConObjeto(x, y, radio) {
 
 function getVelocidadEsqueleto(e) { for (let id in esqueletosEnAuraSacrificio) { if (esqueletosEnAuraSacrificio[id] && esqueletosEnAuraSacrificio[id].includes(e.id)) { return CONFIG.SKELETON.SPEED * 0.85; } } return CONFIG.SKELETON.SPEED; }
 
-function moverEsqueletoHaciaObjetivo(e, objetivo) { const dx = objetivo.x - e.x, dy = objetivo.y - e.y, dist = Math.hypot(dx, dy); if (dist < 35) return; const velE = getVelocidadEsqueleto(e); const moveX = (dx / dist) * velE, moveY = (dy / dist) * velE; let newX = Math.min(Math.max(e.x + moveX, 50), 2950), newY = Math.min(Math.max(e.y + moveY, 50), 2950); if (colisionaConObjeto(newX, newY, 20)) { newX = Math.min(Math.max(e.x + moveX, 50), 2950); newY = e.y; if (!colisionaConObjeto(newX, newY, 20)) { e.x = newX; e.y = newY; e.dir = dx > 0 ? 'Derecha' : 'Izquierda'; io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: true }); return; } newX = e.x; newY = Math.min(Math.max(e.y + moveY, 50), 2950); if (!colisionaConObjeto(newX, newY, 20)) { e.x = newX; e.y = newY; e.dir = dy > 0 ? 'Abajo' : 'Arriba'; io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: true }); return; } io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: false }); return; } e.x = newX; e.y = newY; if (Math.abs(dx) > Math.abs(dy)) e.dir = dx > 0 ? 'Derecha' : 'Izquierda'; else e.dir = dy > 0 ? 'Abajo' : 'Arriba'; io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: true }); }
+function moverEsqueletoHaciaObjetivo(e, objetivo) { const dx = objetivo.x - e.x, dy = objetivo.y - e.y, dist = Math.hypot(dx, dy); if (dist < 35) return; if (estaEnZonaSegura(objetivo.x, objetivo.y)) return; const velE = getVelocidadEsqueleto(e); const moveX = (dx / dist) * velE, moveY = (dy / dist) * velE; let newX = Math.min(Math.max(e.x + moveX, 50), 2950), newY = Math.min(Math.max(e.y + moveY, 50), 2950); if (colisionaConObjeto(newX, newY, 20)) { newX = Math.min(Math.max(e.x + moveX, 50), 2950); newY = e.y; if (!colisionaConObjeto(newX, newY, 20)) { e.x = newX; e.y = newY; e.dir = dx > 0 ? 'Derecha' : 'Izquierda'; io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: true }); return; } newX = e.x; newY = Math.min(Math.max(e.y + moveY, 50), 2950); if (!colisionaConObjeto(newX, newY, 20)) { e.x = newX; e.y = newY; e.dir = dy > 0 ? 'Abajo' : 'Arriba'; io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: true }); return; } io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: false }); return; } e.x = newX; e.y = newY; if (Math.abs(dx) > Math.abs(dy)) e.dir = dx > 0 ? 'Derecha' : 'Izquierda'; else e.dir = dy > 0 ? 'Abajo' : 'Arriba'; io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: true }); }
 function aplicarCongelamiento(objetivoId, duracionMs, atacanteId = null, skillId = null) {
     estadosCongelados[objetivoId] = { fin: Date.now() + duracionMs, atacanteId, skillId };
     const esqueleto = esqueletos.find(e => e.id === objetivoId && e.isAlive);
@@ -1880,13 +1898,13 @@ setInterval(() => {
     if (demonlord.aturdido) { io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false }); return; }
     if (estaCongelado('demonlord')) { io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false, congelado: true }); return; }
     let closest = null, closestDist = Infinity;
-    for (let id in players) { let p = players[id]; if (p && p.isAlive && (jugadoresEnMapa[id] || 'principal') === 'principal') { let d = getDistance(demonlord.x, demonlord.y, p.x, p.y); if (d < closestDist) { closestDist = d; closest = p; } } }
+    for (let id in players) { let p = players[id]; if (p && p.isAlive && !estaEnZonaSegura(p.x, p.y) && (jugadoresEnMapa[id] || 'principal') === 'principal') { let d = getDistance(demonlord.x, demonlord.y, p.x, p.y); if (d < closestDist) { closestDist = d; closest = p; } } }
     if (!closest) { for (let e of esqueletos) { if (e.isAlive && e.mapa === 'principal') { let d = getDistance(demonlord.x, demonlord.y, e.x, e.y); if (d < closestDist) { closestDist = d; closest = e; } } } }
     if (!closest) return;
     const dx = closest.x - demonlord.x, dy = closest.y - demonlord.y, dist = Math.hypot(dx, dy);
     if (Math.abs(dx) > Math.abs(dy)) demonlord.dir = dx > 0 ? 'Derecha' : 'Izquierda'; else demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
     if (dist < 400) {
-        if (dist > 70) { const moveX = (dx/dist)*CONFIG.DEMONLORD.SPEED, moveY = (dy/dist)*CONFIG.DEMONLORD.SPEED; const newX = Math.min(Math.max(demonlord.x+moveX,50),2950), newY = Math.min(Math.max(demonlord.y+moveY,50),2950); if (!colisionaConObjeto(newX,newY,50)) { demonlord.x = newX; demonlord.y = newY; } io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: true }); } else { io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false }); }
+        if (dist > 70) { const moveX = (dx/dist)*CONFIG.DEMONLORD.SPEED, moveY = (dy/dist)*CONFIG.DEMONLORD.SPEED; const newX = Math.min(Math.max(demonlord.x+moveX,50),2950), newY = Math.min(Math.max(demonlord.y+moveY,50),2950); if (!estaEnZonaSegura(newX, newY) && !colisionaConObjeto(newX,newY,50)) { demonlord.x = newX; demonlord.y = newY; } io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: true }); } else { io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false }); }
         if (demonlord.attackCooldown <= 0 && dist < 70) {
             demonlord.attackCooldown = CONFIG.DEMONLORD.ATTACK_COOLDOWN;
             io.emit('demonlordAtkVisual', { dir: demonlord.dir, esFuerte: Math.random()<0.2 });
@@ -1926,6 +1944,22 @@ setInterval(() => {
 setInterval(() => {
     esqueletos.forEach(e => {
         if (!e.isAlive) return;
+        // 🏛️ ZONA SEGURA: teletransportar esqueletos que estén dentro
+        if (estaEnZonaSegura(e.x, e.y)) {
+            // 🏛️ ZONA SEGURA: esqueletos HUYEN hacia afuera
+            const dxHuida = e.x - SAFE_ZONE.x;
+            const dyHuida = e.y - SAFE_ZONE.y;
+            const distHuida = Math.sqrt(dxHuida*dxHuida + dyHuida*dyHuida) || 1;
+            const velHuida = CONFIG.SKELETON.SPEED * 1.5;
+            const moveXHuida = (dxHuida / distHuida) * velHuida;
+            const moveYHuida = (dyHuida / distHuida) * velHuida;
+            e.x = Math.min(Math.max(e.x + moveXHuida, 50), 2950);
+            e.y = Math.min(Math.max(e.y + moveYHuida, 50), 2950);
+            if (Math.abs(dxHuida) > Math.abs(dyHuida)) e.dir = dxHuida > 0 ? 'Derecha' : 'Izquierda';
+            else e.dir = dyHuida > 0 ? 'Abajo' : 'Arriba';
+            io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: true });
+            return;
+        }
         if (estaCongelado(e.id)) { io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: false, congelado: true }); return; }
         if (e.reviviendoHasta && Date.now() < e.reviviendoHasta) { io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: false }); return; }
         if (e.reviviendoHasta && Date.now() >= e.reviviendoHasta) { e.reviviendoHasta = null; }
@@ -2094,6 +2128,21 @@ setInterval(() => {
     const ahora = Date.now();
     invocadores.forEach(inv => {
         if (!inv.isAlive) return;
+        if (estaEnZonaSegura(inv.x, inv.y)) {
+            // 🏛️ ZONA SEGURA: invocadores HUYEN hacia afuera
+            const dxHuida = inv.x - SAFE_ZONE.x;
+            const dyHuida = inv.y - SAFE_ZONE.y;
+            const distHuida = Math.sqrt(dxHuida*dxHuida + dyHuida*dyHuida) || 1;
+            const velHuida = CONFIG.INVOCADOR.SPEED_RUN || 9;
+            const moveXHuida = (dxHuida / distHuida) * velHuida;
+            const moveYHuida = (dyHuida / distHuida) * velHuida;
+            inv.x = Math.min(Math.max(inv.x + moveXHuida, 50), 2950);
+            inv.y = Math.min(Math.max(inv.y + moveYHuida, 50), 2950);
+            if (Math.abs(dxHuida) > Math.abs(dyHuida)) inv.dir = dxHuida > 0 ? 'right' : 'left';
+            else inv.dir = dyHuida > 0 ? 'down' : 'up';
+            io.emit('invocadorMoved', { id: inv.id, x: inv.x, y: inv.y, dir: inv.dir, isMoving: true, estado: 'huir' });
+            return;
+        }
         if (estaCongelado(inv.id)) { io.emit('invocadorMoved', { id: inv.id, x: inv.x, y: inv.y, dir: inv.dir, isMoving: false, estado: 'idle', congelado: true }); return; }
         if (inv.estado === 'reaparecer') { if (ahora - inv.escapeInicio > 300) { inv.estado = 'idle'; io.emit('invocadorMoved', { id: inv.id, x: inv.x, y: inv.y, dir: inv.dir, isMoving: false, estado: 'idle' }); } return; }
         if (inv.estado === 'huir') {
@@ -2112,7 +2161,7 @@ setInterval(() => {
         }
         let jugadorCercano = null;
         let menorDist = Infinity;
-        for (let id in players) { const p = players[id]; if (p && p.isAlive && (jugadoresEnMapa[id] || 'principal') === 'principal') { const d = getDistance(inv.x, inv.y, p.x, p.y); if (d < menorDist) { menorDist = d; jugadorCercano = p; } } }
+        for (let id in players) { const p = players[id]; if (p && p.isAlive && !estaEnZonaSegura(p.x, p.y) && (jugadoresEnMapa[id] || 'principal') === 'principal') { const d = getDistance(inv.x, inv.y, p.x, p.y); if (d < menorDist) { menorDist = d; jugadorCercano = p; } } }
         if (!jugadorCercano || menorDist > CONFIG.INVOCADOR.VISION_RANGE) { io.emit('invocadorMoved', { id: inv.id, x: inv.x, y: inv.y, dir: inv.dir, isMoving: false, estado: 'idle' }); return; }
         const dx = jugadorCercano.x - inv.x, dy = jugadorCercano.y - inv.y, dist = Math.hypot(dx, dy);
         if (dist < CONFIG.INVOCADOR.SAFE_DISTANCE) {
@@ -2376,7 +2425,7 @@ Object.keys(players).forEach(id => {
     }
 
     players[socket.id] = {
-        id: socket.id, x: 512, y: 470, class: (d.class || 'warrior').toLowerCase(), name: d.name, className: d.className,
+        id: socket.id, x: 857, y: 1197, class: (d.class || 'warrior').toLowerCase(), name: d.name, className: d.className,
         hp: hpInicial, maxHp: hpInicial, isAlive: true, deathCount: 0, deathPosition: null,
         team: 'Sin Team', level: 1, exp: 0, dir: 'Abajo', mapa: 'principal',
         stats: {

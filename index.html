@@ -552,6 +552,16 @@ body.modo-movil #btn-fullscreen-movil { font-size: 20px !important; }
 // ============================================
 // 📱 DETECCIÓN DE DISPOSITIVO TÁCTIL
 // ============================================
+// 🏛️ ZONA SEGURA (cliente) — invisible
+const SAFE_ZONE_CLIENTE = { x: 851, y: 1057, radio: 220 };
+let estabaEnZonaSegura = false;
+
+function estaEnZonaSeguraCliente(x, y) {
+    const dx = x - SAFE_ZONE_CLIENTE.x;
+    const dy = y - SAFE_ZONE_CLIENTE.y;
+    return Math.sqrt(dx*dx + dy*dy) <= SAFE_ZONE_CLIENTE.radio;
+}
+
 const esTactil = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
 
 // ============================================
@@ -2049,7 +2059,7 @@ function actualizarStatsUI() {
         mostrarMensaje(`💀 HAS MUERTO!`, 'error');
         if (socket && socket.connected) socket.emit('playerMurio', { id: socket.id });
         if (muerteTimer) clearTimeout(muerteTimer);
-        muerteTimer = setTimeout(() => { revivirJugadorEnPosicion(806, 1000); }, 180000);
+        muerteTimer = setTimeout(() => { revivirJugadorEnPosicion(857, 1197); }, 180000);
     }
     document.getElementById('stat-defFuego').textContent = playerStats.defFuego || 0;
     document.getElementById('stat-defAgua').textContent = playerStats.defAgua || 0;
@@ -5002,7 +5012,7 @@ let cofreSprite = null; socket.on('cofreEstado', (data) => { if (cofreSprite) co
     socket.on('cofreMalditoDesaparece', () => { if (cofreMalditoSprite) { cofreMalditoSprite.destroy(); cofreMalditoSprite = null; } });
     socket.on('cofreMalditoRecompensa', (data) => { if (data.loot && data.loot.length > 0) { data.loot.forEach(item => { const dx = player.x + (Math.random() - 0.5) * 100; const dy = player.y + (Math.random() - 0.5) * 100; if (item.tipo === 'oro') { crearMonedaSuelo(dx, dy, item.cantidad); } if (item.tipo === 'item') { socket.emit('solicitarDropItem', { id: item.id, x: dx, y: dy }); } if (item.tipo === 'pocion') { socket.emit('solicitarDropPocion', { tipo: item.clase, x: dx, y: dy, cantidad: item.cantidad }); } if (item.tipo === 'material') { materialesInventario[item.nombre] = (materialesInventario[item.nombre] || 0) + item.cantidad; actualizarMaterialesUI(); mostrarMensaje(`🪨 +${item.cantidad} ${item.nombre}`, 'exito'); } }); mostrarMensaje('🎁 ¡Recompensa del Cofre Maldito recibida!', 'exito'); } });
     socket.on('debilidadAplicada', (data) => { mostrarMensaje('🟣 ¡Estás debilitado! -35% DEF por 3s', 'error'); if (player) { player.setTint(0xaa44ff); setTimeout(() => { if (player && player.active) player.clearTint(); }, data.duracion || 3000); } });
-    socket.on('esqueletoDestroy', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.destroy(); } }); } });const spriteVisual = getSpriteVisual(pClass); let escalaJugador = 1.5; let texturaInicial; let frameInicial = 0; if (pClassName === 'CLERIGO' || pClassName === 'NECROMANCER') { texturaInicial = 'clerigo_idle_down_1'; frameInicial = 0; escalaJugador = (pClassName === 'CLERIGO') ? 1.2 : 1.0; } else { texturaInicial = spriteVisual + '_armed_idle_S_0'; } player = this.physics.add.sprite(806, 1000, texturaInicial, frameInicial).setScale(escalaJugador).setCollideWorldBounds(true); if (pClassName === 'CLERIGO' || pClassName === 'NECROMANCER') {
+    socket.on('esqueletoDestroy', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id) { esq.destroy(); } }); } });const spriteVisual = getSpriteVisual(pClass); let escalaJugador = 1.5; let texturaInicial; let frameInicial = 0; if (pClassName === 'CLERIGO' || pClassName === 'NECROMANCER') { texturaInicial = 'clerigo_idle_down_1'; frameInicial = 0; escalaJugador = (pClassName === 'CLERIGO') ? 1.2 : 1.0; } else { texturaInicial = spriteVisual + '_armed_idle_S_0'; } player = this.physics.add.sprite(857, 1197, texturaInicial, frameInicial).setScale(escalaJugador).setCollideWorldBounds(true); if (pClassName === 'CLERIGO' || pClassName === 'NECROMANCER') {
     player.body.setSize(10, 36);
     player.body.setOffset(59, 56);
     player.setOrigin(0.5, 0.6);
@@ -5025,7 +5035,101 @@ if (pClassName === 'CLERIGO' || pClassName === 'NECROMANCER') {
     const auraFrames = []; for (let i = 1; i <= 32; i++) { auraFrames.push({ key: `aura_${i}` }); }
     this.anims.create({ key: 'aura_caballero_anim', frames: auraFrames, frameRate: 15, repeat: -1 });
     const templo1 = this.add.image(802, 1035, 'templo1').setScale(1).setDepth(1035);
-    const estatuaRanking = this.add.image(851, 1057, 'estatuaderanking').setScale(0.5).setDepth(1057).setAlpha(0.7);
+    // ═══════════════════════════════════════════════════════════════
+// ✨ HAZ DE LUZ SAGRADO — cae del cielo, proyecta en el suelo
+// ═══════════════════════════════════════════════════════════════
+// 1. Círculo de luz en el suelo (proyección del haz)
+const luzSuelo = this.add.circle(SAFE_ZONE_CLIENTE.x, SAFE_ZONE_CLIENTE.y, SAFE_ZONE_CLIENTE.radio, 0xfff5e6, 0.06);
+luzSuelo.setDepth(1);
+this.tweens.add({
+    targets: luzSuelo,
+    alpha: 0.12,
+    duration: 3500,
+    yoyo: true,
+    repeat: -1,
+    ease: 'Sine.easeInOut'
+});
+
+// Borde del círculo (más visible)
+const bordeSuelo = this.add.circle(SAFE_ZONE_CLIENTE.x, SAFE_ZONE_CLIENTE.y, SAFE_ZONE_CLIENTE.radio, 0xfff5e6, 0);
+bordeSuelo.setStrokeStyle(2, 0xfff5e6, 0.25);
+bordeSuelo.setDepth(1);
+
+// 2. Haz de luz vertical (cono que cae del cielo)
+// 🎯 Haz de luz: viene de afuera de la cámara (arriba-izquierda), cae en la zona segura (desplazado a la derecha)
+// 🎯 Haz de luz: viene de afuera de la cámara y toca el suelo SOBRE la estatua de ranking
+// 🎯 Haz de luz: viene de afuera de la cámara y su EXTREMO INFERIOR toca el centro de la estatua
+// 🎯 Haz de luz VERTICAL (sin ángulo), centrado sobre la estatua
+// 🎯 Haz de luz VERTICAL, MUY ALTO (para que el extremo superior siempre esté fuera de la pantalla)
+//    Extremo inferior: sobre la estatua (y)
+//    Extremo superior: 2000px arriba (siempre fuera de la pantalla)
+const altoHazLuz = 2000;
+const centroHazLuzY = SAFE_ZONE_CLIENTE.y - (altoHazLuz / 2);   // centro = base - mitad del alto
+
+const hazLuz = this.add.rectangle(
+    SAFE_ZONE_CLIENTE.x,           // centrado horizontalmente sobre la estatua
+    centroHazLuzY,                 // centro del rectángulo
+    SAFE_ZONE_CLIENTE.radio * 2,   // ancho = diámetro de la zona (440)
+    altoHazLuz,                    // alto = 2000 (el extremo superior está fuera de la pantalla)
+    0xfff5e6,
+    0.04
+);
+hazLuz.setDepth(0);
+hazLuz.setAngle(0);   // 🎯 VERTICAL (sin inclinación)
+this.tweens.add({
+    targets: hazLuz,
+    alpha: 0.08,
+    duration: 3500,
+    yoyo: true,
+    repeat: -1,
+    ease: 'Sine.easeInOut'
+});
+
+// 3. Partículas blancas flotando DENTRO del haz (como polvo en la luz)
+const particulasLuz = [];
+for (let i = 0; i < 8; i++) {
+    const anguloAleatorio = Math.random() * Math.PI * 2;
+    const radioAleatorio = Math.random() * SAFE_ZONE_CLIENTE.radio * 0.8;
+    const px = SAFE_ZONE_CLIENTE.x + Math.cos(anguloAleatorio) * radioAleatorio;
+    const py = SAFE_ZONE_CLIENTE.y + Math.sin(anguloAleatorio) * radioAleatorio - 50 - Math.random() * 200;
+    const p = this.add.circle(px, py, 1.5, 0xffffff, 0.4);
+    p.setDepth(2);
+    p._baseX = px;
+    p._baseY = py;
+    particulasLuz.push(p);
+}
+
+// Animación de las partículas: flotan dentro del área de luz (limitadas)
+particulasLuz.forEach((p, idx) => {
+    // Movimiento vertical (limitado: ±40px desde el base)
+    this.tweens.add({
+        targets: p,
+        y: p._baseY - 20 - Math.random() * 40,
+        duration: 4000 + Math.random() * 3000,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+    });
+    // Movimiento horizontal (limitado: ±25px desde el base)
+    this.tweens.add({
+        targets: p,
+        x: p._baseX + (Math.random() - 0.5) * 50,
+        duration: 3000 + Math.random() * 2000,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+    });
+    // Pulsación de brillo
+    this.tweens.add({
+        targets: p,
+        alpha: 0.15,
+        duration: 2000 + Math.random() * 1500,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+    });
+});
+const estatuaRanking = this.add.image(851, 1057, 'estatuaderanking').setScale(0.5).setDepth(1057).setAlpha(0.7);
     estatuaRanking.setInteractive({ useHandCursor: true });
     estatuaRanking.on('pointerover', () => estatuaRanking.setAlpha(1));
     estatuaRanking.on('pointerout', () => estatuaRanking.setAlpha(0.7));
@@ -5154,6 +5258,11 @@ setTimeout(() => {
     };
     window.simularAtaque = () => {
         if (!player || !player.isAlive) return; 
+        // 🏛️ ZONA SEGURA
+        if (estaEnZonaSeguraCliente(player.x, player.y)) {
+            mostrarMensaje('❌ No podés atacar en la zona segura', 'error');
+            return;
+        }
         if (window.ataqueEnProceso) return;
         if (!player.attacking && player.body.enable && player.isAlive) {
             const ahora = Date.now();
@@ -7202,6 +7311,18 @@ function update() {
     if (!player || !player.isAlive) return;
 
     // ═══════════════════════════════════════════════════════════
+    // 🏛️ ZONA SEGURA: detectar entrada/salida (mensajes en el chat)
+    if (player && player.active) {
+        const dentroAhora = estaEnZonaSeguraCliente(player.x, player.y);
+        if (dentroAhora && !estabaEnZonaSegura) {
+            estabaEnZonaSegura = true;
+            mostrarMensaje('🏛️ Entraste a la ZONA SEGURA — no podés usar skills ni atacar', 'exito');
+        } else if (!dentroAhora && estabaEnZonaSegura) {
+            estabaEnZonaSegura = false;
+            mostrarMensaje('⚔️ Saliste de la zona segura — cuidado con los enemigos', 'info');
+        }
+    }
+
     // 🔥 FIX: Actualizaciones VISUALES siempre primero (aunque castees)
     //    Barras de enemigos, pilares, espadas, etc. deben seguir
     //    redibujándose mientras el jugador está casteando.
@@ -7936,6 +8057,11 @@ function activarEspadasGiratorias() {
 
 function usarSkill(skillId) {
     if (!player || !player.isAlive) return;
+    // 🏛️ ZONA SEGURA
+    if (estaEnZonaSeguraCliente(player.x, player.y)) {
+        mostrarMensaje('❌ No podés usar skills en la zona segura', 'error');
+        return;
+    }
     if (playerHP <= 0) return;
     console.log(`🎯 [usarSkill] skillId=${skillId} | pClassName=${pClassName} | playerMana=${playerMana} | modoApuntarActivo=${modoApuntarActivo}`);
 
