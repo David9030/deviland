@@ -1,18 +1,34 @@
-﻿node_modules/
-*.log
-.env
+﻿# Dependencias
+node_modules/
+package-lock.json
+
+# Backups
+*.bak
+*.bak_*
+*.bak*
+*.backup
+*.backup-*
+_backups/
+
+# Datos de persistencia
 inventarios.json
 pilares.json
 ligas.json
 academia_persistencia.json
-index.html.bak*
-server.js.bak*
-*.bak
-*.bak2
-*.bak3
-*.bak4
-*.bak5
-*.bak6
 
-_backup_*/
-*.txt
+# Logs
+server_log.txt
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archivos grandes innecesarios
+*.zip
+*.rar
