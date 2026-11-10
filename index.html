@@ -3186,11 +3186,34 @@ function actualizarEspadasGiratorias() {
 
 function actualizarBarrasEnemigos() {
     if (!currentScene) return;
+    
+    // 🧹 FIX: Limpiar barras huérfanas ANTES de dibujar
     for (let id in enemyHealthBars) {
         if (id === 'demonlord') continue;
-        const existe = window.esqueletosGrupo && window.esqueletosGrupo.getChildren().some(esq => esq.esqueletoId === id && esq.active && !esq.estaMuerto);
-        if (!existe) { enemyHealthBars[id].barra.destroy(); enemyHealthBars[id].fondo.destroy(); delete enemyHealthBars[id]; }
+        // Verificar si el esqueleto sigue existiendo Y vivo
+        const existe = window.esqueletosGrupo && window.esqueletosGrupo.getChildren().some(
+            esq => esq.esqueletoId === id && esq.active && !esq.estaMuerto
+        );
+        if (!existe) {
+            if (enemyHealthBars[id].barra) { try { enemyHealthBars[id].barra.destroy(); } catch(e) {} }
+            if (enemyHealthBars[id].fondo) { try { enemyHealthBars[id].fondo.destroy(); } catch(e) {} }
+            delete enemyHealthBars[id];
+        }
     }
+    
+    // 🧹 FIX: Limitar a 30 barras de esqueletos máximo para no ralentizar
+    const idsEsqueletos = Object.keys(enemyHealthBars).filter(id => id !== 'demonlord');
+    if (idsEsqueletos.length > 30) {
+        // Eliminar las más viejas
+        const aEliminar = idsEsqueletos.slice(0, idsEsqueletos.length - 30);
+        aEliminar.forEach(id => {
+            if (enemyHealthBars[id].barra) { try { enemyHealthBars[id].barra.destroy(); } catch(e) {} }
+            if (enemyHealthBars[id].fondo) { try { enemyHealthBars[id].fondo.destroy(); } catch(e) {} }
+            delete enemyHealthBars[id];
+        });
+    }
+    
+    // Dibujar barras de esqueletos
     if (window.esqueletosGrupo) {
         window.esqueletosGrupo.getChildren().forEach(esq => {
             if (esq.active && esq.esqueletoId && !esq.estaMuerto) {
@@ -3201,11 +3224,11 @@ function actualizarBarrasEnemigos() {
                     const pct = (esq.hp || 200) / (esq.maxHp || 200);
                     eb.barra.clear(); eb.barra.fillStyle(0x8B0000, 1); eb.barra.fillRect(esq.x - eb.ancho/2, esq.y + eb.offsetY, eb.ancho * Math.max(0, Math.min(1, pct)), eb.alto);
                 }
-            } else if (esq.estaMuerto && enemyHealthBars[esq.esqueletoId]) {
-                enemyHealthBars[esq.esqueletoId].barra.destroy(); enemyHealthBars[esq.esqueletoId].fondo.destroy(); delete enemyHealthBars[esq.esqueletoId];
             }
         });
     }
+    
+    // 🔥 FIX: Barra del Demonlord — SIEMPRE redibujar (aunque exista)
     if (demonlord_sprite && demonlord_sprite.active && demonlordHP > 0) {
         if (!enemyHealthBars['demonlord']) crearBarraEnemigo('demonlord', demonlord_sprite.x, demonlord_sprite.y, demonlordHP, demonlordMaxHP, true);
         if (enemyHealthBars['demonlord']) {
@@ -3214,6 +3237,11 @@ function actualizarBarrasEnemigos() {
             const pct = demonlordHP / demonlordMaxHP;
             eb.barra.clear(); eb.barra.fillStyle(0x8B0000, 1); eb.barra.fillRect(demonlord_sprite.x - eb.ancho/2, demonlord_sprite.y + eb.offsetY, eb.ancho * pct, eb.alto);
         }
+    } else if (enemyHealthBars['demonlord']) {
+        // Demonlord muerto → limpiar barra
+        if (enemyHealthBars['demonlord'].barra) { try { enemyHealthBars['demonlord'].barra.destroy(); } catch(e) {} }
+        if (enemyHealthBars['demonlord'].fondo) { try { enemyHealthBars['demonlord'].fondo.destroy(); } catch(e) {} }
+        delete enemyHealthBars['demonlord'];
     }
 }
 
@@ -4282,7 +4310,7 @@ function crearAuraAbsoluto(targetX, targetY, duracionMs, onComplete) {
 // ===============================================================
 function reproducirEfectoAbsoluto(x, y, escala, duracionMs, onGolpe) {
     if (!currentScene || !currentScene.anims.exists('absoluto_anim')) return null;
-    escala = escala || 5.8;
+    escala = escala || 7.5;   // 🔥 más grande
 
     // Aura de escarcha en el suelo
     const auraHielo = currentScene.add.circle(x, y, 10, 0x88ccff, 0.5);
@@ -4304,8 +4332,132 @@ function reproducirEfectoAbsoluto(x, y, escala, duracionMs, onGolpe) {
     cristal.setScale(escala);
     cristal.setDepth(y + 100);
     cristal.setTint(0xaaddff);
-    cristal.play('absoluto_anim');
 
+    // 🎯 Animación de Absoluto en 2 fases:
+    let frameActual = 1;
+
+    const reproducirFase1 = () => {
+        if (!cristal || !cristal.active) return;
+        if (frameActual > 9) {
+            console.log('❄️ [Absoluto] Frame 9 alcanzado, pausa de 5s congelado...');
+            currentScene.time.delayedCall(5000, () => {
+                if (!cristal || !cristal.active) return;
+                console.log('💥 [Absoluto] Explosión (fase 2)');
+                reproducirFase2();
+            });
+            return;
+        }
+        cristal.setTexture(`absoluto_frame_${frameActual}`);
+
+        if (frameActual === 1) {
+            if (socket && socket.connected) {
+                socket.emit('absolutoCongelar', {
+                    targetX: cristal.x,
+                    targetY: cristal.y - 135,
+                    radio: 80
+                });
+
+                // 🔵 Tinte azul + velocidad reducida + recuperación progresiva
+                const radioTinte = 80;
+                const tinteX = cristal.x;
+                const tinteY = cristal.y - 135;
+
+                const aplicarTinteYVelocidad = (sprite) => {
+                    if (!sprite || !sprite.active) return;
+                    if (sprite._tinteAbsolutoActivo) return;   // evitar duplicados
+                    sprite._tinteAbsolutoActivo = true;
+
+                    sprite.setTint(0x88ccff);
+
+                    if (sprite.body) {
+                        const velX = sprite.body.velocity.x;
+                        const velY = sprite.body.velocity.y;
+                        sprite.body.setVelocity(velX * 0.3, velY * 0.3);
+                    }
+
+                    currentScene.time.delayedCall(1000, () => {
+                        if (!sprite || !sprite.active) return;
+
+                        currentScene.tweens.add({
+                            targets: { val: 0 },
+                            val: 1,
+                            duration: 500,
+                            onUpdate: (tween) => {
+                                if (!sprite || !sprite.active) return;
+                                const progress = tween.getValue();
+                                const r = Math.floor(0x88 + (0xff - 0x88) * progress);
+                                const g = Math.floor(0xcc + (0xff - 0xcc) * progress);
+                                sprite.setTint(Phaser.Display.Color.GetColor(r, g, 0xff));
+                            },
+                            onComplete: () => {
+                                if (sprite && sprite.active) {
+                                    sprite.clearTint();
+                                    sprite._tinteAbsolutoActivo = false;
+                                }
+                            }
+                        });
+
+                        if (sprite.body) {
+                            const velX = sprite.body.velocity.x;
+                            const velY = sprite.body.velocity.y;
+                            currentScene.tweens.addCounter({
+                                from: 0.3,
+                                to: 1.0,
+                                duration: 1000,
+                                onUpdate: (tween) => {
+                                    const factor = tween.getValue();
+                                    if (sprite.body) {
+                                        sprite.body.setVelocity(velX / 0.3 * factor, velY / 0.3 * factor);
+                                    }
+                                }
+                            });
+                        }
+                    });
+                };
+
+                if (window.esqueletosGrupo) {
+                    window.esqueletosGrupo.getChildren().forEach(esq => {
+                        if (!esq.active || esq.estaMuerto || esq.isAlly) return;
+                        const dist = Phaser.Math.Distance.Between(tinteX, tinteY, esq.x, esq.y);
+                        if (dist <= radioTinte) aplicarTinteYVelocidad(esq);
+                    });
+                }
+
+                if (window.invocadoresGrupo) {
+                    window.invocadoresGrupo.getChildren().forEach(inv => {
+                        if (!inv.active || inv.estaMuerto) return;
+                        const dist = Phaser.Math.Distance.Between(tinteX, tinteY, inv.x, inv.y);
+                        if (dist <= radioTinte) aplicarTinteYVelocidad(inv);
+                    });
+                }
+
+                if (demonlord_sprite && demonlord_sprite.active && demonlordHP > 0) {
+                    const dist = Phaser.Math.Distance.Between(tinteX, tinteY, demonlord_sprite.x, demonlord_sprite.y);
+                    if (dist <= radioTinte + 20) aplicarTinteYVelocidad(demonlord_sprite);
+                }
+            }
+        }
+
+        frameActual++;
+        currentScene.time.delayedCall(50, reproducirFase1);
+    };
+
+    const reproducirFase2 = () => {
+        if (!cristal || !cristal.active) return;
+        if (frameActual > 19) {
+            if (typeof onGolpe === 'function') onGolpe();
+            if (cristal && cristal.active) {
+                cristal.destroy();
+                console.log('🔮 [Absoluto] Cristal destruido (animación completa)');
+            }
+            return;
+        }
+        cristal.setTexture(`absoluto_frame_${frameActual}`);
+        frameActual++;
+        currentScene.time.delayedCall(50, reproducirFase2);
+    };
+
+    reproducirFase1();
     // Particulas de escarcha flotando
     if (!currentScene.textures.exists('particula_hielo')) {
         const g = currentScene.add.graphics();
@@ -4333,15 +4485,6 @@ function reproducirEfectoAbsoluto(x, y, escala, duracionMs, onGolpe) {
             onComplete: () => { if (p && p.active) p.destroy(); }
         });
     }
-
-    // Callback de golpe AL TERMINAR la animacion
-    cristal.once('animationcomplete', () => {
-        if (typeof onGolpe === 'function') onGolpe();
-        if (cristal && cristal.active) cristal.destroy();
-    });
-    currentScene.time.delayedCall((duracionMs || 1000) + 1000, () => {
-        if (cristal && cristal.active) cristal.destroy();
-    });
 
     return cristal;
 }
@@ -4638,6 +4781,21 @@ for (let i = 1; i <= 9; i++) {
     this.load.audio('sonido_cura', 'cura.mp3');
     this.load.audio('espadas_giratorias_sound', 'espadasgiratorias.mp3');
     this.load.audio('musicaFondo', 'musica1.mp3');
+    this.load.audio('demonlordmuere', 'demonlordmuere.mp3');
+    this.load.audio('flame2', 'flame2.mp3');
+    this.load.audio('risademonlord', 'risademonlord.mp3');     // 😈 risa cuando mata
+    this.load.audio('muereedemonlord', 'muereedemonlord.mp3'); // 🔥 Hell in the Earth   // 🔥 sonido del hechizo de fuego del Demonlord
+
+    // 🔥 Frames del fuego del hechizo del Demonlord
+    for (let i = 1; i <= 8; i++) {
+        this.load.image(`flama_${i}`, `flama/flama_${i}.png`);
+    }
+
+    // 🔥 Frames del fuego del hechizo del Demonlord
+    // 🔥 FIX: Cargar las flamas que EXISTEN (flama_1.png a flama_8.png)
+    for (let i = 1; i <= 8; i++) {
+        this.load.image(`flama_${i}`, `flama/flama_${i}.png`);
+    }
     this.load.audio('cofresound', 'cofresound.mp3');
     this.load.audio('lvlup', 'lvlup.mp3');
     this.load.audio('skeletonAttack', 'skeletonattack.mp3');
@@ -4700,7 +4858,23 @@ function create() {
     actualizarBarraCarga(100);
     setTimeout(() => { ocultarPantallaCarga(); document.body.classList.add('juego-activo'); }, 1000);
     currentScene = this;
+    window.currentScene = this;
+    window._hellMarcas = [];
+    window._hellMarcasExpira = 0;
+    window._hellMarcasCreadas = 0;
+    window._marcasHechizoActivas = [];
+    window._marcaHechizoDemonlord = null;
+    window._flamasHellActivas = [];
+    window.currentScene = this;   // 🔥 FIX: guardar en window para F12
+    // 🧹 FIX: limpiar arrays de marcas/flamas viejas al iniciar nueva escena
+    window._hellMarcas = [];
+    window._hellMarcasExpira = 0;
+    window._hellMarcasCreadas = 0;
+    window._marcasHechizoActivas = [];
+    window._marcaHechizoDemonlord = null;
+    window._flamasHellActivas = [];
     socket = io();
+    window.socket = socket;   // 🔥 FIX: exponer socket en window para F12
     window.arbolesGrupo = this.add.group();
     window.rocasGrupo = this.add.group();
     window.minasGrupo = this.add.group();
@@ -4906,6 +5080,24 @@ const clerigoAnimsConfig = {
     for (let i = 0; i <= 7; i++) { const fn = i.toString().padStart(4, '0'); goldFrames.push({ key: `gold_${fn}` }); }
     this.anims.create({ key: 'gold_spin', frames: goldFrames, frameRate: 12, repeat: 0 });
     this.anims.create({ key: 'fireball_anim', frames: this.anims.generateFrameNumbers('flame_sprite', { start: 0, end: 5 }), frameRate: 15, repeat: -1 });
+
+    // 🔥 Animación de fuego del hechizo del Demonlord
+    const framesFuego = [];
+    for (let i = 1; i <= 8; i++) {
+        framesFuego.push({ key: `flama_${i}` });
+    }
+    this.anims.create({
+        key: 'fuego_demonlord_anim',
+        frames: framesFuego,
+        frameRate: 12,
+        repeat: -1
+    });
+
+    // 🔥 Animación de fuego del hechizo del Demonlord
+    
+
+    // 🔥 Animación de glow (brillo) del fuego
+    // ⚠️ fuego_glow_anim eliminada (no hay texturas flama_glow_*)
     // ═══════════════════════════════════════════
 // 🧙 ANIMACIONES DEL MAGO ENEMIGO (invocador)
 // ═══════════════════════════════════════════
@@ -6657,40 +6849,137 @@ socket.on('inventarioCompleto', (data) => {
     }
 });
     socket.on('demonlordHPResponse', (data) => { const hpBar = document.getElementById('demonlord-hp-bar'); const hpText = document.getElementById('demonlord-hp-text'); if (data.visible) { demonlordHP = data.hp; demonlordMaxHP = data.maxHp; actualizarDemonlordHPBar(); if (hpBar) hpBar.style.display = 'block'; if (hpText) hpText.style.display = 'block'; } else { if (hpBar) hpBar.style.display = 'none'; if (hpText) hpText.style.display = 'none'; } });
-    socket.on('demonlordAtkVisual', (d) => { 
-        if (demonlord_sprite && demonlord_sprite.active) { 
-            if (demonlord_sprite.estaMuerto) return;
-            demonlord_sprite.atacando = true;
-            const ataqueNum = d.tipoAtaque || 1;
-            const atkKey = `dl_ataque${ataqueNum}_${d.dir || 'Abajo'}`;
-            if (ataqueNum === 2) { demonlord_sprite.setTint(0xff0000); }
-            if (this.anims.exists(atkKey)) { 
-                demonlord_sprite.play(atkKey, true); 
-                demonlord_sprite.once('animationcomplete', () => { 
-                    if (demonlord_sprite && demonlord_sprite.active && !demonlord_sprite.estaMuerto) { 
+    socket.on('demonlordAtkVisual', (d) => {
+        if (!demonlord_sprite || !demonlord_sprite.active) return;
+        if (demonlord_sprite.estaMuerto) return;   // 🔥 FIX: ignorar ataque si está muerto
+        if (demonlord_sprite.estaMuerto) return;
+        demonlord_sprite.atacando = true;
+        demonlord_sprite._ataqueEnCurso = true;
+        const ataqueNum = d.tipoAtaque || 1;
+        const atkKey = `dl_ataque${ataqueNum}_${d.dir || 'Abajo'}`;
+        if (ataqueNum === 2) demonlord_sprite.setTint(0xff0000);
+        if (currentScene && currentScene.anims.exists(atkKey)) {
+            demonlord_sprite.play(atkKey, true);
+            demonlord_sprite.removeAllListeners('animationcomplete');
+            demonlord_sprite.once('animationcomplete', () => {
+                if (demonlord_sprite && demonlord_sprite.active && !demonlord_sprite.estaMuerto) {
+                    demonlord_sprite.atacando = false;
+                    demonlord_sprite._ataqueEnCurso = false; demonlord_sprite._ultimoAtaqueFin = Date.now();
+                    if (ataqueNum === 2) demonlord_sprite.clearTint();
+                    const idleKey = `dl_idle_${d.dir || 'Abajo'}`;
+                    if (currentScene.anims.exists(idleKey)) demonlord_sprite.play(idleKey, true);
+                }
+            });
+        }
+                currentScene.time.delayedCall(1500, () => {
+                    if (demonlord_sprite && demonlord_sprite.active && !demonlord_sprite.estaMuerto) {
                         demonlord_sprite.atacando = false;
-                        if (ataqueNum === 2) { demonlord_sprite.clearTint(); }
-                        const idleKey = `dl_idle_${d.dir || 'Abajo'}`; 
-                        if (this.anims.exists(idleKey)) demonlord_sprite.play(idleKey, true); 
-                    } 
-                }); 
-            } 
-            if (d.esFuerte && ataqueNum !== 2) { 
-                demonlord_sprite.setTint(0x888888); 
-                setTimeout(() => { if (demonlord_sprite) demonlord_sprite.clearTint(); }, 500); 
-            } 
-        } 
+                        demonlord_sprite._ataqueEnCurso = false;
+                    }
+                });
+        if (d.esFuerte && ataqueNum !== 2) {
+            demonlord_sprite.setTint(0x888888);
+            setTimeout(() => { if (demonlord_sprite) demonlord_sprite.clearTint(); }, 500);
+        }
     });
+    // ═══════════════════════════════════════════════════════════════
+    // NUEVO: demonlordStateUpdate (para el server v2 con estados)
+    // ═══════════════════════════════════════════════════════════════
+    socket.on('demonlordStateUpdate', (data) => {
+        if (!demonlord_sprite || !demonlord_sprite.active) return;
+        if (demonlord_sprite.estaMuerto) return;
+        if (demonlord_sprite._hellFrameCongelado) return;   // 🔥 bloquear durante Hell
+
+        const dir = demonlord_sprite.cDir || 'Abajo';
+
+        if (data.estado === 'idle') {
+            demonlord_sprite.atacando = false;
+            demonlord_sprite._estaRiendo = false;
+            demonlord_sprite._ataqueEnCurso = false;
+            const idleKey = `dl_idle_${dir}`;
+            if (currentScene.anims.exists(idleKey)) demonlord_sprite.play(idleKey, true);
+            return;
+        }
+
+        if (data.estado === 'attack') {
+            demonlord_sprite.atacando = true;
+            demonlord_sprite._ataqueEnCurso = true;
+            const atkKey = `dl_ataque1_${dir}`;
+            if (currentScene.anims.exists(atkKey)) {
+                demonlord_sprite.anims.stop();
+                demonlord_sprite.play(atkKey, true);
+                demonlord_sprite.removeAllListeners('animationcomplete');
+                demonlord_sprite.once('animationcomplete', () => {
+                    if (!demonlord_sprite || !demonlord_sprite.active || demonlord_sprite.estaMuerto) return;
+                    demonlord_sprite.atacando = false;
+                    demonlord_sprite._ataqueEnCurso = false;
+                    demonlord_sprite._ultimoAtaqueFin = Date.now();
+                    const idleKey = `dl_idle_${dir}`;
+                    if (currentScene.anims.exists(idleKey)) demonlord_sprite.play(idleKey, true);
+                });
+                currentScene.time.delayedCall(800, () => {
+                    if (!demonlord_sprite || !demonlord_sprite.active || demonlord_sprite.estaMuerto) return;
+                    if (demonlord_sprite._ataqueEnCurso) {
+                        demonlord_sprite.atacando = false;
+                        demonlord_sprite._ataqueEnCurso = false;
+                        demonlord_sprite._ultimoAtaqueFin = Date.now();
+                        const idleKey = `dl_idle_${dir}`;
+                        if (currentScene.anims.exists(idleKey)) demonlord_sprite.play(idleKey, true);
+                    }
+                });
+            }
+            return;
+        }
+
+        if (data.estado === 'cast') {
+            demonlord_sprite.atacando = true;
+            demonlord_sprite._ataqueEnCurso = true;
+            const castKey = `dl_laugh_${dir}`;
+            if (currentScene.anims.exists(castKey)) {
+                demonlord_sprite.anims.stop();
+                demonlord_sprite.play(castKey, true);
+            }
+            return;
+        }
+
+        if (data.estado === 'laugh') {
+            demonlord_sprite.atacando = true;
+            demonlord_sprite._estaRiendo = true;
+            demonlord_sprite._ultimoAtaqueFin = Date.now() + 3000;
+            const laughKey = `dl_laugh_${dir}`;
+            if (currentScene.anims.exists(laughKey)) {
+                demonlord_sprite.anims.stop();
+                demonlord_sprite.play(laughKey, true);
+            }
+            return;
+        }
+    });
+    // ═══════════════════════════════════════════════════════════════
     socket.on('demonlordState', (d) => { demonlordHP = d.hp; demonlordMaxHP = 5000; actualizarDemonlordHPBar(); if (!d.isAlive) demonlord_sprite.setVisible(false); else demonlord_sprite.setVisible(true); });
-    socket.on('demonlordMoved', (data) => { 
-        if (demonlord_sprite) { 
-            demonlord_sprite.cDir = data.dir;
-            if (demonlord_sprite.atacando) { return; }
-            demonlord_sprite.setPosition(data.x, data.y); 
-            demonlord_sprite.setDepth(data.y); 
-            if (data.isMoving) demonlord_sprite.play('dl_walk_' + data.dir, true); 
-            else demonlord_sprite.play('dl_idle_' + data.dir, true); 
-        } 
+    socket.on('demonlordMoved', (data) => {
+        if (!demonlord_sprite) return;
+        if (demonlord_sprite._hellFrameCongelado) return;   // 🔥 bloquear durante Hell
+        // 🔥 FIX ANTI-CONGELAMIENTO: si quedó "atacando" colgado, liberar
+        if (demonlord_sprite.atacando) {
+            const ahoraMs = Date.now();
+            if (!demonlord_sprite._ultimoAtaqueFin) demonlord_sprite._ultimoAtaqueFin = ahoraMs;
+            if (ahoraMs - demonlord_sprite._ultimoAtaqueFin > 3000) {
+                demonlord_sprite.atacando = false;
+                demonlord_sprite._ataqueEnCurso = false;
+            }
+        } else {
+            demonlord_sprite._ultimoAtaqueFin = Date.now();
+        }
+        demonlord_sprite.cDir = data.dir;
+        // 🔥 FIX CRÍTICO: SIEMPRE actualizar posición
+        demonlord_sprite.setPosition(data.x, data.y);
+        demonlord_sprite.setDepth(data.y);
+        // 🔥 FIX CRÍTICO: NUNCA cambiar animación si está ocupado (casteando, atacando, riendo)
+        const estaOcupado = demonlord_sprite.atacando || demonlord_sprite._estaRiendo || demonlord_sprite._ataqueEnCurso;
+        if (estaOcupado) return;
+        // Solo cambiar animación si NO está ocupado
+        if (data.isMoving) demonlord_sprite.play('dl_walk_' + data.dir, true);
+        else demonlord_sprite.play('dl_idle_' + data.dir, true);
     });
     socket.on('demonlordAttack', (data) => {
         if (!currentScene) return;
@@ -6702,7 +6991,440 @@ socket.on('inventarioCompleto', (data) => {
     });
     socket.on('demonlordAttackHit', (data) => { if (!currentScene) return; const hitbox = currentScene.add.rectangle(data.golpeX, data.golpeY, 50, 50, 0xff0000, 0); hitbox.setDepth(10001); currentScene.time.delayedCall(200, () => { if (hitbox && hitbox.active) hitbox.destroy(); }); if (data.targetId === socket.id && player && player.isAlive) { crearTextoDmg(currentScene, player.x, player.y - 30, `${Math.floor(data.damage)}`, "#ff4444", "24px"); } });
     socket.on('demonlordAttackMiss', (data) => { if (!currentScene) return; if (data.targetId === socket.id && player && player.isAlive) { crearTextoDmg(currentScene, player.x, player.y - 30, "MISS", "#ffff00", "14px"); } });
-    socket.on('demonlordDeath', (data) => { 
+
+    socket.on('demonlordLanzaFlama', (data) => {
+        if (!currentScene || !demonlord_sprite) return;
+        if (currentScene.anims.exists('dl_ataque1_' + data.dir)) { demonlord_sprite.play('dl_ataque1_' + data.dir, true); }
+        const flama = currentScene.add.sprite(data.origenX, data.origenY, 'flama_1');
+        flama.setScale(2.5);
+        flama.setDepth(99999);
+        if (currentScene.anims.exists('fuego_demonlord_anim')) { flama.play('fuego_demonlord_anim'); }
+        if (currentScene.sound) { const s = currentScene.sound.get('flame2'); if (s) { s.setVolume(window.volumenFX * 0.8); s.play(); } else currentScene.sound.play('flame2', { volume: window.volumenFX * 0.8 }); }
+        currentScene.tweens.add({ targets: flama, x: data.targetX, y: data.targetY, duration: 600, ease: 'Quad.easeIn', onComplete: () => { if (!flama || !flama.active) return; flama.destroy(); const impacto = currentScene.add.circle(data.targetX, data.targetY, 20, 0xff6600, 0.8); impacto.setDepth(data.targetY + 100); currentScene.tweens.add({ targets: impacto, radius: 60, alpha: 0, duration: 400, onComplete: () => { if (impacto && impacto.active) impacto.destroy(); } }); if (data.targetId === socket.id && player && player.isAlive) { crearTextoDmg(currentScene, player.x, player.y - 40, '🔥 ' + data.dano, '#ff6600', '22px'); } } });
+        currentScene.time.delayedCall(1500, () => { if (flama && flama.active) flama.destroy(); });
+    });
+
+
+    // 🔥 HECHIZO DEL DEMONLORD: casteo (marca en el suelo)
+    socket.on('demonlordHechizoCasteo', (data) => {
+        if (!currentScene) return;
+        if (demonlord_sprite && demonlord_sprite.estaMuerto) return;
+        // 🔥 FIX: marcar que está casteando (para que la risa no lo corte)
+        demonlord_sprite._demonlordCasteando = true;
+        window._demonlordCasteando = true;
+        const { x, y, targetX, targetY, targetId } = data;
+        if (demonlord_sprite && demonlord_sprite.active) {
+            demonlord_sprite.atacando = true;
+            demonlord_sprite._ataqueEnCurso = true;
+            const castKey = `dl_ataque2_${demonlord_sprite.cDir || 'Abajo'}`;
+            if (currentScene.anims.exists(castKey)) {
+                demonlord_sprite.play(castKey, true);
+                demonlord_sprite.removeAllListeners('animationcomplete');
+                demonlord_sprite.once('animationcomplete', () => {
+                    if (demonlord_sprite && demonlord_sprite.active && !demonlord_sprite.estaMuerto) {
+                        demonlord_sprite.atacando = false;
+                        demonlord_sprite._ataqueEnCurso = false;
+                        const idleKey = `dl_idle_${demonlord_sprite.cDir || 'Abajo'}`;
+                        if (currentScene.anims.exists(idleKey)) demonlord_sprite.play(idleKey, true);
+                    }
+                });
+                // Fallback: si animationcomplete no se dispara, forzar a los 1.5s
+                currentScene.time.delayedCall(1500, () => {
+                    if (demonlord_sprite && demonlord_sprite.active && !demonlord_sprite.estaMuerto && demonlord_sprite._ataqueEnCurso) {
+                        demonlord_sprite.atacando = false;
+                        demonlord_sprite._ataqueEnCurso = false;
+                        const idleKey = `dl_idle_${demonlord_sprite.cDir || 'Abajo'}`;
+                        if (currentScene.anims.exists(idleKey)) demonlord_sprite.play(idleKey, true);
+                    }
+                });
+            }
+                currentScene.time.delayedCall(1500, () => {
+                    if (demonlord_sprite && demonlord_sprite.active && !demonlord_sprite.estaMuerto) {
+                        demonlord_sprite.atacando = false;
+                        demonlord_sprite._ataqueEnCurso = false;
+                    }
+                });
+        }
+        if (!window._marcasHechizoActivas) window._marcasHechizoActivas = [];
+        const esHell = data.esHell === true;
+        const colorMarca = esHell ? 0xaa00ff : 0xff4400;
+        const colorBorde = esHell ? 0xcc44ff : 0xff6600;
+        const marcaCirculo = currentScene.add.circle(targetX, targetY, esHell ? 120 : 80, colorMarca, 0.3);
+        marcaCirculo.setStrokeStyle(3, colorBorde, 0.8);
+        marcaCirculo.setDepth(targetY - 1);
+        currentScene.tweens.add({
+            targets: marcaCirculo,
+            scale: 1.1,
+            alpha: 0.5,
+            duration: 500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        window._marcasHechizoActivas.push({ sprite: marcaCirculo, expira: Date.now() + 5000 });
+        window._marcaHechizoDemonlord = marcaCirculo;
+        mostrarMensaje(esHell ? '🔥🔥 ¡HELL IN THE EARTH! ¡ALEJATE DEL CÍRCULO VIOLETA!' : '🔥 ¡El Demonlord está casteando un hechizo de fuego! ¡Alejate del círculo!', 'error');
+    });
+
+    // 🔥 HECHIZO DEL DEMONLORD: explosión (fuego + daño)
+    socket.on('demonlordHechizoExplosion', (data) => {
+        if (!currentScene) return;
+        const { x, y, radio } = data;
+        // 🔥 FIX: limpiar flags de casteo
+        if (demonlord_sprite) {
+            demonlord_sprite._demonlordCasteando = false;
+            demonlord_sprite.atacando = false;
+            demonlord_sprite._ataqueEnCurso = false;
+            demonlord_sprite._ultimoAtaqueFin = Date.now();
+        }
+        window._demonlordCasteando = false;
+
+        if (window._marcaHechizoDemonlord && window._marcaHechizoDemonlord.active) {
+            window._marcaHechizoDemonlord.destroy();
+            window._marcaHechizoDemonlord = null;
+        }
+
+        // 🔊 Sonido del hechizo de fuego
+        if (currentScene.sound) {
+            const sonidoFlame = currentScene.sound.get('flame2');
+            if (sonidoFlame) {
+                sonidoFlame.setVolume(window.volumenFX);
+                sonidoFlame.play();
+            } else {
+                currentScene.sound.play('flame2', { volume: window.volumenFX });
+            }
+        }
+
+        // Animación de fuego (flama_1 a flama_8)
+        const fuego = currentScene.add.sprite(x, y, 'flama_1');
+        fuego.setScale(4.5);   // 🔥 x3 (antes 1.5)
+        fuego.setDepth(y + 100);
+        if (currentScene.anims.exists('fuego_demonlord_anim')) {
+            fuego.play('fuego_demonlord_anim');
+        }
+
+        // Explosión de partículas
+        const emisor = currentScene.add.particles(x, y, 'particula_fuego_meteoro', {
+            speed: { min: 100, max: 300 },
+            angle: { min: 0, max: 360 },
+            scale: { start: 1.5, end: 0 },
+            alpha: { start: 1, end: 0 },
+            tint: [0xff4400, 0xff6600, 0xffaa00, 0xffdd00],
+            lifespan: 800,
+            frequency: -1,
+            quantity: 20,
+            blendMode: 'ADD'
+        });
+        emisor.setDepth(y + 200);
+
+        // Flash de cámara
+        currentScene.cameras.main.shake(300, 0.015);
+        currentScene.cameras.main.flash(200, 255, 100, 0, false);
+
+        // Sonido de explosión
+        if (currentScene.sound) {
+            const s = currentScene.sound.get('fireballimpact');
+            if (s) { s.setVolume(window.volumenFX * 1.5); s.play(); }
+        }
+
+        // Destruir el fuego después de 2s
+        currentScene.time.delayedCall(2000, () => {
+            if (fuego && fuego.active) fuego.destroy();
+            if (emisor && emisor.active) emisor.destroy();
+
+            // 🔇 Detener el sonido 'flame2' cuando el fuego desaparece
+            if (currentScene.sound) {
+                const sonidoFlame = currentScene.sound.get('flame2');
+                if (sonidoFlame && sonidoFlame.isPlaying) {
+                    sonidoFlame.stop();
+                }
+            }
+        });
+
+        mostrarMensaje('💥 ¡El hechizo de fuego del Demonlord explotó!', 'error');
+    });
+// 😈 RISADEMONLORD: cuando mata a un jugador
+    // 😈 RISADEMONLORD: el Demonlord se ríe, queda quieto y vuelve a idle
+    socket.on('demonlordRisa', (data) => {
+        if (!currentScene || !demonlord_sprite || !demonlord_sprite.active) return;
+
+        // Si ya está riendo, no reiniciar
+        if (demonlord_sprite._estaRiendo) return;
+
+        // Solo reírse si NO está ocupado
+        if (demonlord_sprite.atacando && !demonlord_sprite._estaRiendo) {
+            // Si está atacando, ignorar la risa (para no cortar el ataque)
+            if (!demonlord_sprite._ataqueEnCurso) return;
+        }
+        if (window._demonlordCasteando || demonlord_sprite._demonlordCasteando) return;
+
+        // Verificar si hay otros jugadores cerca (si hay, no se ríe)
+        if (window.otherPlayers) {
+            const jugadoresCerca = window.otherPlayers.getChildren().filter(o => {
+                if (!o.active || o.isDead) return false;
+                const dist = Phaser.Math.Distance.Between(data.x, data.y, o.x, o.y);
+                return dist < 400;
+            });
+            if (jugadoresCerca.length > 0) return;
+        }
+
+        // 🔊 Sonido de risa
+        if (currentScene.sound) {
+            const sonidoRisa = currentScene.sound.get('risademonlord');
+            if (sonidoRisa) {
+                sonidoRisa.setVolume(window.volumenFX * 1.2);
+                sonidoRisa.play();
+            } else {
+                currentScene.sound.play('risademonlord', { volume: window.volumenFX * 1.2 });
+            }
+        }
+
+        // 🎭 Animación de risa (dl_laugh_*)
+        demonlord_sprite._estaRiendo = true;
+        demonlord_sprite._ultimoAtaqueFin = Date.now() + 3000;
+        demonlord_sprite._estabaAtacando = demonlord_sprite.atacando;
+        demonlord_sprite.atacando = true;   // bloquear movimiento
+
+        // Detener movimiento físico
+        if (demonlord_sprite.body) {
+            demonlord_sprite.body.setVelocity(0, 0);
+        }
+
+        const dirRisa = demonlord_sprite.cDir || 'Abajo';
+        const laughKey = `dl_laugh_${dirRisa}`;
+
+        if (currentScene.anims.exists(laughKey)) {
+            demonlord_sprite.play(laughKey, true);
+
+            // Al terminar la risa (dura ~2s), volver a idle
+            demonlord_sprite.once('animationcomplete', () => {
+                if (!demonlord_sprite || !demonlord_sprite.active) return;
+                demonlord_sprite._estaRiendo = false;
+                demonlord_sprite.atacando = false;
+                const idleKey = `dl_idle_${dirRisa}`;
+                if (currentScene.anims.exists(idleKey)) {
+                    demonlord_sprite.play(idleKey, true);
+                }
+            });
+
+            // Fallback: si algo falla con animationcomplete, cortar a los 3s
+            currentScene.time.delayedCall(3000, () => {
+                if (!demonlord_sprite || !demonlord_sprite.active) return;
+                if (demonlord_sprite._estaRiendo) {
+                    demonlord_sprite._estaRiendo = false;
+                    demonlord_sprite.atacando = false;
+                    const idleKey = `dl_idle_${dirRisa}`;
+                    if (currentScene.anims.exists(idleKey)) {
+                        demonlord_sprite.play(idleKey, true);
+                    }
+                }
+            });
+        } else {
+            // Fallback: si no existe la animación, solo bloquear por 2s
+            currentScene.time.delayedCall(2000, () => {
+                if (!demonlord_sprite || !demonlord_sprite.active) return;
+                demonlord_sprite._estaRiendo = false;
+                demonlord_sprite.atacando = false;
+            });
+        }
+    });
+// 🔥🔥 HELL IN THE EARTH: marcas (10 círculos aleatorios)
+    socket.on('demonlordHellInTheEarthMarcas', (data) => {
+    if (!currentScene) return;
+
+    // 🔥 FIX: congelar Demonlord en ultimo frame de dl_ataque2_* (pose de casteo)
+    if (demonlord_sprite) {
+        demonlord_sprite._hellActivo = true;
+        demonlord_sprite.atacando = true;
+        demonlord_sprite._ataqueEnCurso = true;
+        demonlord_sprite._demonlordCasteando = true;
+        demonlord_sprite._ultimoAtaqueFin = Date.now() + 5000;
+
+        const dirHell = demonlord_sprite.cDir || 'Abajo';
+        const castKey = `dl_ataque2_${dirHell}`;
+        if (currentScene.anims.exists(castKey)) {
+            const anim = currentScene.anims.get(castKey);
+            // 🔥 FRAME 4 (índice 3) de la animación
+            const frame4 = anim.frames[3] || anim.frames[anim.frames.length - 1];
+            demonlord_sprite.anims.stop();
+            demonlord_sprite.setTexture(frame4.textureKey, frame4.textureFrame);
+            demonlord_sprite._hellFrameCongelado = true;
+            console.log('🔴 HELL: Demonlord congelado en FRAME 4');
+
+            // ⏱️ Descongelar 0.5s ANTES de que termine la última flama
+            if (window._hellDescongelarTimer) clearTimeout(window._hellDescongelarTimer);
+            window._hellDescongelarTimer = setTimeout(() => {
+                if (demonlord_sprite && demonlord_sprite.active && demonlord_sprite._hellFrameCongelado) {
+                    demonlord_sprite._hellFrameCongelado = false;
+                    demonlord_sprite.atacando = false;
+                    demonlord_sprite._ataqueEnCurso = false;
+                    demonlord_sprite._demonlordCasteando = false;
+                    demonlord_sprite._hellActivo = false;
+                    demonlord_sprite._ultimoAtaqueFin = Date.now();
+                    const idleKey = `dl_idle_${dirHell}`;
+                    if (currentScene.anims.exists(idleKey)) {
+                        demonlord_sprite.anims.stop();
+                        demonlord_sprite.play(idleKey, true);
+                    }
+                    console.log('🟢 HELL: Demonlord descongelado (0.5s antes del final)');
+                }
+                window._hellDescongelarTimer = null;
+            }, 2600);
+        }
+    }
+    window._demonlordCasteando = true;
+
+    const { flamas, radio } = data;
+
+    if (window._marcasHechizoActivas && window._marcasHechizoActivas.length > 0) {
+        window._marcasHechizoActivas.forEach(item => {
+            if (item && item.sprite && item.sprite.active) {
+                if (currentScene) currentScene.tweens.killTweensOf(item.sprite);
+                item.sprite.destroy();
+            }
+        });
+        window._marcasHechizoActivas = [];
+    }
+    if (window._marcaHechizoDemonlord && window._marcaHechizoDemonlord.active) {
+        if (currentScene) currentScene.tweens.killTweensOf(window._marcaHechizoDemonlord);
+        window._marcaHechizoDemonlord.destroy();
+        window._marcaHechizoDemonlord = null;
+    }
+
+    if (currentScene.sound) {
+        const sonidoHell = currentScene.sound.get('muereedemonlord');
+        if (sonidoHell) {
+            sonidoHell.setVolume(window.volumenFX);
+            sonidoHell.play();
+        } else {
+            currentScene.sound.play('muereedemonlord', { volume: window.volumenFX });
+        }
+    }
+
+    if (window._hellMarcas) {
+        window._hellMarcas.forEach(m => {
+            if (m && m.active) {
+                if (currentScene) currentScene.tweens.killTweensOf(m);
+                m.destroy();
+            }
+        });
+    }
+    window._hellMarcas = [];
+    window._hellMarcasExpira = Date.now() + 5000;
+    window._hellMarcasCreadas = Date.now();
+
+    data.flamas.forEach((f) => {
+        const marca = currentScene.add.circle(f.x, f.y, radio, 0xaa00ff, 0.35);
+        marca.setStrokeStyle(3, 0xcc44ff, 0.9);
+        marca.setDepth(f.y - 1);
+        currentScene.tweens.add({
+            targets: marca,
+            scale: 1.2,
+            alpha: 0.5,
+            duration: 400,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        window._hellMarcas.push(marca);
+    });
+
+    mostrarMensaje('🔥🔥 ¡HELL IN THE EARTH! ¡15 flamas van a explotar!', 'error');
+});
+
+    // 🔥🔥 HELL IN THE EARTH: explosión (15 flamas)
+    socket.on('demonlordHellInTheEarthExplosion', (data) => {
+    if (!currentScene) return;
+    const { flamas, radio } = data;
+
+    // 🔥 FIX: NO descongelar acá. El timer del cliente (creado en marcas) lo hace a los 2600ms
+    //    Solo limpiamos el flag de casteando del server
+    window._demonlordCasteando = false;
+// 🔴 Destruir las marcas rojas
+        // 🔴 Limpieza AGRESIVA de marcas (destruir TODAS, sin importar estado)
+        if (window._hellMarcas && window._hellMarcas.length > 0) {
+            window._hellMarcas.forEach(m => {
+                if (m && m.active) {
+                    if (currentScene) currentScene.tweens.killTweensOf(m);
+                    m.destroy();
+                }
+            });
+        }
+        window._hellMarcas = [];
+        window._hellMarcasExpira = 0;
+        window._hellMarcasCreadas = 0;
+
+        // 🧹 Registrar flamas activas para limpieza
+        if (!window._flamasHellActivas) window._flamasHellActivas = [];
+
+        // 🔊 Control anti-saturación de sonido (global)
+        if (!window._ultimoSonidoHell) window._ultimoSonidoHell = 0;
+
+        // 🎯 Cada flama aparece y suena ESCALONADA (150ms entre una y otra)
+        data.flamas.forEach((f, i) => {
+            const delay = i * 150;
+
+            currentScene.time.delayedCall(delay, () => {
+                if (!currentScene) return;
+
+                const fuego = currentScene.add.sprite(f.x, f.y, 'flama_1');
+                fuego.setScale(4.5); fuego.setTint(0xcc44ff);
+                fuego.setDepth(f.y + 100);
+                if (currentScene.anims.exists('fuego_demonlord_anim')) {
+                    fuego.play('fuego_demonlord_anim');
+                }
+
+                // Guardar para limpieza (expira a los 2s)
+                window._flamasHellActivas.push({ sprite: fuego, expira: Date.now() + 2000 });
+
+                // 🔥 Destruir ESTA flama a los 2s
+                currentScene.time.delayedCall(2000, () => {
+                    if (fuego && fuego.active) fuego.destroy();
+                    if (window._flamasHellActivas) {
+                        window._flamasHellActivas = window._flamasHellActivas.filter(x => x.sprite !== fuego);
+                    }
+                });
+
+                // 🔊 SONIDO: solo si pasaron 80ms desde el último (anti-saturación)
+                if (currentScene.sound && (Date.now() - window._ultimoSonidoHell > 80)) {
+                    window._ultimoSonidoHell = Date.now();
+                    const pitch = 0.9 + Math.random() * 0.25;
+                    try {
+                        currentScene.sound.play('flame2', {
+                            volume: window.volumenFX * 0.7,
+                            rate: pitch
+                        });
+                    } catch(e) { /* si no cargó, ignorar */ }
+                }
+            });
+        });
+
+        // 💥 Flash + shake UNA SOLA VEZ
+        currentScene.cameras.main.shake(500, 0.02);
+        currentScene.cameras.main.flash(300, 255, 100, 0, false);
+        mostrarMensaje('💥🔥 ¡LAS 15 flamas EXPLOTARON!', 'error');
+    });
+socket.on('demonlordDeath', (data) => {
+        // 🔥 FIX: limpiar TODOS los flags al morir
+        if (demonlord_sprite) {
+            demonlord_sprite.atacando = false;
+            demonlord_sprite._ataqueEnCurso = false;
+            demonlord_sprite._estaRiendo = false;
+            demonlord_sprite._demonlordCasteando = false;
+            demonlord_sprite._hellFrameCongelado = false;
+        }
+        window._demonlordCasteando = false;
+        // 🔊 Sonido de muerte del Demonlord
+        if (currentScene && currentScene.sound) {
+            const sonidoMuerte = currentScene.sound.get('demonlordmuere');
+            if (sonidoMuerte) {
+                sonidoMuerte.setVolume(window.volumenFX);
+                sonidoMuerte.play();
+            } else {
+                currentScene.sound.play('demonlordmuere', { volume: window.volumenFX });
+            }
+        }
+ 
         if (demonlord_sprite && demonlord_sprite.active) {
             demonlord_sprite.atacando = true;
             if (demonlord_sprite.body) { demonlord_sprite.body.setVelocity(0, 0); demonlord_sprite.body.enable = false; }
@@ -6736,8 +7458,65 @@ socket.on('inventarioCompleto', (data) => {
         }
         crearTextoDmg(this, data.x, data.y, "VENCIDO", "#fff", "22px"); 
     });
-    socket.on('demonlordRespawn', (data) => { demonlord_sprite.setPosition(data.x, data.y); demonlord_sprite.setVisible(true); demonlord_sprite.clearTint(); demonlord_sprite.atacando = false; demonlordHP = 5000; actualizarDemonlordHPBar(); demonlord_sprite.play('dl_idle_Abajo', true); });
-    socket.on('enemyDamaged', (data) => { if (!currentScene) return; if (data.id === 'demonlord') { crearTextoDmg(currentScene, demonlord_sprite.x, demonlord_sprite.y - 120, Math.floor(data.dmg).toString(), data.tipo === 'quemadura' ? "#ff6600" : "#ff0000", "32px"); return; } if (window.invocadoresGrupo) { const inv = window.invocadoresGrupo.getChildren().find(i => i.invocadorId === data.id); if (inv && inv.active) { crearTextoDmg(currentScene, inv.x, inv.y - 40, Math.floor(data.dmg).toString(), data.tipo === 'quemadura' ? "#ff6600" : "#ff0000", "24px"); return; } } if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.esqueletoId === data.id && esq.active) { if (esq.estaMuerto) return; crearTextoDmg(currentScene, esq.x, esq.y - 30, Math.floor(data.dmg).toString(), data.tipo === 'quemadura' ? "#ff6600" : "#ffffff", "14px"); if (!esq.hp) esq.hp = 200; if (!esq.maxHp) esq.maxHp = 200; esq.hp = Math.max(0, esq.hp - Math.floor(data.dmg || 0)); } }); } });
+    socket.on('demonlordRespawn', (data) => {
+        if (!demonlord_sprite) return;
+        // 🔥 FIX: limpiar marcas huérfanas al respawnear
+        if (window._hellMarcas && window._hellMarcas.length > 0) {
+            window._hellMarcas.forEach(m => {
+                if (m && m.active) {
+                    if (currentScene) currentScene.tweens.killTweensOf(m);
+                    m.destroy();
+                }
+            });
+            window._hellMarcas = [];
+            window._hellMarcasExpira = 0;
+            window._hellMarcasCreadas = 0;
+        }
+        if (window._marcaHechizoDemonlord && window._marcaHechizoDemonlord.active) {
+            if (currentScene) currentScene.tweens.killTweensOf(window._marcaHechizoDemonlord);
+            window._marcaHechizoDemonlord.destroy();
+            window._marcaHechizoDemonlord = null;
+        }
+        if (window._marcasHechizoActivas) {
+            window._marcasHechizoActivas.forEach(item => {
+                if (item && item.sprite && item.sprite.active) {
+                    if (currentScene) currentScene.tweens.killTweensOf(item.sprite);
+                    item.sprite.destroy();
+                }
+            });
+            window._marcasHechizoActivas = [];
+        }
+        demonlord_sprite.setPosition(data.x, data.y);
+        demonlord_sprite.setVisible(true);
+        demonlord_sprite.clearTint();
+        demonlord_sprite.atacando = false;
+        demonlord_sprite._estaRiendo = false;
+        demonlord_sprite._ataqueEnCurso = false;
+        demonlord_sprite.estaMuerto = false;
+        demonlord_sprite.estaCongelado = false;
+        demonlord_sprite._demonlordCasteando = false;
+        window._demonlordCasteando = false;
+        if (demonlord_sprite.body) {
+            demonlord_sprite.body.enable = true;
+            demonlord_sprite.body.setVelocity(0, 0);
+        }
+        const idleKey = 'dl_idle_' + (demonlord_sprite.cDir || 'Abajo');
+        if (currentScene && currentScene.anims.exists(idleKey)) {
+            demonlord_sprite.play(idleKey, true);
+        }
+        demonlordHP = 5000;
+        demonlordMaxHP = 5000;
+        if (enemyHealthBars['demonlord']) {
+            try { enemyHealthBars['demonlord'].barra.destroy(); } catch(e) {}
+            try { enemyHealthBars['demonlord'].fondo.destroy(); } catch(e) {}
+            delete enemyHealthBars['demonlord'];
+        }
+        if (window.estadosCongelados && window.estadosCongelados['demonlord']) {
+            delete window.estadosCongelados['demonlord'];
+        }
+        actualizarDemonlordHPBar();
+        console.log('🔄 [CLIENTE] Demonlord respawneado y flags reseteados');
+    });
     socket.on('contraGolpeCargado', (data) => { if (data.playerId === socket.id && player) { player.setTint(0xff0000); mostrarMensaje(`🔥 ¡CONTRA-GOLPE CARGADO! 🔥`, 'exito'); } });
     socket.on('contraGolpeUsado', (data) => { if (data.playerId === socket.id && player) player.clearTint(); });
     socket.on('contraGolpeActivado', (data) => { if (currentScene) crearTextoDmg(currentScene, data.x, data.y - 40, `💥 CONTRA-GOLPE +${data.bonus} 💥`, "#ffaa00", "20px"); });
@@ -6751,7 +7530,7 @@ socket.on('inventarioCompleto', (data) => {
         data.forEach(esqueleto => { 
             if (esqueleto.isAlive !== false) { 
                 const letra = dirALetra(esqueleto.dir || 'Abajo'); 
-                const img = this.physics.add.sprite(esqueleto.x, esqueleto.y, `ns_default_idle_${letra}_0`).setScale(1); 
+                const img = this.physics.add.sprite(esqueleto.x, esqueleto.y, `ns_default_idle_${letra}_0`).setScale(1.34); 
                 img.esqueletoId = esqueleto.id; 
                 img.isAlly = esqueleto.isAlly || false; 
                 img.currentDir = esqueleto.dir || 'Abajo'; 
@@ -6951,7 +7730,7 @@ socket.on('esqueletoAttackAnim', (data) => {
     });
     socket.on('esqueletoNew', (data) => { 
         if (!currentScene) return; 
-        const img = currentScene.physics.add.sprite(data.x, data.y, 'ns_default_idle_S_0').setScale(1); 
+        const img = currentScene.physics.add.sprite(data.x, data.y, 'ns_default_idle_S_0').setScale(1.34); 
         img.esqueletoId = data.id; 
         img.isAlly = false; 
         img.currentDir = 'Abajo'; 
@@ -6971,7 +7750,7 @@ socket.on('esqueletoAttackAnim', (data) => {
         window.esqueletosGrupo.add(img); 
         if (this.colisionEstatua) this.physics.add.collider(img, this.colisionEstatua); 
     });
-    socket.on('esqueletoRevive', (data) => { if (!currentScene) return; if (currentScene && currentScene.sound) { const sLevanta = currentScene.sound.get('esqueletoLevanta'); if (sLevanta) { sLevanta.setVolume(window.volumenFX); sLevanta.play(); } else { currentScene.sound.play('esqueletoLevanta', { volume: window.volumenFX }); } } const img = currentScene.physics.add.sprite(data.x, data.y, 'ns_default_idle_S_0').setScale(1); img.esqueletoId = data.id; img.isAlly = true; img.currentDir = 'Abajo'; img.setCollideWorldBounds(true); img.setSize(10, 10); img.setOffset(123, 123); img.body.setImmovable(true); img.estaAtacando = true; img.estaMuerto = false; img.setTint(0x88ff88); const reviveAnim = `ns_revive_S`; if (currentScene.anims.exists(reviveAnim)) { img.play(reviveAnim, true); img.once('animationcomplete', () => { if (img && img.active && !img.estaMuerto) { img.estaAtacando = false; img.play(`ns_idle_S`, true); } }); } else { img.play('ns_idle_S', true); img.estaAtacando = false; } img.setInteractive(); img.on('pointerdown', () => { if (!img.estaMuerto) { mostrarMensaje(`❌ Ese esqueleto está vivo`, 'error'); return; } ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto aliado muerto seleccionado`, 'info'); }); window.esqueletosGrupo.add(img); if (this.colisionEstatua) this.physics.add.collider(img, this.colisionEstatua); mostrarMensaje(`💀 ¡Esqueleto aliado revivido!`, 'exito'); if (data.esCosechado) { img.esCosechado = true; let segundosRestantes = 60; const textoTimer = currentScene.add.text(img.x, img.y - 60, '⏱️ 60s', { fontSize: '12px', fill: '#aa88ff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(100000); img.textoTimer = textoTimer; const intervalTimer = setInterval(() => { if (!img || !img.active) { clearInterval(intervalTimer); if (textoTimer && textoTimer.active) textoTimer.destroy(); return; } segundosRestantes--; if (textoTimer && textoTimer.active) { textoTimer.setText('⏱️ ' + segundosRestantes + 's'); textoTimer.setPosition(img.x, img.y - 60); if (segundosRestantes <= 10) textoTimer.setFill('#ff4444'); else if (segundosRestantes <= 30) textoTimer.setFill('#ffaa00'); } if (segundosRestantes <= 0) { clearInterval(intervalTimer); if (textoTimer && textoTimer.active) textoTimer.destroy(); } }, 1000); img.intervalTimer = intervalTimer; } });
+    socket.on('esqueletoRevive', (data) => { if (!currentScene) return; if (currentScene && currentScene.sound) { const sLevanta = currentScene.sound.get('esqueletoLevanta'); if (sLevanta) { sLevanta.setVolume(window.volumenFX); sLevanta.play(); } else { currentScene.sound.play('esqueletoLevanta', { volume: window.volumenFX }); } } const img = currentScene.physics.add.sprite(data.x, data.y, 'ns_default_idle_S_0').setScale(1.34); img.esqueletoId = data.id; img.isAlly = true; img.currentDir = 'Abajo'; img.setCollideWorldBounds(true); img.setSize(10, 10); img.setOffset(123, 123); img.body.setImmovable(true); img.estaAtacando = true; img.estaMuerto = false; img.setTint(0x88ff88); const reviveAnim = `ns_revive_S`; if (currentScene.anims.exists(reviveAnim)) { img.play(reviveAnim, true); img.once('animationcomplete', () => { if (img && img.active && !img.estaMuerto) { img.estaAtacando = false; img.play(`ns_idle_S`, true); } }); } else { img.play('ns_idle_S', true); img.estaAtacando = false; } img.setInteractive(); img.on('pointerdown', () => { if (!img.estaMuerto) { mostrarMensaje(`❌ Ese esqueleto está vivo`, 'error'); return; } ultimoEsqueletoClickeado = data.id; mostrarMensaje(`💀 Esqueleto aliado muerto seleccionado`, 'info'); }); window.esqueletosGrupo.add(img); if (this.colisionEstatua) this.physics.add.collider(img, this.colisionEstatua); mostrarMensaje(`💀 ¡Esqueleto aliado revivido!`, 'exito'); if (data.esCosechado) { img.esCosechado = true; let segundosRestantes = 60; const textoTimer = currentScene.add.text(img.x, img.y - 60, '⏱️ 60s', { fontSize: '12px', fill: '#aa88ff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(100000); img.textoTimer = textoTimer; const intervalTimer = setInterval(() => { if (!img || !img.active) { clearInterval(intervalTimer); if (textoTimer && textoTimer.active) textoTimer.destroy(); return; } segundosRestantes--; if (textoTimer && textoTimer.active) { textoTimer.setText('⏱️ ' + segundosRestantes + 's'); textoTimer.setPosition(img.x, img.y - 60); if (segundosRestantes <= 10) textoTimer.setFill('#ff4444'); else if (segundosRestantes <= 30) textoTimer.setFill('#ffaa00'); } if (segundosRestantes <= 0) { clearInterval(intervalTimer); if (textoTimer && textoTimer.active) textoTimer.destroy(); } }, 1000); img.intervalTimer = intervalTimer; } });
 window.invocadoresGrupo = currentScene.add.group(); function crearInvocadorCliente(info) { if (!currentScene) return; const letra = dirALetraMagoCliente(info.dir || 'down'); const img = currentScene.physics.add.sprite(info.x, info.y, `mago_enemigo_idle_${letra}_0`).setScale(0.5); img.invocadorId = info.id; img.currentDir = info.dir || 'down'; img.estado = info.estado || 'idle'; img.setCollideWorldBounds(true); img.setSize(30, 30); img.setOffset(110, 90); img.body.setImmovable(true); img.estaAtacando = false; img.estaMuerto = false; const animIdle = `mago_enemigo_idle_${letra}`; if (currentScene.anims.exists(animIdle)) img.play(animIdle, true); img.setInteractive(); window.invocadoresGrupo.add(img); return img; } window.dirALetraMagoCliente = function(dir) { return { 'Derecha': 'right', 'Arriba': 'up', 'Abajo': 'down', 'Izquierda': 'left', 'right': 'right', 'up': 'up', 'down': 'down', 'left': 'left' }[dir] || 'down'; }; socket.on('invocadoresIniciales', (data) => { if (!data || !Array.isArray(data)) return; data.forEach(inv => { if (inv.isAlive) crearInvocadorCliente(inv); }); }); socket.on('invocadorNew', (data) => { if (!currentScene) return; let existe = window.invocadoresGrupo.getChildren().find(i => i.invocadorId === data.id); if (existe) { existe.setPosition(data.x, data.y); existe.setVisible(true); existe.estaMuerto = false; existe.setAlpha(1); return; } crearInvocadorCliente({ id: data.id, x: data.x, y: data.y, dir: 'down', estado: 'idle' }); }); socket.on('invocadorMoved', (data) => { if (!currentScene) return; const inv = window.invocadoresGrupo.getChildren().find(i => i.invocadorId === data.id); if (!inv) return; const letra = window.dirALetraMagoCliente(data.dir); inv.currentDir = data.dir; inv.estado = data.estado || 'idle'; inv.setPosition(data.x, data.y); inv.setDepth(data.y); if (inv.estaAtacando) return; if (inv.estaMuerto) return; const animKey = data.isMoving ? `mago_enemigo_walk_${letra}` : `mago_enemigo_idle_${letra}`; if (currentScene.anims.exists(animKey)) inv.play(animKey, true); }); socket.on('invocadorAttack', (data) => { if (!currentScene) return; const inv = window.invocadoresGrupo.getChildren().find(i => i.invocadorId === data.id); if (!inv) return; inv.estaAtacando = true; currentScene.tweens.add({ targets: inv, scale: 0.65, duration: 200, ease: 'Power2' }); const letra = window.dirALetraMagoCliente(data.dir); const animAtk = `mago_enemigo_attack_with_staff_${letra}`; if (currentScene.anims.exists(animAtk)) inv.play(animAtk, true); inv.once('animationcomplete', () => { inv.estaAtacando = false; currentScene.tweens.add({ targets: inv, scale: 0.5, duration: 200, ease: 'Power2' }); const animIdle = `mago_enemigo_idle_${letra}`; if (!inv.estaMuerto && currentScene.anims.exists(animIdle)) inv.play(animIdle, true); }); }); socket.on('invocadorFuria', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (data.esqueletosIds.includes(esq.esqueletoId)) { esq.setTint(0xff3333); } }); } }); socket.on('invocadorFuriaEnd', (data) => { if (window.esqueletosGrupo) { window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.isAlly) esq.setTint(0x88ff88); else esq.clearTint(); }); } }); socket.on('invocadorEscape', (data) => { if (!currentScene) return; const inv = window.invocadoresGrupo.getChildren().find(i => i.invocadorId === data.id); if (!inv) return; inv.estado = 'huir'; }); socket.on('invocadorTeleportStart', (data) => { if (!currentScene) return; const inv = window.invocadoresGrupo.getChildren().find(i => i.invocadorId === data.id); if (!inv) return; inv.estaAtacando = true; const letra = window.dirALetraMagoCliente(data.dir); const animTp = `mago_enemigo_levantarse_inv_${letra}`; if (currentScene.anims.exists(animTp)) inv.play(animTp, true); }); socket.on('invocadorTeleportEnd', (data) => { if (!currentScene) return; const inv = window.invocadoresGrupo.getChildren().find(i => i.invocadorId === data.id); if (!inv) return; inv.setPosition(data.x, data.y); const letra = inv.currentDir ? window.dirALetraMagoCliente(inv.currentDir) : 'down'; const animLev = `mago_enemigo_levantarse_${letra}`; if (currentScene.anims.exists(animLev)) inv.play(animLev, true); inv.once('animationcomplete', () => { inv.estaAtacando = false; const animIdle = `mago_enemigo_idle_${letra}`; if (currentScene.anims.exists(animIdle)) inv.play(animIdle, true); }); }); socket.on('invocadorDeath', (data) => { if (!currentScene) return; const inv = window.invocadoresGrupo.getChildren().find(i => i.invocadorId === data.id); if (!inv) return; inv.estaMuerto = true; const letra = window.dirALetraMagoCliente(inv.currentDir || 'down'); const animDie = `mago_enemigo_die_${letra}`; if (currentScene.anims.exists(animDie)) inv.play(animDie, true); inv.once('animationcomplete', () => { inv.setVisible(false); }); });
     socket.on('furiaNecroticaEffect', (data) => { if (data.playerId === socket.id) { mostrarMensaje(`🔥 ¡Furia Necrotica! +${Math.floor(data.bonusPorcentaje * 100)}% danio`, 'exito'); if (window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (data.esqueletosIds.includes(esq.esqueletoId)) esq.setTint(0xff3333); }); setTimeout(() => { if (window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (data.esqueletosIds.includes(esq.esqueletoId)) { esq.clearTint(); if (esq.isAlly) esq.setTint(0x88ff88); } }); }, 10000); } });
     socket.on('furiaNecroticaEnd', (data) => { if (data.playerId === socket.id && window.esqueletosGrupo) window.esqueletosGrupo.getChildren().forEach(esq => { if (esq.isAlly) esq.setTint(0x88ff88); }); });
@@ -7050,6 +7829,39 @@ this.events.on('update', (time, delta) => {
     // ═══ PILARES, LIGAS Y ESTATUA ═══
     // ═══════════════════════════════════════════
     registrarEventosPilaresYLigas();
+
+    // 🧹 Red de seguridad AGRESIVA: limpiar flamas Y marcas huérfanas cada 2s
+    setInterval(() => {
+        if (!currentScene) return;
+        const ahora = Date.now();
+
+        // 🧹 Limpiar flamas huérfanas
+        if (window._flamasHellActivas && window._flamasHellActivas.length > 0) {
+            window._flamasHellActivas = window._flamasHellActivas.filter(item => {
+                if (ahora > item.expira || !item.sprite || !item.sprite.active) {
+                    if (item.sprite && item.sprite.active) item.sprite.destroy();
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        // 🧹 Limpiar marcas rojas huérfanas (timeout 3s o si el array quedó viejo)
+        if (window._hellMarcas && window._hellMarcas.length > 0) {
+            const expiro = (window._hellMarcasExpira && ahora > window._hellMarcasExpira)
+                        || (ahora - (window._hellMarcasCreadas || 0) > 3000);
+            if (expiro) {
+                window._hellMarcas.forEach(m => {
+                    if (m && m.active) {
+                        if (currentScene) currentScene.tweens.killTweensOf(m);
+                        m.destroy();
+                    }
+                });
+                window._hellMarcas = [];
+                window._hellMarcasExpira = 0;
+            }
+        }
+    }, 2000);
     crearEstatuaRankingLiga();
     if (socket && socket.connected) {
         socket.emit('solicitarPilares');

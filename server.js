@@ -7,6 +7,9 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const path = require('path');
+
+// 🔥 Set para no golpear 2 veces al mismo jugador en un solo Hell
+
 const fs = require('fs');
 
 // ═══════════════════════════════════════════════════════════════
@@ -1743,7 +1746,8 @@ setInterval(() => {
                 io.emit('enemyDamaged', { id: id, x: objetivo.x, y: objetivo.y, dmg: estados.quemadura.danio, tipo: 'quemadura' });
                 if (objetivo.hp <= 0) {
                     if (esDemonlord) {
-                        demonlord.isAlive = false; demonlord.aturdido = false; registrarMuerteDemonlord();
+                        demonlord.isAlive = false; demonlord.hp = 0; demonlord.casteandoHechizo = false; demonlord._atacandoServer = false; demonlord._estaRiendoServer = false; demonlord._hellActivo = false; registrarMuerteDemonlord();
+
                         io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
                         setTimeout(() => {
                             demonlord.hp = CONFIG.DEMONLORD.MAX_HP;
@@ -1894,50 +1898,436 @@ setInterval(() => {
 // ═══ IA DEL DEMONLORD (sin cambios) ═══
 // ═══════════════════════════════════════════════════════════════
 setInterval(() => {
-    if (!demonlord.isAlive) return;
+    if (!demonlord.isAlive) { demonlord.casteandoHechizo = false; demonlord._atacandoServer = false; demonlord._estaRiendoServer = false; return; }
     if (demonlord.aturdido) { io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false }); return; }
     if (estaCongelado('demonlord')) { io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false, congelado: true }); return; }
+
+    // 🔥 HECHIZO DE FUEGO
+    if (!demonlord.hechizoCooldown) demonlord.hechizoCooldown = 0;
+    if (!demonlord.casteandoHechizo) demonlord.casteandoHechizo = false;
+
+    if (!demonlord.casteandoHechizo && demonlord.hechizoCooldown <= 0) {
+        // Buscar el jugador más cercano para el hechizo
+        let objetivoHechizo = null;
+        let menorDistHechizo = 400;
+        for (let id in players) {
+            const p = players[id];
+            if (p && p.isAlive && !estaEnZonaSegura(p.x, p.y) && (jugadoresEnMapa[id] || 'principal') === 'principal') {
+                const d = getDistance(demonlord.x, demonlord.y, p.x, p.y);
+                if (d < menorDistHechizo) { menorDistHechizo = d; objetivoHechizo = p; }
+            }
+        }
+
+        if (objetivoHechizo) {
+            // ═══ NUEVO: HELL IN THE EARTH escala con el HP del Demonlord ═══
+            const hpPct = demonlord.hp / demonlord.maxHp;
+            let probHell = 0.01;
+            if (hpPct < 0.50) probHell = 0.10;
+            if (hpPct < 0.25) probHell = 1.0;
+            const esHellInTheEarth = Math.random() < probHell;
+
+            demonlord.casteandoHechizo = true;
+            demonlord.hechizoCooldown = (hpPct < 0.25) ? 8000 : 15000;
+            demonlord.hechizoX = objetivoHechizo.x;
+            demonlord.hechizoY = objetivoHechizo.y;
+            demonlord.hechizoTargetId = objetivoHechizo.id;
+
+            io.emit('demonlordHechizoCasteo', {
+                x: demonlord.x,
+                y: demonlord.y,
+                targetX: objetivoHechizo.x,
+                targetY: objetivoHechizo.y,
+                targetId: objetivoHechizo.id,
+                hpPct: hpPct,
+                esHell: esHellInTheEarth
+            });
+
+            console.log(`🔥 [Demonlord] Casteando ${esHellInTheEarth ? 'HELL IN THE EARTH' : 'hechizo'} | HP=${Math.floor(hpPct*100)}% | probHell=${probHell}`);
+
+            setTimeout(() => {
+                if (!demonlord.isAlive) { demonlord.casteandoHechizo = false; return; }
+
+                const radio = 80;
+                const dañoHechizo = 300;
+
+                if (esHellInTheEarth) {
+                    console.log(`🔥🔥 [Demonlord] HELL IN THE EARTH! 10 flamas`);
+                    io.emit('demonlordHellInTheEarth', { x: demonlord.x, y: demonlord.y });
+
+                    const radioGrande = 400;
+                    const flamas = [];
+                    for (let i = 0; i < 15; i++) {
+                        const angulo = Math.random() * Math.PI * 2;
+                        const dist = 50 + Math.random() * radioGrande;
+                        const fx = Math.min(Math.max(demonlord.x + Math.cos(angulo) * dist, 50), 2950);
+                        const fy = Math.min(Math.max(demonlord.y + Math.sin(angulo) * dist, 50), 2950);
+                        flamas.push({ x: fx, y: fy });
+                    }
+
+                    demonlord.casteandoHechizo = true;
+    demonlord._hellActivo = true;
+    setTimeout(() => {
+        if (demonlord && demonlord._hellActivo) {
+            demonlord._hellActivo = false;
+            demonlord.casteandoHechizo = false;
+        }
+    }, 3500);
+    io.emit('demonlordHellInTheEarthMarcas', { flamas: flamas, radio: radio });
+
+                    setTimeout(() => { if (!demonlord.isAlive) { demonlord.casteandoHechizo = false; return; } const radioDano = 120;
+                            const golpeadosEsteHell = new Set();
+                            
+                            flamas.forEach((flama) => {
+                                // ─── JUGADORES ───
+                                for (let id in players) {
+                                    const p = players[id];
+                                    if (p && p.isAlive && !golpeadosEsteHell.has(id)) {
+                                        const d = getDistance(flama.x, flama.y, p.x, p.y);
+                                        if (d <= radioDano) {
+                                            golpeadosEsteHell.add(id);
+                                            let dañoFinal = calcularDañoFinal(id, dañoHechizo, 'magico', 'fuego');
+                                            if (Math.random() < 0.02) dañoFinal = Math.floor(dañoFinal * 3);
+                                            p.hp = Math.max(0, p.hp - dañoFinal);
+                                            emitirStatsJugador(id);
+                                            io.to(id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🔥 Hell in the Earth: -${dañoFinal} HP` });
+                                            if (p.hp <= 0) {
+                                                p.isAlive = false; if (p.muerteTimestamp === undefined || p.muerteTimestamp === null) p.muerteTimestamp = Date.now();
+                                                io.emit('playerDeath', { id: p.id, name: p.name, asesinoDemonlord: true });
+                                                demonlord._estaRiendoServer = true;
+                                                io.emit('demonlordRisa', { x: demonlord.x, y: demonlord.y, asesinoDemonlord: true });
+                                                setTimeout(() => { demonlord._estaRiendoServer = false; }, 2500);
+                                                setTimeout(() => revivirJugador(p.id), CONFIG.PLAYER.RESPAWN_TIME);
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // ─── ESQUELETOS ENEMIGOS ───
+                                esqueletos.forEach(e => {
+                                    if (!e.isAlive || e.isAlly) return;
+                                    if (golpeadosEsteHell.has(e.id)) return;
+                                    const d = getDistance(flama.x, flama.y, e.x, e.y);
+                                    if (d <= 200) console.log('🔥 [HELL DEBUG] Esqueleto ' + e.id + ' a ' + Math.floor(d) + 'px de flama (radio=' + radioDano + ')');
+                                    if (d <= radioDano) {
+                                        golpeadosEsteHell.add(e.id);
+                                        let dañoEsq = dañoHechizo;
+                                        if (Math.random() < 0.01) dañoEsq = Math.floor(dañoEsq * 3);
+                                        daniarEsqueleto(e, 'demonlord', dañoEsq, 'fuego');
+                                    }
+                                });
+                                
+                                // ─── INVOCADORES ───
+                                invocadores.forEach(inv => {
+                                    if (!inv.isAlive) return;
+                                    if (golpeadosEsteHell.has(inv.id)) return;
+                                    const d = getDistance(flama.x, flama.y, inv.x, inv.y);
+                                    if (d <= radioDano) {
+                                        golpeadosEsteHell.add(inv.id);
+                                        let dañoInv = dañoHechizo;
+                                        if (Math.random() < 0.01) dañoInv = Math.floor(dañoInv * 3);
+                                        daniarInvocador(inv.id, dañoInv, 'demonlord');
+                                    }
+                                });
+                                
+                                // ─── DEMONLORD ───
+                                if (demonlord.isAlive && demonlord.hp > 0 && !golpeadosEsteHell.has('demonlord')) {
+                                    const d = getDistance(flama.x, flama.y, demonlord.x, demonlord.y);
+                                    if (d <= radioDano + 20) {
+                                        golpeadosEsteHell.add('demonlord');
+                                        let dañoDl = dañoHechizo;
+                                        if (Math.random() < 0.01) dañoDl = Math.floor(dañoDl * 3);
+                                        demonlord.hp = Math.max(0, demonlord.hp - dañoDl);
+                                        io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: dañoDl, tipo: 'fuego' });
+                                    }
+                                }
+                            });
+                        io.emit('demonlordHellInTheEarthExplosion', { flamas: flamas, radio: radio, daño: dañoHechizo });
+                        _flamasHellGolpeadas = new Set(); // reset
+                        // 🔥 NO liberar casteandoHechizo acá: se libera en el setTimeout de 3500ms
+                    }, 1000);
+                    return;
+                }
+
+                const targetX = demonlord.hechizoX;
+                const targetY = demonlord.hechizoY;
+
+                for (let id in players) {
+                    const p = players[id];
+                    if (p && p.isAlive) {
+                        const d = getDistance(targetX, targetY, p.x, p.y);
+                        if (d <= 80) {
+                            let dañoFinal = calcularDañoFinal(id, dañoHechizo, 'magico', 'fuego');
+                            let esCritico = false;
+                            if (Math.random() < 0.02) { dañoFinal = Math.floor(dañoFinal * 3); esCritico = true; }
+                            p.hp = Math.max(0, p.hp - dañoFinal);
+                            emitirStatsJugador(id);
+                            if (esCritico) {
+                                io.to(id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `💥 ¡CRÍTICO! ${dañoFinal} daño (x3)` });
+                                io.to(id).emit('criticoDemonlord', { x: targetX, y: targetY, damage: dañoFinal });
+                            } else {
+                                io.to(id).emit('chatMessage', { type: 'system', name: 'Sistema', msg: `🔥 Hechizo del Demonlord: ${dañoFinal} daño` });
+                            }
+                            if (p.hp <= 0) {
+                                p.isAlive = false; if (p.muerteTimestamp === undefined || p.muerteTimestamp === null) p.muerteTimestamp = Date.now();
+                                io.emit('playerDeath', { id: p.id, name: p.name });
+                                setTimeout(() => revivirJugador(p.id), CONFIG.PLAYER.RESPAWN_TIME);
+                            }
+                        }
+                    }
+                }
+
+                                esqueletos.forEach(e => {
+                    if (!e.isAlive || e.isAlly || e.mapa !== 'principal') return;
+                    const d = getDistance(targetX, targetY, e.x, e.y);
+                    if (d <= 80) { daniarEsqueleto(e, 'demonlord', dañoHechizo, 'fuego'); }
+                });
+                invocadores.forEach(inv => {
+                    if (!inv.isAlive) return;
+                    const d = getDistance(targetX, targetY, inv.x, inv.y);
+                    if (d <= 80) { daniarInvocador(inv.id, dañoHechizo, 'demonlord'); }
+                });
+                if (demonlord.isAlive && demonlord.hp > 0) {
+                    const d = getDistance(targetX, targetY, demonlord.x, demonlord.y);
+                    if (d <= 130) {
+                        demonlord.hp = Math.max(0, demonlord.hp - dañoHechizo);
+                        io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: dañoHechizo, tipo: 'fuego' });
+                    }
+                }
+                
+                io.emit('demonlordHechizoExplosion', { x: targetX, y: targetY, radio: radio, daño: dañoHechizo });
+                demonlord.casteandoHechizo = false;
+            }, 1000);
+
+            return;
+        }
+    }
+
+    // 🔥 RESTAR COOLDOWN DEL HECHIZO
+    if (demonlord.hechizoCooldown > 0) demonlord.hechizoCooldown -= 100;
+
+    // ... (resto de la IA del Demonlord: moverse, atacar) ...
     let closest = null, closestDist = Infinity;
     for (let id in players) { let p = players[id]; if (p && p.isAlive && !estaEnZonaSegura(p.x, p.y) && (jugadoresEnMapa[id] || 'principal') === 'principal') { let d = getDistance(demonlord.x, demonlord.y, p.x, p.y); if (d < closestDist) { closestDist = d; closest = p; } } }
     if (!closest) { for (let e of esqueletos) { if (e.isAlive && e.mapa === 'principal') { let d = getDistance(demonlord.x, demonlord.y, e.x, e.y); if (d < closestDist) { closestDist = d; closest = e; } } } }
     if (!closest) return;
     const dx = closest.x - demonlord.x, dy = closest.y - demonlord.y, dist = Math.hypot(dx, dy);
     if (Math.abs(dx) > Math.abs(dy)) demonlord.dir = dx > 0 ? 'Derecha' : 'Izquierda'; else demonlord.dir = dy > 0 ? 'Abajo' : 'Arriba';
+
+    // 🛡️ FIX: no mover al Demonlord mientras esta ocupado (casteando, riendo, atacando)
+    const demonlordOcupado = demonlord.casteandoHechizo || demonlord._estaRiendoServer || demonlord._atacandoServer || demonlord._hellActivo;
+    if (demonlordOcupado) {
+        io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
+        if (demonlord.attackCooldown > 0) demonlord.attackCooldown -= 100;
+        return;
+    }
+
+
     if (dist < 400) {
         if (dist > 70) { const moveX = (dx/dist)*CONFIG.DEMONLORD.SPEED, moveY = (dy/dist)*CONFIG.DEMONLORD.SPEED; const newX = Math.min(Math.max(demonlord.x+moveX,50),2950), newY = Math.min(Math.max(demonlord.y+moveY,50),2950); if (!estaEnZonaSegura(newX, newY) && !colisionaConObjeto(newX,newY,50)) { demonlord.x = newX; demonlord.y = newY; } io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: true }); } else { io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false }); }
         if (demonlord.attackCooldown <= 0 && dist < 70) {
+            demonlord._atacandoServer = true;
             demonlord.attackCooldown = CONFIG.DEMONLORD.ATTACK_COOLDOWN;
-            io.emit('demonlordAtkVisual', { dir: demonlord.dir, esFuerte: Math.random()<0.2 });
             let hitbox = { x: demonlord.x - 25, y: demonlord.y + 10, w: 50, h: 30 };
             switch(demonlord.dir) { case 'Derecha': hitbox = { x: demonlord.x + 25, y: demonlord.y - 15, w: 45, h: 30 }; break; case 'Izquierda': hitbox = { x: demonlord.x - 70, y: demonlord.y - 15, w: 45, h: 30 }; break; case 'Arriba': hitbox = { x: demonlord.x - 25, y: demonlord.y - 60, w: 50, h: 30 }; break; case 'Abajo': hitbox = { x: demonlord.x - 25, y: demonlord.y + 10, w: 50, h: 30 }; break; }
             io.emit('demonlordAttack',{targetId:closest.id,damage:0,x:demonlord.x,y:demonlord.y,dir:demonlord.dir,hitbox:hitbox});
             const closestRef = closest, hitboxRef = hitbox;
             setTimeout(() => {
-                if (!demonlord.isAlive || !closestRef) return;
-                if (players[closestRef.id] && closestRef.hp <= 0) return;
-                if (!players[closestRef.id] && !closestRef.isAlive) return;
+                if (!demonlord.isAlive || !closestRef) { demonlord._atacandoServer = false; return; }
+                if (players[closestRef.id] && closestRef.hp <= 0) { demonlord._atacandoServer = false; return; }
+                if (!players[closestRef.id] && !closestRef.isAlive) { demonlord._atacandoServer = false; return; }
                 let objetivoBody;
                 if (players[closestRef.id]) { objetivoBody = { x: closestRef.x - 20, y: closestRef.y - 20, w: 40, h: 40 }; } else { objetivoBody = { x: closestRef.x - 20, y: closestRef.y - 20, w: 40, h: 40 }; }
-               if (rectanguloColisiona(hitboxRef, objetivoBody)) {
-                   if (players[closestRef.id]) {
+                if (rectanguloColisiona(hitboxRef, objetivoBody)) {
+                    if (players[closestRef.id]) {
                         const jugadorObj = players[closestRef.id];
-                        if (jugadorObj && jugadorObj.stats && jugadorObj.stats.destreza > 0) { const esquivaChance = 5 + (jugadorObj.stats.destreza||0); if (Math.random()*100 < esquivaChance) { io.to(closestRef.id).emit('chatMessage', { type:'system', name:'Sistema', msg:'Esquivaste el ataque del Demonlord!' }); io.emit('demonlordAttackMiss', { targetId: closestRef.id }); return; } }
+                        if (jugadorObj && jugadorObj.stats && jugadorObj.stats.destreza > 0) { const esquivaChance = 5 + (jugadorObj.stats.destreza||0); if (Math.random()*100 < esquivaChance) { io.to(closestRef.id).emit('chatMessage', { type:'system', name:'Sistema', msg:'Esquivaste el ataque del Demonlord!' }); io.emit('demonlordAttackMiss', { targetId: closestRef.id }); demonlord._atacandoServer = false; return; } }
                         let damage = calcularDañoFinal(closestRef.id, CONFIG.DEMONLORD.ATTACK_DAMAGE, 'fisico'); damage = Math.max(0, damage);
                         const j = players[closestRef.id];
                         if (j && tieneHachaLegendaria(j)) { j.contraGolpeContador = (j.contraGolpeContador||0)+1; j.contraGolpeDanioAcumulado = (j.contraGolpeDanioAcumulado||0)+damage; if (j.contraGolpeContador >= 10) { j.contraGolpeBonus = Math.floor(j.contraGolpeDanioAcumulado*0.15); j.contraGolpeCargado = true; io.emit('contraGolpeCargado', { playerId: j.id }); j.contraGolpeContador = 0; j.contraGolpeDanioAcumulado = 0; io.to(j.id).emit('chatMessage', { type:'system', name:'Sistema', msg:`Contra-golpe listo! +${j.contraGolpeBonus} de daño.` }); } }
                         let dañoReflejado = false;
                         if (j && j.className === 'CABALLERO') { const inv = inventariosJugadores[closestRef.id]; const escId = j.equipamiento?.escudo; if (escId && inv && inv.items) { const esc = inv.items.find(i => i.id === escId); if (esc && esc.nombre && esc.nombre.includes('Escudo Espejo')) { const prob = esc.nombre.includes('+++') ? 0.30 : (esc.nombre.includes('++') ? 0.20 : 0.15); if (Math.random() < prob) { demonlord.hp = Math.max(0, demonlord.hp - damage); io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: damage }); dañoReflejado = true; } } } }
-                        if (!dañoReflejado) { if (angelBloqueaDaño(closestRef.id)) { io.emit('angelAbsorbe', { jugadorId: closestRef.id, x: closestRef.x, y: closestRef.y }); return; } closestRef.hp = Math.max(0, closestRef.hp - damage); emitirStatsJugador(closestRef.id); }
+                        if (!dañoReflejado) { if (angelBloqueaDaño(closestRef.id)) { io.emit('angelAbsorbe', { jugadorId: closestRef.id, x: closestRef.x, y: closestRef.y }); demonlord._atacandoServer = false; return; } closestRef.hp = Math.max(0, closestRef.hp - damage); emitirStatsJugador(closestRef.id); }
                         io.emit('demonlordAttackHit', { targetId: closestRef.id, damage: dañoReflejado ? 0 : Math.max(0, Math.floor(damage)), golpeX: hitboxRef.x + hitboxRef.w/2, golpeY: hitboxRef.y + hitboxRef.h/2 });
-                        if (closestRef.hp <= 0) { closestRef.isAlive = false; io.emit('playerDeath', { id: closestRef.id, name: closestRef.name }); setTimeout(() => revivirJugador(closestRef.id), CONFIG.PLAYER.RESPAWN_TIME); }
-                    } else { closestRef.hp = Math.max(0, closestRef.hp - Math.floor(CONFIG.DEMONLORD.ATTACK_DAMAGE)); io.emit('demonlordAttackHit', { targetId: closestRef.id, damage: Math.floor(CONFIG.DEMONLORD.ATTACK_DAMAGE), golpeX: hitboxRef.x + hitboxRef.w/2, golpeY: hitboxRef.y + hitboxRef.h/2 }); if (closestRef.hp <= 0) { closestRef.isAlive = false; io.emit('esqueletoDeath', { id: closestRef.id, x: closestRef.x, y: closestRef.y, exp: CONFIG.SKELETON.EXP, attackers: ['demonlord'], dir: closestRef.dir || 'Abajo' }); } }
-                } else { io.emit('demonlordAttackMiss', { targetId: closestRef.id }); }
+                        if (closestRef.hp <= 0) {
+                            closestRef.isAlive = false; if (closestRef.muerteTimestamp === undefined || closestRef.muerteTimestamp === null) closestRef.muerteTimestamp = Date.now();
+                            io.emit('playerDeath', { id: closestRef.id, name: closestRef.name });
+                            demonlord._estaRiendoServer = true;
+                            io.emit('demonlordRisa', { x: demonlord.x, y: demonlord.y });
+                            setTimeout(() => { demonlord._estaRiendoServer = false; }, 2500);
+                            setTimeout(() => revivirJugador(closestRef.id), CONFIG.PLAYER.RESPAWN_TIME);
+                        }
+                    } else {
+                        io.emit('demonlordAttackMiss', { targetId: closestRef.id });
+                    }
+                } else {
+                    io.emit('demonlordAttackMiss', { targetId: closestRef.id });
+                }
+                demonlord._atacandoServer = false;
             }, 400);
         }
-    } else { io.emit('demonlordMoved',{x:demonlord.x,y:demonlord.y,dir:demonlord.dir,isMoving:false}); }
+    } else {
+        io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false });
+    }
+    // 🔥 NUEVO: Casteo a distancia extendido (400-600px) con cooldown más largo
+    if (!demonlord.flamaExtCooldown) demonlord.flamaExtCooldown = 0;
+    if (demonlord.flamaExtCooldown > 0) demonlord.flamaExtCooldown -= 100;
+    
+    if (demonlord.flamaExtCooldown <= 0 && !demonlord.casteandoHechizo && demonlord.isAlive) {
+        let objetivoFlamaExt = null;
+        let menorDistFlamaExt = 600;
+        for (let id in players) {
+            const p = players[id];
+            if (p && p.isAlive && !estaEnZonaSegura(p.x, p.y) && (jugadoresEnMapa[id] || 'principal') === 'principal') {
+                const d = getDistance(demonlord.x, demonlord.y, p.x, p.y);
+                if (d >= 400 && d < menorDistFlamaExt) {
+                    menorDistFlamaExt = d;
+                    objetivoFlamaExt = p;
+                }
+            }
+        }
+        if (objetivoFlamaExt) {
+            demonlord.casteandoHechizo = true;
+            demonlord.hechizoCooldown = 12000;
+            demonlord.hechizoX = objetivoFlamaExt.x;
+            demonlord.hechizoY = objetivoFlamaExt.y;
+            demonlord.hechizoTargetId = objetivoFlamaExt.id;
+            io.emit('demonlordHechizoCasteo', { x: demonlord.x, y: demonlord.y, targetX: objetivoFlamaExt.x, targetY: objetivoFlamaExt.y, targetId: objetivoFlamaExt.id });
+            console.log('🔥 [Demonlord] Casteando hechizo a distancia EXTENDIDA (' + Math.floor(menorDistFlamaExt) + 'px)');
+            setTimeout(() => {
+                if (!demonlord.isAlive) { demonlord.casteandoHechizo = false; return; }
+                const radio = 80;
+                const dañoHechizo = 300;
+                const targetX = demonlord.hechizoX;
+                const targetY = demonlord.hechizoY;
+                for (let id in players) {
+                    const p = players[id];
+                    if (p && p.isAlive) {
+                        const d = getDistance(targetX, targetY, p.x, p.y);
+                        if (d <= 80) {
+                            let dañoFinal = calcularDañoFinal(id, dañoHechizo, 'magico', 'fuego');
+                            p.hp = Math.max(0, p.hp - dañoFinal);
+                            emitirStatsJugador(id);
+                            if (p.hp <= 0) { p.isAlive = false; io.emit('playerDeath', { id: p.id, name: p.name }); setTimeout(() => revivirJugador(p.id), CONFIG.PLAYER.RESPAWN_TIME); }
+                        }
+                    }
+                }
+                esqueletos.forEach(e => {
+                    if (!e.isAlive || e.isAlly || e.mapa !== 'principal') return;
+                    const d = getDistance(targetX, targetY, e.x, e.y);
+                    if (d <= 80) { daniarEsqueleto(e, 'demonlord', dañoHechizo, 'fuego'); }
+                });
+                invocadores.forEach(inv => {
+                    if (!inv.isAlive) return;
+                    const d = getDistance(targetX, targetY, inv.x, inv.y);
+                    if (d <= 80) { daniarInvocador(inv.id, dañoHechizo, 'demonlord'); }
+                });
+                                esqueletos.forEach(e => {
+                    if (!e.isAlive || e.isAlly || e.mapa !== 'principal') return;
+                    const d = getDistance(targetX, targetY, e.x, e.y);
+                    if (d <= 80) { daniarEsqueleto(e, 'demonlord', dañoHechizo, 'fuego'); }
+                });
+                invocadores.forEach(inv => {
+                    if (!inv.isAlive) return;
+                    const d = getDistance(targetX, targetY, inv.x, inv.y);
+                    if (d <= 80) { daniarInvocador(inv.id, dañoHechizo, 'demonlord'); }
+                });
+                if (demonlord.isAlive && demonlord.hp > 0) {
+                    const d = getDistance(targetX, targetY, demonlord.x, demonlord.y);
+                    if (d <= 130) {
+                        demonlord.hp = Math.max(0, demonlord.hp - dañoHechizo);
+                        io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: dañoHechizo, tipo: 'fuego' });
+                    }
+                }
+                
+                io.emit('demonlordHechizoExplosion', { x: targetX, y: targetY, radio: radio, daño: dañoHechizo });
+                demonlord.casteandoHechizo = false;
+            }, 1000);
+            demonlord.flamaExtCooldown = 12000;
+        }
+    }
+
+    if (demonlord.flamaCooldown <= 0 && !demonlord.casteandoHechizo && demonlord.isAlive) {
+        let objetivoFlama = null;
+        let menorDistFlama = 400;
+        for (let id in players) {
+            const p = players[id];
+            if (p && p.isAlive && !estaEnZonaSegura(p.x, p.y) && (jugadoresEnMapa[id] || 'principal') === 'principal') {
+                const d = getDistance(demonlord.x, demonlord.y, p.x, p.y);
+                if (d >= 150 && d < menorDistFlama) { menorDistFlama = d; objetivoFlama = p; }
+            }
+        }
+        if (!objetivoFlama) {
+            for (let inv of invocadores) {
+                if (inv.isAlive) {
+                    const d = getDistance(demonlord.x, demonlord.y, inv.x, inv.y);
+                    if (d >= 150 && d < menorDistFlama) { menorDistFlama = d; objetivoFlama = inv; }
+                }
+            }
+        }
+        if (objetivoFlama) {
+            demonlord.casteandoHechizo = true;
+            demonlord.hechizoCooldown = 8000;
+            demonlord.hechizoX = objetivoFlama.x;
+            demonlord.hechizoY = objetivoFlama.y;
+            demonlord.hechizoTargetId = objetivoFlama.id;
+            io.emit('demonlordHechizoCasteo', { x: demonlord.x, y: demonlord.y, targetX: objetivoFlama.x, targetY: objetivoFlama.y, targetId: objetivoFlama.id });
+            console.log('🔥 [Demonlord] Casteando hechizo a distancia (' + Math.floor(menorDistFlama) + 'px)');
+            setTimeout(() => {
+                if (!demonlord.isAlive) { demonlord.casteandoHechizo = false; return; }
+                const radio = 80;
+                const dañoHechizo = 300;
+                const targetX = demonlord.hechizoX;
+                const targetY = demonlord.hechizoY;
+                for (let id in players) {
+                    const p = players[id];
+                    if (p && p.isAlive) {
+                        const d = getDistance(targetX, targetY, p.x, p.y);
+                        if (d <= 80) {
+                            let dañoFinal = calcularDañoFinal(id, dañoHechizo, 'magico', 'fuego');
+                            p.hp = Math.max(0, p.hp - dañoFinal);
+                            emitirStatsJugador(id);
+                            if (p.hp <= 0) { p.isAlive = false; io.emit('playerDeath', { id: p.id, name: p.name }); setTimeout(() => revivirJugador(p.id), CONFIG.PLAYER.RESPAWN_TIME); }
+                        }
+                    }
+                }
+                esqueletos.forEach(e => {
+                    if (!e.isAlive || e.isAlly || e.mapa !== 'principal') return;
+                    const d = getDistance(targetX, targetY, e.x, e.y);
+                    if (d <= 80) { daniarEsqueleto(e, 'demonlord', dañoHechizo, 'fuego'); }
+                });
+                invocadores.forEach(inv => {
+                    if (!inv.isAlive) return;
+                    const d = getDistance(targetX, targetY, inv.x, inv.y);
+                    if (d <= 80) { daniarInvocador(inv.id, dañoHechizo, 'demonlord'); }
+                });
+                                esqueletos.forEach(e => {
+                    if (!e.isAlive || e.isAlly || e.mapa !== 'principal') return;
+                    const d = getDistance(targetX, targetY, e.x, e.y);
+                    if (d <= 80) { daniarEsqueleto(e, 'demonlord', dañoHechizo, 'fuego'); }
+                });
+                invocadores.forEach(inv => {
+                    if (!inv.isAlive) return;
+                    const d = getDistance(targetX, targetY, inv.x, inv.y);
+                    if (d <= 80) { daniarInvocador(inv.id, dañoHechizo, 'demonlord'); }
+                });
+                if (demonlord.isAlive && demonlord.hp > 0) {
+                    const d = getDistance(targetX, targetY, demonlord.x, demonlord.y);
+                    if (d <= 130) {
+                        demonlord.hp = Math.max(0, demonlord.hp - dañoHechizo);
+                        io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: dañoHechizo, tipo: 'fuego' });
+                    }
+                }
+                
+                io.emit('demonlordHechizoExplosion', { x: targetX, y: targetY, radio: radio, daño: dañoHechizo });
+                demonlord.casteandoHechizo = false;
+            }, 1000);
+            demonlord.flamaCooldown = 8000;
+        }
+    }
+
+
         if(demonlord.attackCooldown>0)demonlord.attackCooldown-=100;
 }, 100);
-
 // ═══════════════════════════════════════════════════════════════
 // ═══ IA DE ESQUELETOS (sin cambios) ═══
 // ═══════════════════════════════════════════════════════════════
@@ -2007,15 +2397,16 @@ setInterval(() => {
                             io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: Math.max(0, Math.floor(damage)) });
                             io.emit('esqueletoAttackHit', { id: esqueletoRef.id, targetId: closestRef.id, damage: Math.max(0, Math.floor(damage)), espadaX: hitboxRef.x + hitboxRef.w/2, espadaY: hitboxRef.y + hitboxRef.h/2 });
                                 if (demonlord.hp <= 0) {
-                                demonlord.isAlive = false; registrarMuerteDemonlord();
+                                demonlord.isAlive = false; demonlord.hp = 0; demonlord.casteandoHechizo = false; demonlord._atacandoServer = false; demonlord._estaRiendoServer = false; demonlord._hellActivo = false; registrarMuerteDemonlord();
                                 const ownerId = esqueletoRef.ownerId;
                                 if (ownerId && players[ownerId]) { if (!demonlord.attackers) demonlord.attackers = []; if (!demonlord.attackers.includes(ownerId)) demonlord.attackers.push(ownerId); }
                                 if (Math.random() < 0.15) dropearItem(demonlord.x, demonlord.y, 'hachadehierroleg');
                                 if (demonlord.attackers && demonlord.attackers.length > 0) demonlord.attackers.forEach(a => darExpAJugadorYEquipo(a, CONFIG.DEMONLORD.EXP)); else if (ownerId) darExpAJugadorYEquipo(ownerId, CONFIG.DEMONLORD.EXP);
                                 for (let i = 0; i < 20; i++) { const ang = (i/20)*Math.PI*2; const dist2 = 60 + Math.random()*80; io.emit('crearMonedaServidor', { x: demonlord.x + Math.cos(ang)*dist2, y: demonlord.y + Math.sin(ang)*dist2, cantidad: Math.floor(Math.random()*50)+20 }); }
                                 if (Math.random() < 0.3) { const rand = Math.random(); if (rand < 0.03) dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_3'); else if (rand < 0.15) dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_2'); else dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_1'); }
+
                                 io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
-                                setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME);
+                                setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; demonlord.casteandoHechizo = false; demonlord._atacandoServer = false; demonlord._estaRiendoServer = false; demonlord._hellActivo = false; demonlord.hechizoCooldown = 0; demonlord.flamaCooldown = 0; demonlord.flamaExtCooldown = 0; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME);
                             }
                         } else if (esInvocador) {
                             daniarInvocador(closestRef.id, Math.max(0, Math.floor(damage)), esqueletoRef.ownerId);
@@ -2024,7 +2415,7 @@ setInterval(() => {
                             closestRef.hp = Math.max(0, closestRef.hp - damage);
                             io.emit('enemyDamaged', { id: closestRef.id, x: closestRef.x, y: closestRef.y, dmg: Math.max(0, Math.floor(damage)) });
                             io.emit('esqueletoAttackHit', { id: esqueletoRef.id, targetId: closestRef.id, damage: Math.max(0, Math.floor(damage)), espadaX: hitboxRef.x + hitboxRef.w/2, espadaY: hitboxRef.y + hitboxRef.h/2 });
-                            if (closestRef.hp <= 0) { closestRef.isAlive = false; io.emit('esqueletoDeath', { id: closestRef.id, x: closestRef.x, y: closestRef.y, exp: CONFIG.SKELETON.EXP, attackers: [esqueletoRef.ownerId].filter(Boolean), dir: closestRef.dir || 'Abajo' }); if (esqueletoRef.ownerId) darExpAJugadorYEquipo(esqueletoRef.ownerId, CONFIG.SKELETON.EXP); }
+                            if (closestRef.hp <= 0) { closestRef.isAlive = false; if (closestRef.muerteTimestamp === undefined || closestRef.muerteTimestamp === null) closestRef.muerteTimestamp = Date.now(); io.emit('esqueletoDeath', { id: closestRef.id, x: closestRef.x, y: closestRef.y, exp: CONFIG.SKELETON.EXP, attackers: [esqueletoRef.ownerId].filter(Boolean), dir: closestRef.dir || 'Abajo' }); if (esqueletoRef.ownerId) darExpAJugadorYEquipo(esqueletoRef.ownerId, CONFIG.SKELETON.EXP); }
                         }
                     } else { io.emit('esqueletoAttackMiss', { id: esqueletoRef.id, targetId: closestRef.id }); }
                 }, 400);
@@ -2061,12 +2452,17 @@ setInterval(() => {
                         if (angelBloqueaDaño(closestRef.id)) { io.emit('angelAbsorbe', { jugadorId: closestRef.id, x: closestRef.x, y: closestRef.y }); return; } closestRef.hp = Math.max(0, closestRef.hp - damage); emitirStatsJugador(closestRef.id);
                         if (j && j.className === 'CABALLERO') { const inv = inventariosJugadores[closestRef.id]; const escId = j.equipamiento?.escudo; if (escId && inv && inv.items) { const esc = inv.items.find(i => i.id === escId); if (esc && esc.nombre && esc.nombre.includes('Escudo Espejo')) { const prob = esc.nombre.includes('+++') ? 0.30 : (esc.nombre.includes('++') ? 0.20 : 0.15); if (Math.random() < prob) { const ese = esqueletos.find(e => e.id === esqueletoRef.id); if (ese) { ese.hp = Math.max(0, ese.hp - damage); io.emit('enemyDamaged', { id: ese.id, x: ese.x, y: ese.y, dmg: damage }); } } } } }
                     } else if (closestRef.id === 'demonlord') { damage = danioBase; closestRef.hp = Math.max(0, closestRef.hp - damage); }
-                    else if (closestRef.isAlly) { damage = danioBase; closestRef.hp = Math.max(0, closestRef.hp - damage); io.emit('enemyDamaged', { id: closestRef.id, x: closestRef.x, y: closestRef.y, dmg: Math.max(0, Math.floor(damage)) }); if (closestRef.hp <= 0) { closestRef.isAlive = false; io.emit('esqueletoDeath', { id: closestRef.id, x: closestRef.x, y: closestRef.y, exp: 0, attackers: [], dir: closestRef.dir || 'Abajo' }); } }
+                    else if (closestRef.isAlly) { damage = danioBase; closestRef.hp = Math.max(0, closestRef.hp - damage); io.emit('enemyDamaged', { id: closestRef.id, x: closestRef.x, y: closestRef.y, dmg: Math.max(0, Math.floor(damage)) }); if (closestRef.hp <= 0) { closestRef.isAlive = false; if (closestRef.muerteTimestamp === undefined || closestRef.muerteTimestamp === null) closestRef.muerteTimestamp = Date.now(); io.emit('esqueletoDeath', { id: closestRef.id, x: closestRef.x, y: closestRef.y, exp: 0, attackers: [], dir: closestRef.dir || 'Abajo' }); } }
                     else if (invocadores.find(i => i.id === closestRef.id)) { damage = danioBase; daniarInvocador(closestRef.id, damage, esqueletoRef.ownerId); }
                     io.emit('esqueletoAttackHit', { id: esqueletoRef.id, targetId: closestRef.id, damage: Math.max(0, Math.floor(damage)), espadaX: hitboxRef.x + hitboxRef.w/2, espadaY: hitboxRef.y + hitboxRef.h/2 });
                     if (closestRef.hp <= 0) {
-                        if (closestRef.id === 'demonlord') { closestRef.isAlive = false; io.emit('demonlordDeath', { x: closestRef.x, y: closestRef.y }); setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME); }
-                        else if (players[closestRef.id]) { closestRef.isAlive = false; io.emit('playerDeath', { id: closestRef.id, name: closestRef.name }); setTimeout(() => revivirJugador(closestRef.id), CONFIG.PLAYER.RESPAWN_TIME); }
+
+                        if (closestRef.id === 'demonlord') { closestRef.isAlive = false; if (closestRef.muerteTimestamp === undefined || closestRef.muerteTimestamp === null) closestRef.muerteTimestamp = Date.now(); io.emit('demonlordDeath', { x: closestRef.x, y: closestRef.y }); setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME); }
+                        else if (players[closestRef.id]) { closestRef.isAlive = false; if (closestRef.muerteTimestamp === undefined || closestRef.muerteTimestamp === null) closestRef.muerteTimestamp = Date.now(); io.emit('playerDeath', { id: closestRef.id, name: closestRef.name });
+                            demonlord._estaRiendoServer = true;
+                            io.emit('demonlordRisa', { x: demonlord.x, y: demonlord.y });
+                            setTimeout(() => { demonlord._estaRiendoServer = false; }, 2500);
+                        }
                     }
                 } else { io.emit('esqueletoAttackMiss', { id: esqueletoRef.id, targetId: closestRef.id }); }
             }, 400);
@@ -2074,7 +2470,6 @@ setInterval(() => {
         if (e.attackCooldown > 0) e.attackCooldown -= 100;
     });
 }, 150);
-
 setInterval(() => { const vivos = esqueletos.filter(e => e.isAlive).length; console.log(`Esqueletos vivos: ${vivos}/50`); }, 10000);
 setInterval(() => { if (demonlord.isAlive && Math.random() < 0.3) io.emit('demonlordAtkVisual', { dir: demonlord.dir, esFuerte: Math.random() < 0.3 }); }, 2000);
 setInterval(() => { esqueletos.forEach(e => { e.damageBonus = 0; }); }, 1000);
@@ -2859,14 +3254,15 @@ if (j.buffs && j.buffs.atkMagico && Date.now() < j.buffs.atkMagico.fin) {
                 io.emit('playerAttackHit', { playerId: socket.id, targetId: 'demonlord', hitbox: hitbox, damage: dmg });
                 golpeo = true;
                 if (demonlord.hp <= 0) {
-                    demonlord.isAlive = false; demonlord.aturdido = false; registrarMuerteDemonlord();
+                    demonlord.isAlive = false; demonlord.hp = 0; demonlord.casteandoHechizo = false; demonlord._atacandoServer = false; demonlord._estaRiendoServer = false; demonlord._hellActivo = false; registrarMuerteDemonlord();
                     if (Math.random() < 0.15) dropearItem(demonlord.x, demonlord.y, 'hachadehierroleg');
                     if (demonlord.attackers && demonlord.attackers.length > 0) demonlord.attackers.forEach(a => darExpAJugadorYEquipo(a, CONFIG.DEMONLORD.EXP));
                     else darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP);
                     for (let i = 0; i < 20; i++) { const ang = (i/20)*Math.PI*2; const dist = 60 + Math.random()*80; io.emit('crearMonedaServidor', { x: demonlord.x + Math.cos(ang)*dist, y: demonlord.y + Math.sin(ang)*dist, cantidad: aplicarOroExtra(socket.id, Math.floor(Math.random()*50)+20) }); }
                     if (Math.random() < 0.3) { const rand = Math.random(); if (rand < 0.03) dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_3'); else if (rand < 0.15) dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_2'); else dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_1'); }
+
                     io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
-                    setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; demonlord.aturdido = false; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME);
+                    setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; demonlord.casteandoHechizo = false; demonlord._atacandoServer = false; demonlord._estaRiendoServer = false; demonlord._hellActivo = false; demonlord.hechizoCooldown = 0; demonlord.flamaCooldown = 0; demonlord.flamaExtCooldown = 0; demonlord.aturdido = false; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME);
                 }
             }
         }
@@ -2925,7 +3321,7 @@ if (j.buffs && j.buffs.atkMagico && Date.now() < j.buffs.atkMagico.fin) {
 socket.on('playerMurio', (data) => {
     const j = players[data.id];
     if (j && j.isAlive) {
-        j.isAlive = false; j.hp = 0;
+        j.isAlive = false; j.hp = 0; if (!j.muerteTimestamp) j.muerteTimestamp = Date.now(); if (!j._respawnTimerActivo) { j._respawnTimerActivo = true; console.log(`⏱️ [RESPAWN] Timer arrancado para ${j.name} (${CONFIG.PLAYER.RESPAWN_TIME/1000}s)`); setTimeout(() => { const jj = players[j.id]; if (jj) { jj._respawnTimerActivo = false; if (!jj.isAlive) { console.log(`✨ [RESPAWN] Reviviendo a ${jj.name}`); revivirJugador(jj.id); } } }, CONFIG.PLAYER.RESPAWN_TIME); }
         io.emit('playerDeath', { id: data.id, name: j.name });
         emitirStatsJugador(data.id);   // ⬅️ SOLO AGREGAR ESTA LÍNEA
         esqueletos.forEach(e => { if (e.targetId === data.id) { e.targetId = null; e.targetType = null; } });
@@ -2940,7 +3336,7 @@ socket.on('playerMurio', (data) => {
     socket.on('playerRespawn', (data) => { if (data.id === socket.id) revivirJugador(socket.id); });
 
     socket.on('demonlordHit', (data) => {
-        if (!demonlord.isAlive) return;
+        if (!demonlord.isAlive) { demonlord.casteandoHechizo = false; demonlord._atacandoServer = false; demonlord._estaRiendoServer = false; return; }
         const j = players[socket.id];
         if (!j || !j.isAlive) return;
         if (!demonlord.attackers) demonlord.attackers = [];
@@ -2958,14 +3354,15 @@ socket.on('playerMurio', (data) => {
             if (armaId) { const inv = inventariosJugadores[socket.id]; if (inv) { const arma = inv.items.find(i => i.id === armaId); if (arma && (arma.idBase === 'bastonderayoleg' || arma.nombre === 'Baston de Rayo Legendario')) { if (Math.random() < 0.15) { aplicarAturdimiento('demonlord', 5); io.emit('chatMessage', { type: 'system', name: 'Sistema', msg: `${j.name} aplico ATURDIMIENTO al Demonlord!` }); } } } }
         }
         if (demonlord.hp <= 0) {
-            demonlord.isAlive = false; demonlord.aturdido = false; registrarMuerteDemonlord();
+            demonlord.isAlive = false; demonlord.hp = 0; demonlord.casteandoHechizo = false; demonlord._atacandoServer = false; demonlord._estaRiendoServer = false; demonlord._hellActivo = false; registrarMuerteDemonlord();
             if (Math.random() < 0.15) dropearItem(demonlord.x, demonlord.y, 'hachadehierroleg');
             if (demonlord.attackers && demonlord.attackers.length > 0) demonlord.attackers.forEach(a => darExpAJugadorYEquipo(a, CONFIG.DEMONLORD.EXP));
             else darExpAJugadorYEquipo(socket.id, CONFIG.DEMONLORD.EXP);
             for (let i = 0; i < 20; i++) { const ang = (i/20)*Math.PI*2; const dist = 60 + Math.random()*80; io.emit('crearMonedaServidor', { x: demonlord.x + Math.cos(ang)*dist, y: demonlord.y + Math.sin(ang)*dist, cantidad: aplicarOroExtra(socket.id, Math.floor(Math.random()*50)+20) }); }
             if (Math.random() < 0.3) { const rand = Math.random(); if (rand < 0.03) dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_3'); else if (rand < 0.15) dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_2'); else dropearItem(demonlord.x+(Math.random()-0.5)*80, demonlord.y+(Math.random()-0.5)*80, 'hachadehierro_1'); }
+
             io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
-            setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; demonlord.aturdido = false; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME);
+            setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; demonlord.casteandoHechizo = false; demonlord._atacandoServer = false; demonlord._estaRiendoServer = false; demonlord._hellActivo = false; demonlord.hechizoCooldown = 0; demonlord.flamaCooldown = 0; demonlord.flamaExtCooldown = 0; demonlord.aturdido = false; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME);
         }
     });
 
@@ -3675,9 +4072,10 @@ socket.on('absolutoHit', (data) => {
             io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: danoBase, tipo: 'hielo' });
             aplicarCongelamiento('demonlord', 5000, socket.id, 'absoluto');
             if (demonlord.hp <= 0) {
-                demonlord.isAlive = false; registrarMuerteDemonlord();
+                demonlord.isAlive = false; demonlord.hp = 0; demonlord.casteandoHechizo = false; demonlord._atacandoServer = false; demonlord._estaRiendoServer = false; demonlord._hellActivo = false; registrarMuerteDemonlord();
+
                 io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
-                setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; demonlord.congelado = false; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME);
+                setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; demonlord.casteandoHechizo = false; demonlord._atacandoServer = false; demonlord._estaRiendoServer = false; demonlord._hellActivo = false; demonlord.hechizoCooldown = 0; demonlord.flamaCooldown = 0; demonlord.flamaExtCooldown = 0; demonlord.congelado = false; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME);
             }
         } else if (a.tipo === 'invocador') {
             daniarInvocador(a.obj.id, danoBase, socket.id);
@@ -3718,9 +4116,10 @@ socket.on('meteoroHit', (data) => {
             io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: danoFinal, tipo: 'fuego' });
             aplicarQuemadura('demonlord', quemaduraBase, 5);
             if (demonlord.hp <= 0) {
-                demonlord.isAlive = false; registrarMuerteDemonlord();
+                demonlord.isAlive = false; demonlord.hp = 0; demonlord.casteandoHechizo = false; demonlord._atacandoServer = false; demonlord._estaRiendoServer = false; demonlord._hellActivo = false; registrarMuerteDemonlord();
+
                 io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
-                setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME);
+                setTimeout(() => { demonlord.hp = CONFIG.DEMONLORD.MAX_HP; demonlord.isAlive = true; demonlord.x = 1500; demonlord.y = 1500; demonlord.attackers = []; demonlord.casteandoHechizo = false; demonlord._atacandoServer = false; demonlord._estaRiendoServer = false; demonlord._hellActivo = false; demonlord.hechizoCooldown = 0; demonlord.flamaCooldown = 0; demonlord.flamaExtCooldown = 0; io.emit('demonlordRespawn', { x: demonlord.x, y: demonlord.y }); }, CONFIG.DEMONLORD.RESPAWN_TIME);
             }
         }
         else if (a.tipo === 'invocador') { daniarInvocador(a.obj.id, danoFinal, socket.id); aplicarQuemadura(a.obj.id, quemaduraBase, 5); }
@@ -3814,7 +4213,8 @@ socket.on('meteoroHit', (data) => {
                 io.emit('enemyDamaged', { id: 'demonlord', x: demonlord.x, y: demonlord.y, dmg: danoBase, hp: demonlord.hp });
                 impactos++;
                 if (demonlord.hp <= 0) {
-                    demonlord.isAlive = false; demonlord.aturdido = false; registrarMuerteDemonlord();
+                    demonlord.isAlive = false; demonlord.hp = 0; demonlord.casteandoHechizo = false; demonlord._atacandoServer = false; demonlord._estaRiendoServer = false; demonlord._hellActivo = false; registrarMuerteDemonlord();
+
                     io.emit('demonlordDeath', { x: demonlord.x, y: demonlord.y, attackers: demonlord.attackers || [] });
                     setTimeout(() => {
                         demonlord.hp = CONFIG.DEMONLORD.MAX_HP;
@@ -4254,7 +4654,48 @@ socket.on('solicitarJugadoresActuales', () => {
         if (j) { j.contraGolpeCargado = false; j.contraGolpeBonus = 0; io.emit('contraGolpeUsado', { playerId: socket.id }); }
     });
 
-    // ═══ DESCONEXIÓN ═══
+    // ❄️ Congelar enemigos en el radio de Absoluto (fase 1)
+    socket.on('absolutoCongelar', (data) => {
+        if (!data || !data.targetX || !data.targetY) return;
+        const j = players[socket.id];
+        if (!j || !j.isAlive) return;
+        const radio = data.radio || 80;
+        const ahora = Date.now();
+
+        // Congelar esqueletos
+        esqueletos.forEach(e => {
+            if (!e.isAlive || e.isAlly) return;
+            const dist = getDistance(data.targetX, data.targetY, e.x, e.y);
+            if (dist <= radio) {
+                estadosCongelados[e.id] = { fin: ahora + 7000, atacanteId: socket.id, skillId: 'absoluto' };
+                e.congelado = true;
+                io.emit('esqueletoMoved', { id: e.id, x: e.x, y: e.y, dir: e.dir, isMoving: false, congelado: true });
+            }
+        });
+
+        // Congelar invocadores
+        invocadores.forEach(inv => {
+            if (!inv.isAlive) return;
+            const dist = getDistance(data.targetX, data.targetY, inv.x, inv.y);
+            if (dist <= radio) {
+                estadosCongelados[inv.id] = { fin: ahora + 7000, atacanteId: socket.id, skillId: 'absoluto' };
+                inv.congelado = true;
+                io.emit('invocadorMoved', { id: inv.id, x: inv.x, y: inv.y, dir: inv.dir, isMoving: false, estado: 'idle', congelado: true });
+            }
+        });
+
+        // Congelar Demonlord
+        if (demonlord.isAlive) {
+            const dist = getDistance(data.targetX, data.targetY, demonlord.x, demonlord.y);
+            if (dist <= radio + 20) {
+                estadosCongelados['demonlord'] = { fin: ahora + 7000, atacanteId: socket.id, skillId: 'absoluto' };
+                demonlord.congelado = true;
+                io.emit('demonlordMoved', { x: demonlord.x, y: demonlord.y, dir: demonlord.dir, isMoving: false, congelado: true });
+            }
+        }
+    });
+
+    // ═══ DESCONEXIÓN ═══// ═══ DESCONEXIÓN ═══
 socket.on('disconnect', () => {
     try { (() => { const persistirInventariosPorNombre = {}; for (let _sid in inventariosJugadores) { const _inv = inventariosJugadores[_sid]; if (_inv && _inv._nombreJugador) persistirInventariosPorNombre[_inv._nombreJugador] = _inv; } fs.writeFileSync(INVENTARIOS_FILE, JSON.stringify(persistirInventariosPorNombre, null, 2)); })(); } catch(e) {}
     try { fs.writeFileSync(PILARES_FILE, JSON.stringify(pilares, null, 2)); } catch(e) {}
@@ -4716,5 +5157,79 @@ function quitarSublider(socketId, targetSocketId) {
     io.to(targetSocketId).emit('mensaje', `❌ Ya no sos sublíder de "${liga.nombre}"`);
     io.to(socketId).emit('sublideresActualizados', { sublíderes: liga.sublíderes.map(id => ({ socketId: id, nombre: players[id]?.name || '???' })) });
 }
+// ═══════════════════════════════════════════════════════════════
+// 🔥 NUEVOS LISTENERS GLOBALES (agregados por fix de respawn)
+// ═══════════════════════════════════════════════════════════════
+
+// Listener de estado propio (para diagnóstico)
+io.on('connection', (socket) => {
+    socket.on('solicitarEstadoPropio', () => {
+        const j = players[socket.id];
+        if (!j) {
+            socket.emit('estadoPropio', { existe: false });
+            return;
+        }
+        socket.emit('estadoPropio', {
+            existe: true,
+            id: socket.id,
+            name: j.name,
+            className: j.className,
+            isAlive: j.isAlive,
+            hp: j.hp,
+            maxHp: j.maxHp,
+            mana: j.mana,
+            maxMana: j.maxMana,
+            x: j.x,
+            y: j.y,
+            respawnTime: CONFIG.PLAYER.RESPAWN_TIME,
+            _respawnTimerActivo: j._respawnTimerActivo || false,
+            muerteTimestamp: j.muerteTimestamp || null
+        });
+    });
+    
+    // Listener de FORZAR RESPAWN (botón de pánico)
+    socket.on('forzarRespawn', () => {
+        const j = players[socket.id];
+        if (!j) { socket.emit('mensaje', '❌ Jugador no existe'); return; }
+        console.log(`🔧 [FORZAR RESPAWN] ${j.name} pidió revivir`);
+        j.isAlive = true;
+        j.muerteTimestamp = null;
+        j._respawnTimerActivo = false;
+        recalcularMaxHp(socket.id);
+        j.hp = j.maxHp;
+        j.mana = j.maxMana || 100;
+        j.aguante = j.maxAguante || 100;
+        j.x = 857;
+        j.y = 1197;
+        io.emit('playerRespawn', { id: socket.id, x: 857, y: 1197 });
+        emitirStatsJugador(socket.id);
+        socket.emit('mensaje', '✅ Respawn forzado');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 🔥 RED DE SEGURIDAD: revivir jugadores muertos automáticamente
+//    Cada 5s revisa si algún jugador lleva más de RESPAWN_TIME muerto
+// ═══════════════════════════════════════════════════════════════
+setInterval(() => {
+    const ahora = Date.now();
+    for (let id in players) {
+        const j = players[id];
+        if (!j || j.isAlive) continue;
+        // Marcar timestamp si no existe
+        if (!j.muerteTimestamp) {
+            j.muerteTimestamp = ahora;
+            continue;
+        }
+        // Si lleva más de RESPAWN_TIME + 2s muerto, revivirlo
+        if (ahora - j.muerteTimestamp > CONFIG.PLAYER.RESPAWN_TIME + 2000) {
+            console.log(`🔄 [RESPAWN SEGURIDAD] Reviviendo a ${j.name} (llevaba ${Math.floor((ahora - j.muerteTimestamp)/1000)}s muerto)`);
+            j._respawnTimerActivo = false;
+            j.muerteTimestamp = null;
+            revivirJugador(id);
+        }
+    }
+}, 5000);
+
 const PORT = process.env.PORT || 10000;
 http.listen(PORT, '0.0.0.0', () => console.log(`DEVILAND - Puerto ${PORT}`));
